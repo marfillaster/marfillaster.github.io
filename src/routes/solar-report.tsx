@@ -2,6 +2,7 @@ import type { MetaFunction } from "react-router";
 import { Link } from "react-router";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
+import { ShareLinks } from "../components/share";
 
 const title =
   "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Apr 2026)";
@@ -249,6 +250,8 @@ export default function SolarReport() {
             qualified solar professional before acting on them.
           </p>
         </section>
+
+        <ShareLinks url={url} title={title} />
 
         <Comments />
       </div>

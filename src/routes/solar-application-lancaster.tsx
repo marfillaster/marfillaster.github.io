@@ -4,6 +4,7 @@ import Post from "../content/solar-application-lancaster.mdx";
 import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
+import { ShareLinks } from "../components/share";
 
 const title =
   "Solar Panel Installation Application Guide for Lancaster New City";
@@ -116,6 +117,8 @@ export default function SolarApplicationLancaster() {
         <MDXProvider components={mdxComponents}>
           <Post />
         </MDXProvider>
+
+        <ShareLinks url={url} title={title} />
 
         <Comments />
       </div>

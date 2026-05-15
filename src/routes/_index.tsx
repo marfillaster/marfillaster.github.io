@@ -21,14 +21,8 @@ export const meta: MetaFunction = () => [
   { tagName: "link", rel: "canonical", href: url },
 ];
 
+// Newest first, by publish date.
 const posts = [
-  {
-    href: "/solar-application-lancaster/",
-    eyebrow: "Guide · 2025-12",
-    title: "Solar Panel Installation Application Guide for Lancaster New City",
-    description:
-      "The exact CIDC documents to prepare before installing solar panels on your Lancaster New City unit — with a copy-ready Letter of Intent template, where to submit, and how to get your gate pass on the same visit.",
-  },
   {
     href: "/net-metering-general-trias/",
     eyebrow: "Field log · 2026-05",
@@ -44,6 +38,13 @@ const posts = [
       "VLANs, a UniFi controller running on the router itself, routed IPv6 over WireGuard, and encrypted DNS. Reproducible, paste-ready snippets for the MikroTik RB5009.",
   },
   {
+    href: "/nev-mileage/",
+    eyebrow: "Case study · 2026-05",
+    title: "BYD Sealion 6 PHEV running cost — Cavite, Philippines",
+    description:
+      "5,123 km of odometer- and meter-tracked driving: electric-vs-fuel running cost, 63% EV usage split, combined 6.0 L/100km efficiency, and battery health.",
+  },
+  {
     href: "/solar-report/",
     eyebrow: "Case study · 2026-04",
     title: "Residential 6.5 kWp solar performance — Cavite, Philippines",
@@ -51,11 +52,11 @@ const posts = [
       "Five months of real generation, self-sufficiency, battery behavior, and bill impact from a 6.5 kWp / 14.3 kWh / 8 kW system, with monthly tariff math and ROI payback.",
   },
   {
-    href: "/nev-mileage/",
-    eyebrow: "Case study · 2026-05",
-    title: "BYD Sealion 6 PHEV running cost — Cavite, Philippines",
+    href: "/solar-application-lancaster/",
+    eyebrow: "Guide · 2025-12",
+    title: "Solar Panel Installation Application Guide for Lancaster New City",
     description:
-      "5,123 km of odometer- and meter-tracked driving: electric-vs-fuel running cost, 63% EV usage split, combined 6.0 L/100km efficiency, and battery health.",
+      "The exact CIDC documents to prepare before installing solar panels on your Lancaster New City unit — with a copy-ready Letter of Intent template, where to submit, and how to get your gate pass on the same visit.",
   },
 ] as const;
 

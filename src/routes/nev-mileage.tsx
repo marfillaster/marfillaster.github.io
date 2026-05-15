@@ -2,6 +2,7 @@ import type { MetaFunction } from "react-router";
 import { Link } from "react-router";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
+import { ShareLinks } from "../components/share";
 import { ogVersion } from "../content/nev-og-version";
 
 const title =
@@ -266,6 +267,8 @@ export default function NevMileage() {
             reporting without independent verification.
           </p>
         </section>
+
+        <ShareLinks url={url} title={title} />
 
         <Comments />
       </div>
