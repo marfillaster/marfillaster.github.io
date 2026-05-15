@@ -107,6 +107,9 @@ export default function MikrotikHomeNetwork() {
             over WireGuard, and encrypted DNS. Each section stands alone; pick
             the parts that match your situation.
           </p>
+          <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
+            <time dateTime={datePublished}>Published 15 May 2026</time>
+          </p>
         </article>
 
         <TableOfContents items={navItems} />

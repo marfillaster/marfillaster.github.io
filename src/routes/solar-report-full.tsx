@@ -88,6 +88,9 @@ export default function SolarReportFull() {
             Detailed monthly generation, self-sufficiency, ROI, battery health,
             and grid feed-in figures for a 6.5 kWp / 14.3 kWh / 8 kW system.
           </p>
+          <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
+            <time dateTime={datePublished}>Published 1 May 2026</time>
+          </p>
           <p className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
             <a
               href="/solar-report/"

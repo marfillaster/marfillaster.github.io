@@ -4,11 +4,11 @@ Based on analysis of solar data from 2025-12 to 2026-04 (150 days).
 
 ## Executive Summary
 
-Your 6.5 kWp Cavite system is performing well across five months. Self-sufficiency climbed from 54% in December to a peak of 76% in March, then dipped to 68% in April as household consumption jumped sharply (avg daily load rose from ~29 to ~39 kWh, +33% month-over-month). **Important context the user clarified:** the PHEV was in the shop for all of April, so the load surge is not from EV charging — it is the second AC unit running nearly 24/7 because the user's daughter was home for summer break. The 12 days the detector flagged as "EV days" in April are actually high-AC days. At ₱15/kWh and 56% feed-in, the system is on track to cut your annual electricity bill by ~₱116k (~69%), giving a simple payback of ~3.5 years on the ₱400k investment, or ~3.1 years from today.
+The 6.5 kWp Cavite system is performing well across five months. Self-sufficiency climbed from 54% in December to a peak of 76% in March, then dipped to 68% in April when household consumption jumped sharply (avg daily load rose from ~29 to ~39 kWh, +33% month-over-month). The April story is its own pattern — the PHEV was off the road that month, so the load surge is the second AC unit, not vehicle charging — and is broken out in [Recommendation 1B](#1b-manage-the-second-ac-unit-during-summer-break-april-pattern). At ₱15/kWh and 56% feed-in, the system is on track to cut the annual electricity bill by ~₱116k (~69%), giving a simple payback of ~3.5 years on the ₱400k investment, or ~3.1 years from today.
 
-For Dec–Mar, the highest-impact lever is shifting PHEV charging earlier into the solar window (Dec–Mar EV days average ~19.5 kWh import vs ~7.3 kWh on non-EV days). For April specifically — and for any future summer-break stretch when the second AC runs continuously — the highest-impact lever shifts to AC management (see Recommendation 1B).
+The two highest-impact behavioural levers are split by season. For Dec–Mar, shift PHEV charging earlier into the solar window (Dec–Mar EV days average ~19.5 kWh import vs ~7.3 kWh on non-EV days). For April–May summer-break stretches when the second AC runs continuously, manage the AC schedule (see Recommendation 1B).
 
-No equipment fault is visible. Peak PV reached 5.4 kW (68% of inverter capacity), there is zero clipping, and battery round-trip efficiency stays in the healthy 94–98% band. One day worth flagging: 2026-01-02 generated only 4.7 kWh against an expected ~17.8 kWh — confirm against weather/inverter logs.
+No equipment fault is visible. Peak PV reached 5.4 kW (68% of inverter capacity), there is zero clipping, and battery round-trip efficiency stays in the healthy 94–98% band. One day worth flagging: 2026-01-02 generated only 4.7 kWh against an expected ~17.8 kWh — worth checking against weather/inverter logs.
 
 The system is projected to avoid ~4.7 tonnes of CO₂ per year, equivalent to ~216 trees or ~22,600 km of car driving.
 
@@ -17,7 +17,7 @@ The system is projected to avoid ~4.7 tonnes of CO₂ per year, equivalent to ~2
 - **Location**: Cavite, Philippines (tropical, ~14°N)
 - **PV capacity**: 6.5 kWp, inverter: 8.0 kW AC (DC/AC ratio: 0.81)
 - **Battery**: 14.3 kWh nominal, ~14.3 kWh estimated usable (SOC range ~20%–86%)
-- **EV/PHEV**: PHEV present (in the shop all of April 2026 — no home charging that month); 37 days flagged by the EV-day detector across 150 full days, but the 12 April flags are actually heavy-AC days, not EV charging
+- **EV/PHEV**: PHEV present (off the road for all of April 2026 — no home charging that month); the EV-day detector flagged 37 of 150 full days, but the 12 April flags are actually heavy-AC days, not EV charging (see [EV Detection](#ev-detection))
 - **Tariff**: Flat rate at ₱15/kWh
 - **Feed-in tariff**: 56% of import rate (~₱8.40/kWh credit)
 
@@ -53,18 +53,18 @@ What is happening now: solar output peaks 11:00–13:00, with average peak ~3.5 
 
 Why it is suboptimal: non-EV days average ~7.3 kWh of import; EV days average ~19.5 kWh. That ~12 kWh/day delta is the vehicle being charged after the PV peak has passed.
 
-What to change: when the PHEV is back from the shop, schedule the EVSE (or PHEV's onboard timer) to charge between roughly 10:00 and 14:00. Even partial improvement compounds: the analysis identifies ~1.7 kWh/day of avoidable import as an upper-bound flexible-load opportunity, ~₱9,300/year. Moving half of charging into the noon window also flattens the evening grid peak and reduces battery deep-discharge stress.
+What to change: when the PHEV is back on the road, schedule the EVSE (or the car's onboard timer) to charge between roughly 10:00 and 14:00. Even partial improvement compounds: the analysis identifies ~1.7 kWh/day of avoidable import as an upper-bound flexible-load opportunity, ~₱9,300/year. Moving half of charging into the noon window also flattens the evening grid peak and reduces battery deep-discharge stress.
 
-Implementation: most modern PHEVs let you set a "depart by" time or a charging window in the car's settings. If the EVSE has its own scheduler, set it there as a fail-safe. On rainy days, override and charge whenever you can.
+Implementation: most modern PHEVs let you set a "depart by" time or a charging window in the car's settings. If the EVSE has its own scheduler, set it there as a fail-safe. On rainy days, override and charge whenever the panels can carry it.
 
 ### 1B. Manage the second AC unit during summer break (April pattern)
 
-What is happening now: April load jumped to ~39 kWh/day (+33% vs March) because the second AC unit ran nearly 24/7 with your daughter home. The 12 April days flagged as "EV days" are this AC pattern, not vehicle charging. Self-sufficiency dropped from 76% (March) to 68% (April) even though PV generation actually held flat — the system simply could not keep up with continuous AC.
+What is happening now: April load jumped to ~39 kWh/day (+33% vs March) because the second AC unit ran nearly 24/7 while our daughter was home for summer break. The PHEV was off the road for the whole month, so all 12 April days the EV-day detector flagged are this AC pattern, not vehicle charging. Self-sufficiency dropped from 76% (March) to 68% (April) even though PV generation held flat — the system simply could not keep up with continuous AC.
 
 Why it matters: summer break is recurring (every April–May), so this pattern will likely repeat each year. With one AC running through the night, the battery is being asked to cover what the panels cannot — and overnight AC load goes straight to grid once the battery is depleted. Continuous AC also tends to be the single largest discretionary load in the home.
 
 What to change — in priority order:
-1. **Pre-cool during the solar peak (11:00–14:00)** and let the room coast warmer afterward. Solar is essentially free at noon (you are exporting at half-rate); using it directly to drop the room 1–2 °C below your target gives you a thermal buffer that reduces afternoon/evening compressor runtime.
+1. **Pre-cool during the solar peak (11:00–14:00)** and let the room coast warmer afterward. Solar is essentially free at noon (we are exporting at half-rate); using it directly to drop the room 1–2 °C below the target gives a thermal buffer that reduces afternoon/evening compressor runtime.
 2. **Raise the overnight setpoint by 1–2 °C** if comfort allows. Each °C typically cuts AC consumption by ~5–10%. Overnight AC is the highest-cost kWh in the system because it lands entirely on grid import after the battery drains.
 3. **If the second AC is a non-inverter unit**, the upgrade payback during summer-break months is short — an inverter split typically uses 30–50% less energy at part-load. Worth getting a quote if it is being run 4+ months a year.
 4. **Schedule the second AC to "off" or eco mode during 22:00–05:00** if anyone in the room can tolerate it. That is the window where the battery has nothing left and the grid is doing all the work.
@@ -81,16 +81,16 @@ What to change: a plug-in power meter (e.g. P3 Kill A Watt or any local equivale
 
 ### 3. Hold off on hardware additions until charging behavior is optimized
 
-What the data says: there is no inverter or panel constraint. Peak PV reached 84% of panel nameplate and 68% of inverter capacity, with zero clipping hours. The battery is well-matched to the house-only baseline (non-EV cycle depth ~61%, evening SOC averages ~57% on non-EV days). Annual export is projected at only ~680 kWh — there is no large pool of unused midday surplus that more storage could capture.
+What the data says: there is no inverter or panel constraint. Peak PV reached 84% of panel nameplate and 68% of inverter capacity, with zero clipping hours. The existing battery is well-matched to the house-only baseline (non-EV cycle depth ~61%, evening SOC averages ~57% on non-EV days). Annual export is projected at only ~680 kWh — there is no large pool of unused midday surplus that more storage could capture.
 
-Why this matters: a second battery's payback is set by how much you reduce export-at-feed-in-rate vs avoid import-at-full-rate. With only ~1.9 kWh/day average export on non-EV days and ~0.8 kWh on EV days, the arbitrage opportunity is small — likely a 10+ year payback on a second battery purchase.
+Why this matters: the payback on *adding* a second battery is set by how much new export-at-feed-in-rate gets converted into avoided import-at-full-rate. With only ~1.9 kWh/day average export on non-EV days and ~0.8 kWh on EV days, the arbitrage opportunity is small — likely a 10+ year payback on a second battery, much longer than the ~7-year incremental payback the existing battery already earns at higher per-day throughput (see [ROI Estimate](#roi-estimate)).
 
-How to act: revisit storage expansion only if (a) PHEV usage doubles or you switch to a full BEV, or (b) you add significant new daytime load you cannot shift.
+How to act: revisit storage expansion only if (a) PHEV usage doubles or we switch to a full BEV, or (b) significant new daytime load gets added that cannot be shifted.
 
 ### Not Recommended
 
 - **Larger inverter for headroom**: zero clipping observed, no extra generation to unlock.
-- **Second battery now**: export volume too low (~2 kWh/day average) to amortize within a useful period.
+- **Adding a second battery now**: export volume too low (~2 kWh/day average) to amortize within a useful period — see Recommendation 3 for how this differs from the existing battery's payback.
 - **Grid-charging the battery off-peak**: tariff is flat, so there is no off-peak window to exploit, and the round-trip efficiency loss (~5%) would cost rather than save.
 
 ## Bill Impact
@@ -105,7 +105,7 @@ How to act: revisit storage expansion only if (a) PHEV usage doubles or you swit
 | 2026-03 | ₱13,222 | ₱3,106 | ₱1,049 | ₱11,166 |
 | 2026-04 | ₱17,565 | ₱5,592 | ₱208 | ₱12,181 |
 
-April's "without solar" bill is the highest in the dataset because household load was ~39 kWh/day (PHEV-heavy month). Even so, net savings hit a record ₱12,181 — solar is doing more work in absolute terms when consumption is higher.
+April's "without solar" bill is the highest in the dataset because household load was ~39 kWh/day (continuous AC during summer break — see [Recommendation 1B](#1b-manage-the-second-ac-unit-during-summer-break-april-pattern)). Even so, net savings hit a record ₱12,181 — solar is doing more work in absolute terms when consumption is higher.
 
 - Estimated annual bill without solar: ₱167,294
 - Estimated annual bill with solar: ₱56,427
@@ -113,19 +113,21 @@ April's "without solar" bill is the highest in the dataset because household loa
 
 ## ROI Estimate
 
-| Metric | With Battery | Without Battery (estimated) |
+| Metric | With Battery (this build) | Without Battery (counterfactual) |
 |---|---|---|
-| System cost | ₱400,000 | ₱280,000 |
+| System cost | ₱400,000 | ~₱280,000 |
 | Estimated annual savings (year 1) | ₱115,973 | ~₱99,000 |
-| **Simple payback** | **~3.5 years** | **~2.8 years** |
+| **Whole-system simple payback** | **~3.5 years** | **~2.8 years** |
 | Remaining payback (from today, age 0.4 yr) | ~3.1 years | ~2.4 years |
 | 25-year lifetime savings (with degradation) | ₱2,731,854 | ~₱2,330,000 |
 
-**Battery incremental ROI**: the ₱120,000 battery adds roughly ₱17,000/year in incremental savings (energy that would otherwise have been exported at 56% feed-in is instead self-consumed at full ₱15/kWh, plus reduced overnight import on non-EV days). That puts battery-only payback at roughly ~7 years, leaving ~12+ years of healthy cycle life beyond payback (cycle-life estimate below). The panels carry most of the financial case; the battery is an incremental but defensible investment, especially for outage resilience and the comfort of evening self-sufficiency.
+**Existing battery — incremental ROI**: the ₱120,000 battery adds roughly ₱17,000/year over the panels-only counterfactual (energy that would otherwise have been exported at 56% feed-in is instead self-consumed at full ₱15/kWh, plus reduced overnight import on non-EV days). That puts the existing-battery incremental payback at roughly ~7 years, leaving ~12+ years of healthy cycle life beyond payback (cycle-life estimate below). The panels carry most of the financial case; the existing battery is an incremental but defensible investment, especially for outage resilience and the comfort of evening self-sufficiency.
 
-The without-battery numbers above are estimated, not directly computed from hourly data — actual figures would depend on whether the inverter can self-consume PV without a battery present. Treat them as directional.
+**Adding a *second* battery is a different calculation** and looks much weaker — see [Recommendation 3](#3-hold-off-on-hardware-additions-until-charging-behavior-is-optimized). The first battery captured the easy 5–9 kWh/day of evening shifting; a second one would only capture the ~2 kWh/day of remaining export, hence the 10+ year payback estimate.
 
-Note: the ₱400,000 figure represents total cost as you reported it. If financing is included, the hardware-only payback would be slightly shorter.
+The without-battery numbers above are a counterfactual, not directly computed from hourly data — actual figures would depend on whether the inverter can self-consume PV without a battery present. Treat them as directional.
+
+Note: the ₱400,000 figure represents total turnkey cost. If financing is included, the hardware-only payback would be slightly shorter.
 
 ## Key Metrics
 
@@ -166,7 +168,7 @@ Weekday and weekend patterns are similar (~26.7 kWh weekday vs ~25.8 kWh weekend
 
 ## System Size Assessment
 
-You indicated no plans for additional panels.
+No plans for additional panels.
 
 ### PV Array (6.5 kWp): correctly sized for base load, deficit on EV days
 
@@ -206,7 +208,7 @@ The slight Mar dip (94.5%) was driven by 2026-03-17, the same day flagged in the
 | Grid dependence | 46% | 40% | 27% | 23% | 32% | +8 pp |
 | Battery efficiency | 98% | 97% | 96% | 95% | 98% | +3 pp |
 
-The Dec → Mar arc is classic dry-season PV ramp combined with relatively stable load. April broke the pattern: PV stayed flat (already near seasonal peak) while load surged ~33% from March. The PHEV was in the shop for all of April, so the increase is not vehicle charging — it is the second AC unit running near-continuously with the user's daughter home for summer break. The "EV days" the detector flagged in April should be read as "high-AC days." Self-sufficiency dropped not because the system underperformed but because continuous AC outstripped what the panels and battery could cover — addressed in Recommendation 1B.
+The Dec → Mar arc is classic dry-season PV ramp combined with relatively stable load. April broke the pattern: PV stayed flat (already near seasonal peak) while load surged ~33% from March — a continuous-AC pattern, not vehicle charging. Full breakdown is in [Recommendation 1B](#1b-manage-the-second-ac-unit-during-summer-break-april-pattern); the short version is that the EV-day detector misclassified 12 high-AC April days as EV days because the heuristic cannot tell two sustained loads apart.
 
 ## Annual Projection
 
@@ -250,6 +252,7 @@ Expect the wet season (Jun–Oct) to drop daily PV by ~10–15% and self-suffici
 - Annual projection de-seasonalizes observed data using tropical-Philippines seasonal factors, then re-applies all 12 months. With 5 months of data (mostly dry season), confidence is moderate.
 
 ### Environmental
+- Avoided CO₂ is computed as **self-consumed kWh × grid factor**, not gross PV × grid factor. This is conservative — exported kWh also displace fossil generation on the grid, and a gross-displacement convention would add ~10% (≈5.2 t/yr in this dataset). The self-consumption-only figure is what `analyze.py` returns by design.
 - Carbon equivalents use 22 kg CO₂/tree/year and 0.21 kg CO₂/km. Philippine grid factor 0.68 kg CO₂/kWh.
 
 ## Appendix

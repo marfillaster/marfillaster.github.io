@@ -112,6 +112,9 @@ export default function SolarReport() {
             behavior from a 6.5 kWp / 14.3 kWh / 8 kW system across 150 days of
             hourly data.
           </p>
+          <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
+            <time dateTime={datePublished}>Published 1 May 2026</time>
+          </p>
 
           <ul className="mt-6 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {systemChips.map((chip) => (
@@ -170,11 +173,10 @@ export default function SolarReport() {
           <p className="mt-3">
             Self-sufficiency climbed from 54% in December to a peak of 76% in
             March, then dipped to 68% in April when household consumption
-            jumped sharply (avg daily load rose from ~29 to ~39 kWh).{" "}
-            <strong>Context the owner clarified:</strong> the PHEV was in the
-            shop all of April, so the load surge is not from EV charging — it
-            is the second AC unit running nearly 24/7 because the owner's
-            daughter was home for summer break.
+            jumped sharply (avg daily load rose from ~29 to ~39 kWh). The
+            April surge is not vehicle charging — the PHEV was off the road
+            all month — it is the second AC unit running nearly 24/7 during
+            summer break.
           </p>
           <p className="mt-3">
             No equipment fault is visible. Peak PV reached 5.4 kW (68% of

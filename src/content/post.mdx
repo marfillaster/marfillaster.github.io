@@ -10,9 +10,10 @@ finishes the v6 migration.
 The build proceeds in three layers, in the order they were actually installed:
 first the LAN is split into VLANs, then the UniFi controller is moved into
 RouterOS containers, then IPv6 reachability is recovered through a $3/month
-VPS with a routed /48. DoH and RA RDNSS sit on top of the third layer. None of
-these steps depend on a specific brand of fiber service; they only assume that
-outbound UDP works and that the router can carry a small WireGuard tunnel.
+VPS (1&nbsp;TB monthly transfer included) that routes a /48 down to the
+house. DoH and RA RDNSS sit on top of the third layer. None of these steps
+depend on a specific brand of fiber service; they only assume that outbound
+UDP works and that the router can carry a small WireGuard tunnel.
 
 Each numbered section below is paste-ready against a defconf RouterOS&nbsp;v7
 setup. The italicized notes after each step are the rationale — what trade-off
@@ -122,6 +123,7 @@ pasting; the rest of the text is literal RouterOS or bash.
 | `<VPS_IP>`                    | VPS public IPv4 from the provider panel.                                                         |
 | `<VPS_NIC>`                   | VPS public interface. `ip -o link` shows it (typical: `enp3s0`, `ens3`).                         |
 | `<VPS_PUBKEY> / <MT_PUBKEY>`  | WireGuard public keys, one per side. Each is printed during section&nbsp;5.                      |
+| `<TZ>`                        | IANA tz database name for the controller container. Examples: `Asia/Manila`, `Europe/Berlin`.    |
 
 Documentation prefixes from RFC&nbsp;3849 (`2001:db8::/32`) and RFC&nbsp;4193
 (`fd00::/8`) work as stand-ins while testing. Snippets assume the defconf
@@ -314,7 +316,7 @@ never gets a WAN forward.
 
 /container/envs/add list=unifi-envs key=PUID value=1000
 /container/envs/add list=unifi-envs key=PGID value=1000
-/container/envs/add list=unifi-envs key=TZ value=Asia/Manila
+/container/envs/add list=unifi-envs key=TZ value=<TZ>          # e.g. Asia/Manila — see tzdata(5)
 /container/envs/add list=unifi-envs key=MONGO_HOST value=192.168.88.2
 /container/envs/add list=unifi-envs key=MONGO_PORT value=27017
 /container/envs/add list=unifi-envs key=MONGO_USER value=unifi
@@ -373,22 +375,24 @@ against the current public IPv4; the encapsulated frames just never make it
 through the carrier's NAT44.
 
 HE also offers AYIYA, which is UDP-encapsulated and would traverse CGNAT,
-but its only working client (`aiccu`) is unmaintained, was dropped from
-Debian for security issues, and has no RouterOS port. WireGuard fills the
-same role with a current in-kernel implementation, and the encryption is a
-bonus rather than a cost.
+but its only working client (`aiccu`) is unmaintained: SixXS shut down in
+June 2017 and Debian removed the package as non-functional, and there is
+no RouterOS port. WireGuard fills the same role with a current in-kernel
+implementation, and the encryption is a bonus rather than a cost.
 
 [Route64](https://route64.org/) is a free IPv6 tunnel broker that already
 runs on WireGuard, which initially makes it look like a drop-in replacement
-for the VPS in this build. The catch is which side initiates the handshake.
-Route64 configures peers with a fixed client `Endpoint` and initiates
-toward you, so behind CGNAT there is nowhere to point it: the public IPv4
-is shared and the client's source port shifts on every WireGuard restart.
-The VPS topology inverts that direction — the RB5009 reaches *out* to a
-known public IP, and `PersistentKeepalive = 25` keeps the carrier's NAT44
-mapping warm. That outbound-initiated direction is the one CGNAT permits,
-and owning the reachable side of the tunnel is what the $3/month VPS
-actually buys.
+for the VPS in this build. The catch is what Route64 binds the tunnel to.
+The peer config it issues pins your **registered public IPv4** as the
+allowed remote endpoint. Behind CGNAT that IP is shared with other
+subscribers and rotates on the carrier's schedule, so the tunnel either
+authenticates the wrong subscriber's address or stops accepting the
+re-NAT'd session entirely; there is no per-restart re-registration in the
+broker UI. The VPS topology sidesteps the binding problem — the RB5009
+reaches *out* to a known public IP, `PersistentKeepalive = 25` keeps the
+carrier's NAT44 mapping warm, and the VPS does not care what source IP the
+mapping happens to land on. Owning the reachable side of the tunnel is
+what the $3/month VPS actually buys.
 
 ### 5.1 Return routing: why each /64 has to appear in AllowedIPs
 The provider routes the /48 to the VPS, then configures one address from it on
@@ -475,8 +479,10 @@ detection if that matters.
 /ipv6/address add address=<ULA_PREFIX>:1::1/64 interface=bridge advertise=yes comment="LAN ULA"
 
 # Static default with ping liveness — detection ~30 s.
-# Appendix A replaces this with BGP+BFD for ~600 ms.
-/ipv6/route add dst-address=::/0 gateway=<LAN_PREFIX>:0::1%wg-host check-gateway=ping
+# Appendix A replaces this with BGP+BFD for ~600 ms. The comment is what
+# Appendix A's `/ipv6/route/remove` matches against, so set it now.
+/ipv6/route add dst-address=::/0 gateway=<LAN_PREFIX>:0::1%wg-host \
+    check-gateway=ping comment="vps primary"
 
 /ipv6/firewall/filter add chain=input action=accept in-interface=wg-host \
     comment="accept input from VPS WG peer" \
@@ -557,6 +563,9 @@ memorized.
 # A-only on purpose — see rationale below.
 add address=104.16.248.249       name=cloudflare-dns.com comment="DoH bootstrap"
 add address=104.16.249.249       name=cloudflare-dns.com comment="DoH bootstrap"
+# Reachable as the FQDN `router.lan` from any client whose resolver is the
+# router (the default — clients use RDNSS, and the router answers its own
+# static zone). No search-domain magic; type the dot-lan suffix.
 add address=<ULA_PREFIX>:1::1    name=router.lan type=AAAA comment="LAN ULA"
 
 # Stop DHCPv4 from handing out the router as DNS; clients use RDNSS instead.
@@ -679,7 +688,7 @@ recovery needs a manual `birdc restart`.
     place-before=[find where chain=input and comment="defconf: drop everything else not coming from LAN"]
 
 # Remove the static ::/0; BGP-learned route at distance 20 takes over.
-/ipv6/route/remove [find comment="webhorizon primary"]
+/ipv6/route/remove [find comment="vps primary"]
 ```
 
 <Rationale>
