@@ -164,6 +164,24 @@ export default function NevMileage() {
               Download raw markdown ↓
             </a>
           </p>
+
+          <p className="mt-8 border-l-2 border-primary/40 pl-4 text-sm leading-relaxed text-muted-foreground">
+            The short version: 63% of the driving was electric, the combined
+            figure landed at 6.0 L/100km, and electric kilometers cost about
+            half what fuel kilometers do (₱2.51 vs ₱4.81/km). What surprised
+            me was how little the headline efficiency means on its own — the
+            real variable is the EV/HEV split, which is a function of charging
+            access and discipline, not the car. Your numbers will move with
+            where you can plug in, not your right foot. The home charging
+            behind this is solar-fed; that side is written up separately:{" "}
+            <Link
+              to="/solar-report/"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Residential solar performance
+            </Link>
+            .
+          </p>
         </article>
 
         <section className="mt-16">

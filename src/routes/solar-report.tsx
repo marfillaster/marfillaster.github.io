@@ -144,6 +144,25 @@ export default function SolarReport() {
               Download raw markdown ↓
             </a>
           </p>
+
+          <p className="mt-8 border-l-2 border-primary/40 pl-4 text-sm leading-relaxed text-muted-foreground">
+            The short version: five months in, the array covers roughly
+            two-thirds to three-quarters of the house and is tracking to a
+            ~3.5-year payback. What surprised me wasn't the generation — it
+            was how much the <em>timing</em> of PHEV charging swings the bill
+            (Dec–Mar EV-charging days import ~₱12/day more than non-EV days).
+            If you're sizing a system here, the lever that generalizes from
+            this single-site data is load timing, not panel count. Once it
+            was running I also took it through Meralco net metering — that
+            paperwork is its own story:{" "}
+            <Link
+              to="/net-metering-general-trias/"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Net Metering Journey in General Trias
+            </Link>
+            .
+          </p>
         </article>
 
         <section className="mt-16">
