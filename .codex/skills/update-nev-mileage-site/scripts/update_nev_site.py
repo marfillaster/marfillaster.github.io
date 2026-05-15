@@ -199,15 +199,11 @@ def build_og_image(
     if pm:
         ev_pct = f"{pm.group(1)}% EV"
 
-    # Total tracked distance from the Executive Summary headline, e.g.
-    # "5,123 km tracked · ...".
-    km = ""
-    km_m = re.search(r"([\d,]+)\s*km tracked", og_text(summary))
-    if km_m:
-        km = f"{km_m.group(1)} km"
+    # Lifetime HEV+EV odometer from the Inferred Insights table.
+    odo = labeled_value(insights, "Cumulative odometer") or ""
 
     stats = [
-        (og_text(km) or "-", "distance tracked"),
+        (og_text(odo) or "-", "odometer"),
         (og_text(ev_pct) or "-", "electric driving"),
         (og_text(compact_money(savings)) or "-", "saved vs ICE"),
     ]

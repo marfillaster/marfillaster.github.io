@@ -63,6 +63,7 @@ The 6.0 L/100km combined figure beats the mid-size SUV PHEV benchmark (8–10 L/
 
 | Metric | Value |
 |--------|-------|
+| Cumulative odometer | 27,544 km |
 | Days tracked | 76 days |
 | Daily average | ~67 km/day |
 | Projected annual | ~24,600 km |
