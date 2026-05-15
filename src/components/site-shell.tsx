@@ -27,6 +27,15 @@ export function SiteShell({ children }: { children: ReactNode }) {
               rel="noopener noreferrer"
             >
               source on GitHub
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://ko-fi.com/marfillaster"
+              className="hover:text-foreground hover:underline underline-offset-4"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ☕ buy me a coffee
             </a>
           </span>
           <a
