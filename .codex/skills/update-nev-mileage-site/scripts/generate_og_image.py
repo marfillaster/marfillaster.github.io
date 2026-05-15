@@ -101,9 +101,18 @@ def render(output: Path, period: str, vehicle: str, stats: list[tuple[str, str]]
 
     stat_y = HEIGHT - 230
     col_width = (WIDTH - 2 * margin_x) // max(1, len(stats))
+    col_gap = 32
+    max_value_w = col_width - col_gap
     for i, (value, label) in enumerate(stats):
         col_x = margin_x + i * col_width
-        draw.text((col_x, stat_y), value, font=stat_value_font, fill=LEAF)
+        # Shrink the value font until it fits inside its column so adjacent
+        # stats never overlap (e.g. a long "~PHP 10,900").
+        size = 60
+        value_font = stat_value_font
+        while size > 32 and text_width(draw, value, value_font) > max_value_w:
+            size -= 2
+            value_font = font(FONT_BLACK, size)
+        draw.text((col_x, stat_y), value, font=value_font, fill=LEAF)
         draw.text((col_x, stat_y + 78), label, font=stat_label_font, fill=MUTED)
 
     footer = "marfillaster.github.io/nev-mileage"

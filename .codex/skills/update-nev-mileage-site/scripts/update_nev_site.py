@@ -150,6 +150,18 @@ def og_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def compact_money(text: str) -> str:
+    """Abbreviate a currency figure for the OG card, e.g. `~₱10,900` -> `~₱11k`,
+    so the bottom stats stay short and balanced."""
+    m = re.search(r"([₱$P])\s?([\d,]+)", text)
+    if not m:
+        return text
+    num = int(m.group(2).replace(",", ""))
+    if num < 1000:
+        return text
+    return f"{text[:m.start(2)]}{round(num / 1000)}k"
+
+
 _DATA_SOURCES_BLOCK = """## Data Sources
 
 - `data/phev_log.csv` - refuel log (odometer, plug meter, fuel, tariff) backing every figure above
@@ -193,7 +205,7 @@ def build_og_image(
 
     stats = [
         (og_text(ev_pct) or "-", "electric driving"),
-        (og_text(savings) or "-", "saved vs ICE"),
+        (og_text(compact_money(savings)) or "-", "saved vs ICE"),
         (og_text(co2) or "-", "CO2 avoided"),
     ]
     og_path = repo_root / "public" / "nev-mileage" / "og-image.png"
