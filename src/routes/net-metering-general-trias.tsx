@@ -3,6 +3,7 @@ import type { MetaFunction } from "react-router";
 import Post from "../content/net-metering.mdx";
 import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
+import { Comments } from "../components/comments";
 
 const title = "Net Metering Journey in General Trias";
 const description =
@@ -116,6 +117,8 @@ export default function NetMeteringGeneralTrias() {
         <MDXProvider components={mdxComponents}>
           <Post />
         </MDXProvider>
+
+        <Comments />
       </div>
     </SiteShell>
   );

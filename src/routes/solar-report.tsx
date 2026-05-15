@@ -1,6 +1,7 @@
 import type { MetaFunction } from "react-router";
 import { Link } from "react-router";
 import { SiteShell } from "../components/site-shell";
+import { Comments } from "../components/comments";
 
 const title =
   "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Apr 2026)";
@@ -248,6 +249,8 @@ export default function SolarReport() {
             qualified solar professional before acting on them.
           </p>
         </section>
+
+        <Comments />
       </div>
     </SiteShell>
   );

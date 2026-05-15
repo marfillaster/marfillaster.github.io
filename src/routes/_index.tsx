@@ -23,6 +23,13 @@ export const meta: MetaFunction = () => [
 
 const posts = [
   {
+    href: "/solar-application-lancaster/",
+    eyebrow: "Guide · 2025-12",
+    title: "Solar Panel Installation Application Guide for Lancaster New City",
+    description:
+      "The exact CIDC documents to prepare before installing solar panels on your Lancaster New City unit — with a copy-ready Letter of Intent template, where to submit, and how to get your gate pass on the same visit.",
+  },
+  {
     href: "/net-metering-general-trias/",
     eyebrow: "Field log · 2026-05",
     title: "Net Metering Journey in General Trias",

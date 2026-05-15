@@ -1,18 +1,21 @@
 import { MDXProvider } from "@mdx-js/react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/post.mdx";
+import Post from "../content/solar-application-lancaster.mdx";
 import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 
-const title = "Home network on residential CGNAT — RB5009 build log";
+const title =
+  "Solar Panel Installation Application Guide for Lancaster New City";
 const description =
-  "Build log for a usable home network behind residential CGNAT: VLAN segmentation, UniFi controller in RouterOS containers, routed IPv6 over WireGuard with a $3/mo VPS, and DNS-over-HTTPS with ULA RDNSS. Reproducible, paste-ready snippets for MikroTik RB5009.";
-const url = "https://marfillaster.github.io/mikrotik-home-network/";
-const ogImage = "https://marfillaster.github.io/mikrotik-home-network/og.png";
+  "Lancaster New City solar installation: the exact CIDC documents to prepare, a Letter of Intent template, where to submit, and how to get your gate pass on the same visit.";
+const url =
+  "https://marfillaster.github.io/solar-application-lancaster/";
+const ogImage =
+  "https://marfillaster.github.io/solar-application-lancaster/og.png";
 const author = "marfillaster";
-const datePublished = "2026-05-15";
-const dateModified = "2026-05-15";
+const datePublished = "2025-12-01";
+const dateModified = "2025-12-01";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -35,16 +38,16 @@ const structuredData = {
     url: "https://github.com/marfillaster",
   },
   keywords: [
-    "MikroTik RB5009",
-    "UniFi 6",
-    "Converge ICT",
-    "CGNAT",
-    "WireGuard",
-    "IPv6",
-    "DNS over HTTPS",
-    "BGP",
-    "BFD",
-    "home network",
+    "Lancaster New City solar installation",
+    "CIDC solar permit",
+    "solar panels Cavite",
+    "solar panel application",
+    "Lancaster New City",
+    "General Trias",
+    "Cavite",
+    "rooftop solar",
+    "Letter of Intent solar",
+    "Waiver of Accountability",
   ],
 };
 
@@ -62,7 +65,7 @@ export const meta: MetaFunction = () => [
   {
     property: "og:image:alt",
     content:
-      "RB5009 home network build log — diagram showing VPS, WireGuard tunnel, RB5009, APs, and VLANs",
+      "Solar panel installation application guide for Lancaster New City — CIDC document checklist",
   },
   { property: "og:site_name", content: "marfillaster · notes" },
   { property: "article:published_time", content: datePublished },
@@ -79,37 +82,32 @@ export const meta: MetaFunction = () => [
 ];
 
 const navItems = [
-  ["#abstract", "Abstract"],
-  ["#design-decisions", "Design"],
-  ["#1-topology-and-address-plan", "1. Topology"],
-  ["#2-conventions-and-placeholders", "2. Conventions"],
-  ["#3-lan-segmentation-comes-first", "3. VLANs"],
-  ["#4-unifi-controller-on-the-router", "4. Controller"],
-  ["#5-ipv6-over-wireguard-via-a-routed-48", "5. IPv6"],
-  ["#6-encrypted-dns-with-stable-resolver-addresses", "6. DNS"],
-  ["#7-end-to-end-verification", "7. Verify"],
-  ["#a-appendix-a--sub-second-ipv6-failover-bgp--bfd", "Appendix"],
-  ["#glossary", "Glossary"],
+  ["#introduction", "Introduction"],
+  ["#required-documents-checklist", "Required documents"],
+  ["#letter-of-intent-template", "Letter of Intent template"],
+  ["#where-and-when-to-submit", "Where & when to submit"],
+  ["#tips-for-a-smooth-approval", "Tips for approval"],
+  ["#closing", "Closing"],
 ] as const;
 
-export default function MikrotikHomeNetwork() {
+export default function SolarApplicationLancaster() {
   return (
     <SiteShell>
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Build log · MikroTik RB5009 · Converge fiber, PH
+            Guide · Residential solar · Cavite, PH
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Building a usable home network behind residential CGNAT
+            Solar Panel Installation Application Guide for Lancaster New City
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            VLANs, a UniFi controller running on the router itself, routed IPv6
-            over WireGuard, and encrypted DNS. Each section stands alone; pick
-            the parts that match your situation.
+            The exact documents CIDC requires before you can install solar
+            panels on your unit — with a copy-ready Letter of Intent template
+            and where to submit.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            <time dateTime={datePublished}>Published 15 May 2026</time>
+            <time dateTime={datePublished}>Published December 2025</time>
           </p>
         </article>
 

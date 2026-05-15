@@ -11,4 +11,8 @@ export default [
     "net-metering-general-trias",
     "routes/net-metering-general-trias.tsx",
   ),
+  route(
+    "solar-application-lancaster",
+    "routes/solar-application-lancaster.tsx",
+  ),
 ] satisfies RouteConfig;
