@@ -21,7 +21,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
           <span>
             Prerendered notes ·{" "}
             <a
-              href="https://github.com/marfillaster"
+              href="https://github.com/marfillaster/marfillaster.github.io"
               className="hover:text-foreground hover:underline underline-offset-4"
               target="_blank"
               rel="noopener noreferrer"

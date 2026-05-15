@@ -2,7 +2,6 @@ import { Moon, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 import { Children, useEffect, useState } from "react";
 import { CodeSnippet } from "./code-snippet";
-import { Switch } from "./ui/switch";
 
 // -----------------------------------------------------------------------------
 // Theme toggle
@@ -27,12 +26,16 @@ function useTheme() {
 
 export function ThemeToggle() {
   const { dark, setDark } = useTheme();
+  const Icon = dark ? Sun : Moon;
   return (
-    <div className="flex items-center gap-2 text-muted-foreground">
-      <Sun className="h-4 w-4" aria-hidden="true" />
-      <Switch checked={dark} onCheckedChange={setDark} aria-label="Toggle dark mode" />
-      <Moon className="h-4 w-4" aria-hidden="true" />
-    </div>
+    <button
+      type="button"
+      onClick={() => setDark(!dark)}
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      className="text-muted-foreground/70 hover:text-foreground transition-colors"
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
+    </button>
   );
 }
 

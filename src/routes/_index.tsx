@@ -48,10 +48,6 @@ export default function Index() {
         <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
           Long-running experiments, written down.
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Each entry stands alone; pick the parts that match your situation.
-        </p>
-
         <ul className="mt-12 space-y-10">
           {posts.map((p) => (
             <li key={p.href}>
@@ -69,6 +65,40 @@ export default function Index() {
             </li>
           ))}
         </ul>
+
+        <section
+          id="about"
+          className="mt-20 scroll-mt-20 border-t pt-10"
+          aria-labelledby="about-heading"
+        >
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            About
+          </p>
+          <h2
+            id="about-heading"
+            className="mt-3 text-balance text-2xl font-semibold tracking-tight"
+          >
+            Ken Marfilla
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Based in Cavite, Philippines. These notes are personal build logs
+            and case studies from long-running experiments at home — networking
+            behind residential CGNAT, residential solar and battery, and
+            whatever else turns into a project worth writing down.
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Find me on{" "}
+            <a
+              href="https://github.com/marfillaster"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              GitHub
+            </a>
+            .
+          </p>
+        </section>
       </div>
     </SiteShell>
   );
