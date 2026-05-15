@@ -23,6 +23,13 @@ export const meta: MetaFunction = () => [
 
 const posts = [
   {
+    href: "/net-metering-general-trias/",
+    eyebrow: "Field log · 2026-05",
+    title: "Net Metering Journey in General Trias",
+    description:
+      "A realistic, step-by-step account of getting a 6 kWp rooftop array approved for net metering with Meralco in Cavite — the PEE-sealed A3 SLD, the forms, the venues, the fees, and a ~50-day timeline.",
+  },
+  {
     href: "/mikrotik-home-network/",
     eyebrow: "Build log · 2026-05",
     title: "Building a usable home network behind residential CGNAT",

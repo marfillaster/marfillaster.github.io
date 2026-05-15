@@ -7,4 +7,8 @@ export default [
   route("solar-report/full-report", "routes/solar-report-full.tsx"),
   route("nev-mileage", "routes/nev-mileage.tsx"),
   route("nev-mileage/full-report", "routes/nev-mileage-full.tsx"),
+  route(
+    "net-metering-general-trias",
+    "routes/net-metering-general-trias.tsx",
+  ),
 ] satisfies RouteConfig;

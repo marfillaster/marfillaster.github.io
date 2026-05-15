@@ -1,0 +1,219 @@
+## Why bother with net metering
+
+I have a roughly 6 kWp rooftop solar array in Rosario, Cavite. "6 kWp" just
+means the panels can push about 6 kilowatts at full sun — enough, on a bright
+day, to run the house and spill the surplus somewhere. Without net metering
+that surplus is wasted: it either trips the inverter or back-feeds for free.
+*With* net metering, Meralco swaps your meter for a bi-directional one and
+credits the energy you export against the energy you import. The system isn't
+generous (you're credited at the blended generation rate, not the retail
+rate), but it turns wasted midday production into something that shaves the
+bill. The catch is the paperwork. Here is exactly how mine went, dates and
+fees included, so you can budget your patience.
+
+## Prep work before filing
+
+**Before anything else, make your installation net-meter ready.** Net metering
+approves an install that already exists — Meralco isn't going to wait while
+you fix things. Confirm with your solar installer up front that the build will
+pass a utility inspection. In practice the Meralco inspection is narrower
+than the SLD suggests — they mainly verify that the rigid metal conduit (RMC)
+runs all the way from the service entrance through to the inverter, with
+correctly spaced clamps and supports. They aren't really checking the AC
+disconnect labeling, SPDs, or 24-hour PV access on site; those still belong
+in the build for code and safety, but the conduit is what gets scrutinized.
+It's far cheaper to specify a proper RMC run in the installation contract
+than to discover, at the Dec 18 inspection below, that it has to be redone.
+
+**One tip before you spend a peso:** when shopping for a Professional
+Electrical Engineer (PEE), ask to see a *sample* A3 Single Line Diagram (SLD)
+covering the twelve blocks below. If their sample has all of them, they'll
+likely produce a utility-ready drawing on the first pass. If it doesn't,
+you'll be paying for revisions and losing weeks.
+
+The single most important document is the **A3 SLD sealed by a PEE**. You do
+not draw this yourself. PEEs who do solar net-metering drawings are easy to
+find — the Facebook solar groups are full of them, and most quote a flat fee.
+I paid **PHP 3,500** for mine, turned around in a few days once I sent the
+inputs.
+
+The inputs your PEE will ask for:
+
+- The **building blueprint**, specifically the page with the **schedule of
+  loads** for your existing house panel.
+- The **solar panel datasheet** (the PDF from the manufacturer).
+- The **inverter datasheet**.
+- A **Google Maps pin** of the exact service address — the one tied to your
+  Meralco account.
+
+### What's actually on the A3 SLD
+
+It's worth knowing what you're paying the PEE to produce, and why Meralco
+insists on each piece. Generically, a utility-ready A3 SLD carries twelve
+blocks:
+
+1. **The Single Line Diagram proper** — the main schematic showing power
+   flowing from the utility service entrance, through the bi-directional
+   meter, into your main panel, with the PV strings feeding the inverter and
+   tying back through a dedicated AC breaker. It also shows the disconnect
+   switches, surge protection devices (SPDs), the CT sensor for the
+   bi-directional meter, and, for hybrid systems, the battery branching off
+   the inverter through its own DC breaker. This is the drawing the utility
+   reads first; everything else justifies the numbers on it.
+
+2. **Solar panel datasheet block** — module model, Pmax, Imp, Vmp, Isc, Voc.
+   These set the DC-side electrical envelope everything else is sized against.
+
+3. **Inverter datasheet block** — model, DC input limits, MPPT voltage range,
+   number of MPPTs and strings, AC output rating, grid voltage and frequency
+   range, power factor, THDi, and efficiency. This proves the inverter can
+   legally and safely synchronize with Meralco's grid.
+
+4. **Electrical Notes** — the generic Philippine Electrical Code (PEC)
+   compliance boilerplate. Boring, but its absence is a rejection.
+
+5. **Solar Electrical Notes** — the solar-specific rules: 24-hour utility
+   access to the PV equipment, UL 1703 modules, sunlight- and wet-rated
+   conductors, REC meter placement near the bi-directional meter, tapping
+   rules, rigid/IMC conduit on the line side, and a warning label at the
+   disconnect. These are the clauses the inspector physically checks against.
+
+6. **Design Analysis** — the math that sizes your breakers, wires, and
+   conduit: Isc × 1.25 for the DC breaker and SPD, a per-string voltage-drop
+   check, and the AC-side Pmax / Vac that sizes the inverter breaker. Hybrid
+   setups add a battery-protection calc that sizes the battery DC breaker and
+   cable. This is what makes the picture in block 1 defensible.
+
+7. **Site Location** — a small map clip with a pin on the service address, so
+   the inspector finds the right house.
+
+8. **Schedule of Loads** — an inventory of your *existing* house panel:
+   circuit list, VA load, amps, breaker AT/AF, wire and conduit per circuit,
+   and the totals that drive your main breaker and feeder size. The utility
+   needs to know solar isn't being bolted onto an undersized service.
+
+9. **Short Circuit calculation** — fault-current analysis starting from the
+   utility transformer's KVA, voltage, and %Z, used to set the required KAIC
+   interrupting rating of your main breaker, so the breaker can actually
+   clear a fault instead of welding shut.
+
+10. **Voltage Drop calculation** — the feeder-level
+    VD = (2 × L × R × I) / 1000, confirming %VD stays inside code.
+
+11. **Service Entrance detail** — an elevation view showing meter height
+    (around 5 ft), the bi-directional meter, taps to the service equipment,
+    the run to the inverter, and the ground rod. This is what the field crew
+    builds to.
+
+12. **Title block** — PEE name, PRC registration number, PTR number, date and
+    place issued, project title, owner, location, sheet contents, sheet
+    number, and the **PEE dry seal**. The seal plus the PTR and PRC ID is
+    precisely what makes the SLD acceptable to Meralco. A perfect drawing
+    without the seal is wallpaper.
+
+## The timeline, step by step
+
+| Date | Where | What | Cost |
+| --- | --- | --- | --- |
+| Dec 9, 2025 | Meralco Rosario, Cavite | File net-metering application | — |
+| Dec 18, 2025 | Service address | Site inspection | — |
+| Dec 19, 2025 | Meralco Rosario, Cavite | Yellow card issued | — |
+| Dec 19, 2025 | General Trias City Hall | Electrical inspection cert + wiring permit | PHP 1,254 + PHP 165 |
+| Jan 9, 2026 | Meralco Rosario, Cavite | Contract signing | PHP 2,312.77 |
+| Jan 28, 2026 | Service address | Bi-directional meter installed | — |
+
+**Dec 9, 2025 — Application at Meralco Rosario Cavite.** I brought the full
+form set: the Plant Parameter Form; the Application for Distribution Impact
+Study of Solar PV RE Facility; QE-COC Application Form No. 1.1 (Solar); the
+Qualified End-User (QE) Certificate of Compliance (COC) Application; QE-COC
+Application Form No. 1; the inverter's IEEE 1547 / UL-1741 (or equivalent)
+certification; the location map; and the A3 SLD with PEE seal, PTR, and PRC
+ID. The downloadable PDF forms are linked at the bottom of this post. *What to
+expect:* the counter staff check completeness, not correctness — they take the
+bundle and you wait for the impact study and an inspection schedule. You'll
+also be assigned a Meralco engineer who becomes your point person for the rest
+of the process — get their Viber number here, because nearly every later step
+is coordinated through them. Have the forms filled before you arrive; there is
+no comfortable place to do it there.
+
+**Dec 18, 2025 — Site inspection.** A Meralco-side check at the house. In
+practice the focus is narrow: they verify the RMC (rigid metal conduit) runs
+continuously from the service entrance to the inverter, and they're
+particular about the clamps and supports. They don't really audit the
+disconnect labeling, SPDs, or PV access. *What to expect:* quick if the
+conduit run is clean. Be there and keep the SLD handy. This is the step
+where you find out whether your solar installer did the conduit work
+properly; there is not much you can do at this point but hope they did.
+
+**Dec 19, 2025 — Yellow card issued.** The next day I picked up the "yellow
+card" at Meralco Rosario. *What to expect:* this card is the key that unlocks
+the City Hall step — don't file at City Hall before you have it.
+
+**Dec 19, 2025 — City Hall, same day.** Straight to the General Trias City
+Hall, City Engineer's Office, for the **Certification of Electrical
+Inspection (PHP 1,254)** and the **Wiring Permit (PHP 165)**. I brought: the
+yellow card, a photo of the house facade, the Certificate of Occupancy, a
+photocopy of the TCT or Contract to Sell, a valid ID, and the A3 SLD with the
+PEE seal/PTR/PRC ID. *What to expect:* this is a separate office from Meralco
+with its own queue and cashier. I snapped the official receipts and forwarded
+them to the Meralco engineer over Viber — that photo is what moved my file
+forward, so get the engineer's Viber early.
+
+**Jan 9, 2026 — Contract signing at Meralco Rosario.** Three documents: the
+Amended Net-Metering Agreement (no Renewable Energy Certificate meter); the
+Fixed Asset Boundary Document for connecting a 6.000 kWp Solar PV Generation
+System to Meralco's secondary distribution system (TLN # XXXXXX); and the
+notarized Affidavit and Waiver of Net-Metering Customer on REC Metering
+Installation and Facility Inspection. I paid **PHP 2,312.77** as the
+difference in meter cost for the bi-directional meter, and brought another
+photocopy of the TCT/Contract to Sell. *What to expect:* a notary is involved
+— budget time, and bring spare TCT photocopies.
+
+Note the recurring "no REC meter" language. A Renewable Energy Certificate
+(REC) meter used to be mandatory, but a regulatory update around September
+2025 made it optional for net-metering customers. I opted out — which is why
+the agreement is the *amended* version and why there's a separate notarized
+**Affidavit and Waiver on REC Metering**. Opting out means one less meter and
+one less thing to install; if you don't intend to trade RECs, ask whether you
+can waive it and save the hassle.
+
+**Jan 28, 2026 — Meter swap.** A crew came to the service address and
+installed the bi-directional meter. *What to expect:* a brief power
+interruption, then you're officially exporting.
+
+## Total elapsed time
+
+> From application (Dec 9, 2025) to bi-directional meter (Jan 28, 2026):
+> **about 50 days**, straddling the Christmas and New Year slowdown. Plan for
+> roughly seven weeks and treat anything faster as a gift.
+
+## Lessons learned
+
+- **Get the PEE-sealed A3 SLD early.** Nothing moves without it, and it's the
+  one item entirely outside the government queue — so it should never be your
+  bottleneck.
+- **Photocopy your TCT (or Contract to Sell) several times.** It's asked for
+  at City Hall *and* at contract signing. Running out means another trip.
+- **Expect two separate errands.** Meralco Rosario and General Trias City
+  Hall are different offices with independent queues. Don't plan to finish
+  both casually in one morning.
+- **Budget about PHP 3,700 in government/meter fees** — PHP 1,254 + PHP 165 +
+  PHP 2,312.77 — *on top of* the PHP 3,500 PEE fee and your install cost.
+- **Stay reachable on Viber.** The Meralco engineer coordinated almost
+  everything there, including accepting the receipt photo. A missed message
+  is a lost week.
+
+## Closing
+
+None of this is hard, exactly — it's just sequential, and each step gates the
+next. If your SLD is clean and sealed, your TCT copies don't run out, and you
+answer Viber promptly, fifty days is a reasonable expectation. Then the meter
+spins backward on sunny afternoons, and the paperwork stops mattering.
+
+## Downloadable forms
+
+The blank Meralco forms I used, for reference:
+
+- [Plant Parameter Form](/net-metering-docs/plant-parameter-form.pdf)
+- [QE-COC Application Form No. 1](/net-metering-docs/qe-coc-application-form-1.pdf)
+- [QE-COC Application Form No. 1.1 (Solar)](/net-metering-docs/qe-coc-application-form-1.1-solar.pdf)
