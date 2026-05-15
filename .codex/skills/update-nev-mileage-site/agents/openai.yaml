@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update NEV Mileage"
+  short_description: "Refresh the EV/PHEV report site deterministically"
+  default_prompt: "Use $update-nev-mileage-site to refresh the public EV/PHEV mileage report site from the latest phev-tracker report."

@@ -36,6 +36,13 @@ const posts = [
     description:
       "Five months of real generation, self-sufficiency, battery behavior, and bill impact from a 6.5 kWp / 14.3 kWh / 8 kW system, with monthly tariff math and ROI payback.",
   },
+  {
+    href: "/nev-mileage/",
+    eyebrow: "Case study · 2026-05",
+    title: "BYD Sealion 6 PHEV running cost — Cavite, Philippines",
+    description:
+      "5,123 km of odometer- and meter-tracked driving: electric-vs-fuel running cost, 63% EV usage split, combined 6.0 L/100km efficiency, and battery health.",
+  },
 ] as const;
 
 export default function Index() {

@@ -5,4 +5,6 @@ export default [
   route("mikrotik-home-network", "routes/mikrotik-home-network.tsx"),
   route("solar-report", "routes/solar-report.tsx"),
   route("solar-report/full-report", "routes/solar-report-full.tsx"),
+  route("nev-mileage", "routes/nev-mileage.tsx"),
+  route("nev-mileage/full-report", "routes/nev-mileage-full.tsx"),
 ] satisfies RouteConfig;
