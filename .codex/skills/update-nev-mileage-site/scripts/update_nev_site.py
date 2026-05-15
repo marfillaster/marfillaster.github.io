@@ -192,21 +192,24 @@ def build_og_image(
     insights = sections.get("Inferred Insights", "")
     summary = sections.get("Executive Summary", "")
 
-    distance = labeled_value(insights, "Projected annual") or ""
     savings = labeled_value(insights, "Lifetime savings vs ICE") or ""
-    co2 = labeled_value(insights, "CO2 avoided") or labeled_value(
-        insights, "CO₂ avoided"
-    ) or ""
 
     ev_pct = ""
     pm = re.search(r"(\d+)%\s*EV", og_text(summary))
     if pm:
         ev_pct = f"{pm.group(1)}% EV"
 
+    # Total tracked distance from the Executive Summary headline, e.g.
+    # "5,123 km tracked · ...".
+    km = ""
+    km_m = re.search(r"([\d,]+)\s*km tracked", og_text(summary))
+    if km_m:
+        km = f"{km_m.group(1)} km"
+
     stats = [
+        (og_text(km) or "-", "distance tracked"),
         (og_text(ev_pct) or "-", "electric driving"),
         (og_text(compact_money(savings)) or "-", "saved vs ICE"),
-        (og_text(co2) or "-", "CO2 avoided"),
     ]
     og_path = repo_root / "public" / "nev-mileage" / "og-image.png"
     og_path.parent.mkdir(parents=True, exist_ok=True)
