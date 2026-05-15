@@ -1,13 +1,14 @@
 import type { MetaFunction } from "react-router";
 import { Link } from "react-router";
 import { SiteShell } from "../components/site-shell";
+import { ogVersion } from "../content/nev-og-version";
 
 const title =
   "BYD Sealion 6 PHEV mileage & running-cost report — Cavite, Philippines (Dec 2025–Mar 2026)";
 const description =
   "Real-world EV/PHEV efficiency, electric-vs-fuel running cost, usage split, and battery health from a BYD Sealion 6 tracked over 5,123 km in Cavite, Philippines. Links to the full report and raw markdown.";
 const url = "https://marfillaster.github.io/nev-mileage/";
-const ogImage = "https://marfillaster.github.io/nev-mileage/og-image.png";
+const ogImage = `https://marfillaster.github.io/nev-mileage/og-image.png?v=${ogVersion}`;
 const author = "Ken Marfilla";
 const datePublished = "2026-05-15";
 const dateModified = "2026-05-15";

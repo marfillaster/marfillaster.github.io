@@ -101,6 +101,7 @@ extended-report write step; this skill only consumes it.
 | `src/content/nev-full-report.md` | Markdown imported by the `/nev-mileage/full-report` route. `<` is escaped to `\<` for MDX 3 safety; the Data Sources bullet is linkified to `/nev-mileage/data/phev_log.csv`. |
 | `public/nev-mileage/full-report.md` | Raw (unescaped) markdown served as the download link on both `/nev-mileage` and `/nev-mileage/full-report`. Data Sources entry keeps the relative `data/phev_log.csv` path so the file stays portable. |
 | `public/nev-mileage/og-image.png` | OpenGraph image used by both `/nev-mileage` routes. |
+| `src/content/nev-og-version.ts` | Generated `ogVersion` = 10-char sha256 of `og-image.png`. The routes append it to the `og:image` URL as `?v=<hash>` so share scrapers re-fetch only when the image actually changes. Do not hand-edit. |
 | `public/nev-mileage/data/phev_log.csv` | The refuel log, copied verbatim so the linkified Data Sources bullet resolves to a downloadable file. |
 
 ## Resources
