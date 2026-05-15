@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "outDir": ".react-router/tsc-node",
+    "declarationDir": ".react-router/tsc-node",
+    "emitDeclarationOnly": true
+  },
+  "include": ["vite.config.ts"]
+}

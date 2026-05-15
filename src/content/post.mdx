@@ -1,0 +1,771 @@
+## Abstract
+This is a journal of building a small, opinionated home network on a single
+MikroTik RB5009 behind a residential fiber connection that uses carrier-grade
+NAT. The ISP gives a dynamic IPv4 address with no inbound reachability and no
+usable IPv6. The goals are pedestrian: keep IoT devices and guests away from
+the trusted LAN, manage the Wi-Fi APs without buying another always-on box,
+and have real IPv6 so the network stays useful as the rest of the internet
+finishes the v6 migration.
+
+The build proceeds in three layers, in the order they were actually installed:
+first the LAN is split into VLANs, then the UniFi controller is moved into
+RouterOS containers, then IPv6 reachability is recovered through a $3/month
+VPS with a routed /48. DoH and RA RDNSS sit on top of the third layer. None of
+these steps depend on a specific brand of fiber service; they only assume that
+outbound UDP works and that the router can carry a small WireGuard tunnel.
+
+Each numbered section below is paste-ready against a defconf RouterOS&nbsp;v7
+setup. The italicized notes after each step are the rationale — what trade-off
+was being made and why. The appendices document the optional pieces
+(sub-second IPv6 failover, an IoT printer exception, cost) and the references
+point at the original gists.
+
+## Design decisions
+
+Three protocol choices in this build are load-bearing enough that a reader
+substituting parts will want a sentence of justification for each.
+
+**WireGuard** carries the IPv6 transport because residential CGNAT only
+guarantees outbound UDP, and WireGuard needs nothing more than that. Both
+endpoints (RouterOS&nbsp;v7 and Linux) speak it in-kernel with a single
+config primitive on each side; there is no daemon, no negotiation, and no
+MTU two-stepping with an underlying IPsec SA. IPsec/IKEv2, GRE+IPsec, or
+OpenVPN would all work; each adds operational surface this build does not
+need to pay for.
+
+**BGP** appears only in Appendix&nbsp;A, and only because it pairs cleanly
+with BFD: BGP withdraws a single `::/0` route the instant BFD declares the
+forwarding path dead, which gives sub-second IPv6 failover with no scripts
+and no controller. With one peer, BGP is not chosen for scaling — it is
+chosen for clean dynamic route withdrawal that static routes do not offer.
+
+**BFD** exists because a WireGuard interface stays administratively UP even
+when the tunnel is silently dead: NAT mapping expired, peer rebooted, ISP
+null-routed the VPS. Without BFD, BGP and interface state would happily keep
+announcing a black hole. BFD adds an independent forwarding-path liveness
+signal so the routing layer can tell "interface up" apart from "packets
+actually reach the other side".
+
+## 1. Topology and address plan
+```ascii
+                       Internet (IPv4 + IPv6)
+                              │
+                ┌─────────────┴─────────────┐
+                │  VPS — Ubuntu, routed /48 │
+                │  <VPS_IP>                 │
+                │  enp3s0: provider GUA     │
+                │  wg0:    <LAN_PREFIX>:0::1│
+                └─────────────┬─────────────┘
+                              │ WireGuard / UDP 51820
+                              │ (only IPv6 transits the tunnel)
+                ┌─────────────┴─────────────┐
+                │   Converge fiber + CGNAT  │
+                │   (IPv4 outbound only)    │
+                └─────────────┬─────────────┘
+                              │
+                ┌─────────────┴─────────────┐
+                │  MikroTik RB5009 — edge   │
+                │  • DHCPv4 + RA + RDNSS    │
+                │  • DoH resolver           │
+                │  • WireGuard client       │
+                │  • RouterOS containers    │
+                └──┬──────────┬──────────┬──┘
+                   │          │          │
+        ether2/3 (trunks)  ether4/5 (LAN-only access)
+                   │
+        ┌──────────┴──────────┐
+        │  UniFi 6 APs ×2     │
+        │  untagged = mgmt    │
+        │  tag 10 = IoT SSID  │
+        │  tag 20 = Guest SSID│
+        └──────────┬──────────┘
+                   │
+       LAN 1   IoT 10   Guest 20
+   192.168.88/24  .89/24  .90/24
+   <LAN_PREFIX>:1::/64  :10::/64  :20::/64
+```
+
+One box does everything the LAN side needs. The RB5009 terminates the WAN,
+runs DHCPv4 and IPv6 RA, runs DoH outbound, hosts the WireGuard client toward
+the VPS, and runs the UniFi Network Application and MongoDB as containers.
+Two UniFi 6 APs hang off bridge ports configured as hybrid trunks: untagged
+frames carry AP management on the main LAN, tagged frames carry IoT and Guest
+SSID traffic.
+
+<Rationale>
+One always-on device is enough. Running the controller on the router avoids a
+second box and a second attack surface; the cost is paid in memory pressure
+and is bounded by the limits in section&nbsp;4.
+</Rationale>
+
+#### Address plan
+
+| VLAN    | Tagging      | Role                | IPv4              | IPv6                  |
+| ------- | ------------ | ------------------- | ----------------- | --------------------- |
+| VLAN 1  | untagged     | main LAN, AP mgmt   | `192.168.88.0/24` | `<LAN_PREFIX>:1::/64` |
+| VLAN 10 | tagged       | IoT SSID            | `192.168.89.0/24` | `<LAN_PREFIX>:10::/64`|
+| VLAN 20 | tagged       | Guest SSID          | `192.168.90.0/24` | `<LAN_PREFIX>:20::/64`|
+| —       | WG transport | VPS ↔ MikroTik      | n/a               | `<LAN_PREFIX>:0::/64` |
+
+Each VLAN is a separate L3 boundary at the router. The IoT and Guest VLANs
+deliberately reuse the same slice IDs as their VLAN numbers in the IPv6 plan
+(`:10::/64`, `:20::/64`) so the mapping stays obvious in tcpdump.
+
+## 2. Conventions and placeholders
+Every snippet below uses angle-bracketed placeholders. Substitute them before
+pasting; the rest of the text is literal RouterOS or bash.
+
+| Placeholder                   | Meaning                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `<LAN_PREFIX>`                | Routed IPv6 /48 (or /56) the VPS hands you. Drop the trailing zeros, e.g. `2001:db8`.            |
+| `<ULA_PREFIX>`                | Locally-generated ULA. `python3 -c 'import secrets; print(f"fd{secrets.token_hex(5)}")'`.        |
+| `<VPS_IP>`                    | VPS public IPv4 from the provider panel.                                                         |
+| `<VPS_NIC>`                   | VPS public interface. `ip -o link` shows it (typical: `enp3s0`, `ens3`).                         |
+| `<VPS_PUBKEY> / <MT_PUBKEY>`  | WireGuard public keys, one per side. Each is printed during section&nbsp;5.                      |
+
+Documentation prefixes from RFC&nbsp;3849 (`2001:db8::/32`) and RFC&nbsp;4193
+(`fd00::/8`) work as stand-ins while testing. Snippets assume the defconf
+bridge name `bridge` and ports `ether2`–`ether5`; rename the interfaces where
+they appear.
+
+## 3. LAN segmentation comes first
+The network is split before any services are added on top of it. Main LAN
+keeps VLAN&nbsp;1 untagged so AP adoption and existing wired devices stay
+boring. IoT and Guest land on tagged VLANs 10 and 20 that share the same
+uplinks to the APs.
+
+<Rationale>
+Hybrid trunks instead of a tagged management VLAN keeps AP onboarding
+trivial: APs boot on the main LAN, only client SSID traffic is tagged. The
+trade-off is that the trunk ports carry both untagged and tagged frames, so
+they have to be documented as such.
+</Rationale>
+
+### 3.1 Bridge VLAN table and L3 gateways
+Turn on bridge VLAN filtering, declare the two VLAN interfaces, mark the AP
+uplinks as trunks, and give each VLAN a gateway address.
+
+```bash title="VLAN bridge + gateways"
+/interface/bridge set [find name=bridge] vlan-filtering=yes
+
+/interface/vlan add interface=bridge name=vlan-iot   vlan-id=10
+/interface/vlan add interface=bridge name=vlan-guest vlan-id=20
+
+# Bridge VLAN table — hybrid trunks on ether2/ether3 (to APs),
+# access-only LAN on ether4/ether5.
+/interface/bridge/vlan
+add bridge=bridge vlan-ids=1  untagged=bridge,ether2,ether3,ether4,ether5 comment="main LAN untagged"
+add bridge=bridge vlan-ids=10 tagged=bridge,ether2,ether3                comment="IoT to UniFi APs"
+add bridge=bridge vlan-ids=20 tagged=bridge,ether2,ether3                comment="Guest to UniFi APs"
+
+/ip/address add address=192.168.89.1/24 interface=vlan-iot
+/ip/address add address=192.168.90.1/24 interface=vlan-guest
+```
+
+### 3.2 DHCP scopes
+Each VLAN gets its own pool, server, and network record, with the router
+itself acting as DNS for now. DoH replaces the upstream side of that resolver
+in section&nbsp;6.
+
+```bash title="IoT + Guest DHCPv4"
+/ip/pool add name=iot-pool   ranges=192.168.89.100-192.168.89.200
+/ip/pool add name=guest-pool ranges=192.168.90.100-192.168.90.200
+
+/ip/dhcp-server add name=iot-dhcp   interface=vlan-iot   address-pool=iot-pool   lease-time=1d
+/ip/dhcp-server add name=guest-dhcp interface=vlan-guest address-pool=guest-pool lease-time=1d
+
+/ip/dhcp-server/network add address=192.168.89.0/24 gateway=192.168.89.1 dns-server=192.168.89.1
+/ip/dhcp-server/network add address=192.168.90.0/24 gateway=192.168.90.1 dns-server=192.168.90.1
+```
+
+### 3.3 Firewall — input services and east-west isolation
+The input chain accepts only the router services the VLANs actually need; the
+forward chain drops new flows back into trusted networks. Established replies
+are not affected, which is what makes narrow exceptions (Appendix&nbsp;B)
+practical.
+
+```bash title="Input + forward firewall"
+# Input — place BEFORE defconf's "drop all not coming from LAN".
+/ip/firewall/filter
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=67-68 comment="IOT: DHCPv4"
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=53    comment="IOT: DNS UDP"
+add chain=input action=accept in-interface=vlan-iot   protocol=tcp dst-port=53    comment="IOT: DNS TCP"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=67-68 comment="GUEST: DHCPv4"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=53    comment="GUEST: DNS UDP"
+add chain=input action=accept in-interface=vlan-guest protocol=tcp dst-port=53    comment="GUEST: DNS TCP"
+
+# Forward — place BEFORE fasttrack / established accepts.
+/ip/firewall/filter
+add chain=forward action=drop in-interface=vlan-iot   out-interface=bridge   connection-state=new comment="IOT !-> LAN"
+add chain=forward action=drop in-interface=vlan-guest out-interface=bridge   connection-state=new comment="GUEST !-> LAN"
+add chain=forward action=drop in-interface=vlan-guest out-interface=vlan-iot connection-state=new comment="GUEST !-> IOT"
+```
+
+<Rationale>
+Isolation is enforced in `forward`, not by starving clients of DHCP/DNS in
+`input`. Mixing the two layers makes the rules unreviewable later.
+</Rationale>
+
+## 4. UniFi controller on the router
+The controller runs as two RouterOS containers — MongoDB at
+`192.168.88.2` and the UniFi Network Application at `192.168.88.3` — both
+bridged onto VLAN&nbsp;1 through veth interfaces. From the LAN they look like
+normal hosts; from the router they are services with hard memory limits.
+
+<Rationale>
+The RB5009 has 1&nbsp;GB of RAM. Without a swap file and explicit caps on
+Mongo's WiredTiger cache and UniFi's Java heap, a backup-restore burst can
+knock routing off the air.
+</Rationale>
+
+### 4.1 USB layout: swap + ext4 data
+```ascii
+/dev/usb1 (64 GB USB stick)
+├── part1   8 GiB  raw       → swap (smb-sharing=no, media-sharing=no, swap=yes)
+└── part2  ~56 GiB ext4      → /usb1-part2
+                              ├── images/         container image layers
+                              ├── tmp/            container tmpdir
+                              ├── unifi-config/   UniFi /config
+                              ├── mongo-data/     Mongo /data/db
+                              ├── mongo-config/   Mongo /data/configdb
+                              └── mongo-initdb/   Mongo init scripts (read-only)
+```
+
+The sequence below is destructive to the USB stick. Confirm it is expendable
+and run from a path that survives bridge and container changes.
+
+```bash title="USB swap + container storage"
+/container/config/set layer-dir="" tmpdir=""
+
+:foreach p in=[/disk/find slot~"usb1-part"] do={/disk/remove $p}
+/disk/add parent=usb1 type=partition partition-size=8589934592
+/disk/add parent=usb1 type=partition
+/disk/format numbers=usb1-part2 file-system=ext4
+
+/disk/set [find slot="usb1-part1"] smb-sharing=no media-sharing=no
+/disk/set [find slot="usb1-part1"] swap=yes
+
+/file/add type=directory name="usb1-part2/images"
+/file/add type=directory name="usb1-part2/tmp"
+/file/add type=directory name="usb1-part2/unifi-config"
+/file/add type=directory name="usb1-part2/mongo-data"
+/file/add type=directory name="usb1-part2/mongo-config"
+/file/add type=directory name="usb1-part2/mongo-initdb"
+
+/container/config/set layer-dir=/usb1-part2/images tmpdir=/usb1-part2/tmp
+```
+
+### 4.2 Container veths on VLAN 1
+Static veths make the containers ordinary LAN hosts. With bridge VLAN
+filtering on, the VLAN-1 untagged list must be updated to include the new
+veths or they will not pass traffic.
+
+```bash title="veths on the main LAN"
+/interface/veth/add name=veth1-mongo address=192.168.88.2/24 gateway=192.168.88.1 gateway6=""
+/interface/veth/add name=veth2-unifi address=192.168.88.3/24 gateway=192.168.88.1 gateway6=""
+
+/interface/bridge/port/add bridge=bridge interface=veth1-mongo pvid=1
+/interface/bridge/port/add bridge=bridge interface=veth2-unifi pvid=1
+
+# Required when bridge vlan-filtering is enabled.
+/interface/bridge/vlan/set [find vlan-ids=1] \
+    untagged=bridge,ether2,ether3,ether4,ether5,veth1-mongo,veth2-unifi
+```
+
+### 4.3 Mongo bootstrap user
+UniFi's LinuxServer image expects an external Mongo. The bootstrap user needs
+ownership of `unifi`, `unifi_stat`, and `unifi_audit`, plus broader admin
+roles for backup restore — UniFi creates a transient restore DB during import.
+
+```javascript title="Mongo bootstrap user"
+db.getSiblingDB("unifi").createUser({
+  user: "unifi",
+  pwd: "<MONGO_UNIFI_PASS>",
+  roles: [
+    { role: "dbOwner",              db: "unifi" },
+    { role: "dbOwner",              db: "unifi_stat" },
+    { role: "dbOwner",              db: "unifi_audit" },
+    { role: "readWriteAnyDatabase", db: "admin" },
+    { role: "dbAdminAnyDatabase",   db: "admin" }
+  ]
+});
+```
+
+### 4.4 Mongo and UniFi containers
+MongoDB is pinned to `arm64v8/mongo:4.4.18`. Newer ARM64 builds require
+ARMv8.2-A atomics that the RB5009 Cortex-A72 (ARMv8.0-A) does not have; they
+crash with `SIGILL`. The pinned version is EOL, so it stays LAN-only and
+never gets a WAN forward.
+
+```bash title="Mongo + UniFi containers"
+/container/envs/add list=mongo-envs key=MONGO_INITDB_ROOT_USERNAME value=root
+/container/envs/add list=mongo-envs key=MONGO_INITDB_ROOT_PASSWORD value=<MONGO_ROOT_PASS>
+
+/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-data   dst=/data/db
+/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-config dst=/data/configdb
+/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-initdb dst=/docker-entrypoint-initdb.d read-only=yes
+
+# Mongo 4.4.18 — newer ARM64 builds need ARMv8.2-A atomics that the
+# RB5009 Cortex-A72 (ARMv8.0-A) doesn't have; they exit with SIGILL.
+/container/add remote-image=arm64v8/mongo:4.4.18 interface=veth1-mongo envlist=mongo-envs
+/container/set [find name="mongo:4.4.18"] \
+    mountlists=mongo-mounts hostname=mongo name=mongo start-on-boot=yes logging=yes dns=192.168.88.1 \
+    cmd="mongod --wiredTigerCacheSizeGB 0.25 --bind_ip_all --ipv6" tmpfs="/tmp:64M:fixed"
+
+/container/envs/add list=unifi-envs key=PUID value=1000
+/container/envs/add list=unifi-envs key=PGID value=1000
+/container/envs/add list=unifi-envs key=TZ value=Asia/Manila
+/container/envs/add list=unifi-envs key=MONGO_HOST value=192.168.88.2
+/container/envs/add list=unifi-envs key=MONGO_PORT value=27017
+/container/envs/add list=unifi-envs key=MONGO_USER value=unifi
+/container/envs/add list=unifi-envs key=MONGO_PASS value=<MONGO_UNIFI_PASS>
+/container/envs/add list=unifi-envs key=MONGO_DBNAME value=unifi
+/container/envs/add list=unifi-envs key=MONGO_AUTHSOURCE value=unifi
+/container/envs/add list=unifi-envs key=MEM_LIMIT value=384
+/container/envs/add list=unifi-envs key=MEM_STARTUP value=256
+
+/container/mounts/add list=unifi-mounts src=/usb1-part2/unifi-config dst=/config
+/container/add remote-image=lscr.io/linuxserver/unifi-network-application:latest interface=veth2-unifi envlist=unifi-envs
+/container/set [find name="unifi-network-application:latest"] \
+    mountlists=unifi-mounts hostname=unifi name=unifi start-on-boot=yes logging=yes \
+    dns=192.168.88.1 tmpfs="/tmp:128M:fixed"
+
+/container/start [find name="mongo"]
+/container/start [find name="unifi"]
+```
+
+<Rationale>
+Container mounts use `list=` on the mount object and `mountlists=` on the
+container. RouterOS rejects `mountlists=` during the initial image pull, so
+set them with `/container/set` after the add.
+</Rationale>
+
+### 4.5 Verification
+```bash title="Controller smoke tests"
+/disk/print where slot~"usb1-part"
+/log/print where topics~"container"
+
+nc -z -w 2 192.168.88.2 27017 && echo OK
+curl -sk https://192.168.88.3:8443/manage/account/login \
+    -o /dev/null -w "HTTP %{http_code}\n"
+```
+
+## 5. IPv6 over WireGuard via a routed /48
+CGNAT eats inbound IPv4. IPv6 sidesteps that problem entirely — but only if
+the network has real, routable IPv6. The recipe is a $3/month VPS that routes
+a /48 to its instance, a WireGuard tunnel from the RB5009 to that VPS, and
+per-VLAN /64s carved out of the /48.
+
+<Rationale>
+A routed /48 is what unlocks the address plan in section&nbsp;1. With an
+on-link /64 the only options are NDP-proxying and a single subnet; with a
+routed /48 there are no helper daemons and 65k subnets to spare.
+</Rationale>
+
+[Hurricane Electric's tunnel broker](https://tunnelbroker.net/) is the
+obvious first answer for residential IPv6: a free /64 (or /48 on request),
+worldwide PoPs, and a dyndns-style endpoint update so a changing client IPv4
+does not break the tunnel. It still does not help behind CGNAT. HE's primary
+service is 6in4, which encapsulates IPv6 directly inside IP protocol 41 — no
+TCP or UDP ports for the carrier's NAT to track, so most CGNAT deployments
+drop the packets outright. The dyndns hook keeps the tunnel *configured*
+against the current public IPv4; the encapsulated frames just never make it
+through the carrier's NAT44.
+
+HE also offers AYIYA, which is UDP-encapsulated and would traverse CGNAT,
+but its only working client (`aiccu`) is unmaintained, was dropped from
+Debian for security issues, and has no RouterOS port. WireGuard fills the
+same role with a current in-kernel implementation, and the encryption is a
+bonus rather than a cost.
+
+[Route64](https://route64.org/) is a free IPv6 tunnel broker that already
+runs on WireGuard, which initially makes it look like a drop-in replacement
+for the VPS in this build. The catch is which side initiates the handshake.
+Route64 configures peers with a fixed client `Endpoint` and initiates
+toward you, so behind CGNAT there is nowhere to point it: the public IPv4
+is shared and the client's source port shifts on every WireGuard restart.
+The VPS topology inverts that direction — the RB5009 reaches *out* to a
+known public IP, and `PersistentKeepalive = 25` keeps the carrier's NAT44
+mapping warm. That outbound-initiated direction is the one CGNAT permits,
+and owning the reachable side of the tunnel is what the $3/month VPS
+actually buys.
+
+### 5.1 Return routing: why each /64 has to appear in AllowedIPs
+The provider routes the /48 to the VPS, then configures one address from it on
+the public NIC at /48 mask. That installs a connected route for the entire
+/48 on the public interface, which competes with the WireGuard tunnel for
+return traffic. Listing the parent /48 in `AllowedIPs` ties on prefix length
+and loses to the public NIC by metric. Listing each LAN /64 separately wins
+by longest-prefix match.
+
+```ascii
+# Routing table on the VPS — what makes return traffic work
+<LAN_PREFIX>::/48        dev <VPS_NIC>  metric 256   ← provider's connected route (harmless)
+<LAN_PREFIX>:1::/64      dev wg0                    ← from AllowedIPs, wins by /64 > /48
+<LAN_PREFIX>:10::/64     dev wg0                    ← from AllowedIPs
+<LAN_PREFIX>:20::/64     dev wg0                    ← from AllowedIPs
+
+# Listing the parent /48 in AllowedIPs would lose to the connected route
+# on the public NIC and return traffic would disappear. List each /64.
+```
+
+<Rationale>
+This is the one detail that silently breaks the whole setup. Egress works,
+ping works, then the first packet to a SLAAC client falls off the public NIC
+and the network looks broken in a way that no log line explains. The fix is
+paste-only — but only if it is paste-correct.
+</Rationale>
+
+### 5.2 VPS — WireGuard relay
+```bash title="VPS wg0 + AllowedIPs per /64"
+set -e
+apt-get update -qq
+apt-get install -y -qq wireguard
+
+cat >/etc/sysctl.d/99-wg-relay.conf <<'EOF'
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.default.forwarding = 1
+net.ipv6.conf.<VPS_NIC>.accept_ra = 2
+EOF
+sysctl --system >/dev/null
+
+umask 077
+mkdir -p /etc/wireguard
+wg genkey | tee /etc/wireguard/server.key | wg pubkey > /etc/wireguard/server.pub
+VPS_PRIVKEY=$(cat /etc/wireguard/server.key)
+
+cat >/etc/wireguard/wg0.conf <<EOF
+[Interface]
+PrivateKey = ${VPS_PRIVKEY}
+Address    = <LAN_PREFIX>:0::1/64
+ListenPort = 51820
+MTU        = 1420
+
+[Peer]
+PublicKey  = <MT_PUBKEY>
+# One entry per LAN /64. Longest-prefix match beats the connected
+# /48 on the public NIC and keeps return traffic on wg0.
+AllowedIPs = <LAN_PREFIX>:0::2/128, <LAN_PREFIX>:1::/64, <LAN_PREFIX>:10::/64, <LAN_PREFIX>:20::/64
+PersistentKeepalive = 25
+EOF
+
+ufw allow 51820/udp comment "WireGuard"
+ufw route allow in on wg0
+ufw route allow out on wg0
+ufw reload || true
+systemctl enable --now wg-quick@wg0
+echo "VPS public key: $(cat /etc/wireguard/server.pub)"
+```
+
+### 5.3 MikroTik — WireGuard client and main-LAN IPv6
+The static `::/0` with `check-gateway=ping` detects a dead tunnel in roughly
+30 seconds. Appendix&nbsp;A replaces it with BGP+BFD for ~600&nbsp;ms
+detection if that matters.
+
+```bash title="MikroTik WireGuard + main LAN IPv6"
+/interface/wireguard add name=wg-host listen-port=51820 mtu=1420
+/interface/wireguard/peers add interface=wg-host name=vps \
+    public-key="<VPS_PUBKEY>" \
+    endpoint-address=<VPS_IP> endpoint-port=51820 \
+    allowed-address=::/0 \
+    persistent-keepalive=25s
+
+/ipv6/address add address=<LAN_PREFIX>:0::2/64 interface=wg-host advertise=no
+/ipv6/address add address=<LAN_PREFIX>:1::1/64 interface=bridge advertise=yes
+/ipv6/address add address=<ULA_PREFIX>:1::1/64 interface=bridge advertise=yes comment="LAN ULA"
+
+# Static default with ping liveness — detection ~30 s.
+# Appendix A replaces this with BGP+BFD for ~600 ms.
+/ipv6/route add dst-address=::/0 gateway=<LAN_PREFIX>:0::1%wg-host check-gateway=ping
+
+/ipv6/firewall/filter add chain=input action=accept in-interface=wg-host \
+    comment="accept input from VPS WG peer" \
+    place-before=[find where chain=input and comment="defconf: drop everything else not coming from LAN"]
+```
+
+### 5.4 Per-VLAN addresses and RA RDNSS
+Each VLAN gets a GUA from the /48 and a stable ULA from the locally-generated
+`fd…` prefix. The ULA is what gets advertised as the DNS server — it stays
+the same when the global prefix is renumbered, which it eventually will be.
+
+```bash title="GUA + ULA + RDNSS per VLAN"
+/ipv6/address
+add interface=vlan-iot   address=<LAN_PREFIX>:10::1/64 advertise=yes comment="IOT GUA"
+add interface=vlan-iot   address=<ULA_PREFIX>:10::1/64 advertise=yes comment="IOT ULA"
+add interface=vlan-guest address=<LAN_PREFIX>:20::1/64 advertise=yes comment="GUEST GUA"
+add interface=vlan-guest address=<ULA_PREFIX>:20::1/64 advertise=yes comment="GUEST ULA"
+
+/ipv6/nd
+add interface=bridge     advertise-dns=yes dns=<ULA_PREFIX>:1::1  managed-address-configuration=no other-configuration=no
+add interface=vlan-iot   advertise-dns=yes dns=<ULA_PREFIX>:10::1 managed-address-configuration=no other-configuration=no
+add interface=vlan-guest advertise-dns=yes dns=<ULA_PREFIX>:20::1 managed-address-configuration=no other-configuration=no
+```
+
+### 5.5 IPv6 firewall and anti-spoofing
+Mirror the IPv4 isolation in IPv6, then drop traffic whose source prefix does
+not belong on the ingress VLAN. SLAAC makes prefix forgery trivially cheap;
+the address-list filters make it not work.
+
+```bash title="IPv6 isolation + anti-spoof"
+/ipv6/firewall/filter
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=547 comment="IOT: DHCPv6"
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=53  comment="IOT: DNSv6"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=547 comment="GUEST: DHCPv6"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=53  comment="GUEST: DNSv6"
+
+add chain=forward action=drop in-interface=vlan-iot   out-interface=bridge   connection-state=new comment="IOT !-> LAN (v6)"
+add chain=forward action=drop in-interface=vlan-guest out-interface=bridge   connection-state=new comment="GUEST !-> LAN (v6)"
+add chain=forward action=drop in-interface=vlan-guest out-interface=vlan-iot connection-state=new comment="GUEST !-> IOT (v6)"
+
+/ipv6/firewall/address-list
+add list=lan-legit   address=<LAN_PREFIX>:1::/64
+add list=lan-legit   address=<ULA_PREFIX>:1::/64
+add list=lan-legit   address=fe80::/10
+add list=iot-legit   address=<LAN_PREFIX>:10::/64
+add list=iot-legit   address=<ULA_PREFIX>:10::/64
+add list=iot-legit   address=fe80::/10
+add list=guest-legit address=<LAN_PREFIX>:20::/64
+add list=guest-legit address=<ULA_PREFIX>:20::/64
+add list=guest-legit address=fe80::/10
+
+/ipv6/firewall/filter
+add chain=forward action=drop in-interface=bridge     src-address-list=!lan-legit   comment="LAN: anti-spoof"
+add chain=forward action=drop in-interface=vlan-iot   src-address-list=!iot-legit   comment="IOT: anti-spoof"
+add chain=forward action=drop in-interface=vlan-guest src-address-list=!guest-legit comment="GUEST: anti-spoof"
+```
+
+## 6. Encrypted DNS with stable resolver addresses
+Upstream DNS leaves the house through Cloudflare DoH; downstream, the router
+is the resolver and advertises itself via RA RDNSS at its ULA. The bootstrap
+records are A/AAAA pins for `cloudflare-dns.com`, needed once at boot before
+DoH itself can resolve anything.
+
+<Rationale>
+Endpoints stay simple — they keep using a local resolver. Resolver identity
+is on ULA, so SLAAC prefix churn never changes the DNS server the OS has
+memorized.
+</Rationale>
+
+```bash title="DoH resolver + ULA RDNSS"
+/tool/fetch url=https://curl.se/ca/cacert.pem dst-path=cacert.pem
+/certificate/import file-name=cacert.pem passphrase=""
+
+/ip/dns set allow-remote-requests=yes max-concurrent-queries=200 \
+    use-doh-server=https://cloudflare-dns.com/dns-query verify-doh-cert=yes
+
+/ip/dns/static
+# A-only on purpose — see rationale below.
+add address=104.16.248.249       name=cloudflare-dns.com comment="DoH bootstrap"
+add address=104.16.249.249       name=cloudflare-dns.com comment="DoH bootstrap"
+add address=<ULA_PREFIX>:1::1    name=router.lan type=AAAA comment="LAN ULA"
+
+# Stop DHCPv4 from handing out the router as DNS; clients use RDNSS instead.
+/ip/dhcp-server/network set [find address=192.168.88.0/24] dns-none=yes
+```
+
+<Rationale>
+The DoH bootstrap is A-only on purpose. IPv4 is up the moment the WAN is up;
+IPv6 only becomes reachable after the WireGuard tunnel handshakes (and, with
+Appendix&nbsp;A, after BFD converges). Pinning AAAA records here would push
+the first DoH query onto a half-warm — or broken — tunnel, while the IPv4
+path is direct to a nearby Cloudflare PoP. Once DoH is up, regular client
+queries still resolve and use AAAA records normally.
+</Rationale>
+
+## 7. End-to-end verification
+The build has enough moving parts that it is worth testing each layer
+independently before declaring victory.
+
+```bash title="Smoke tests"
+# VLAN clients (wired, on each SSID)
+ip -4 addr show
+ping 1.1.1.1
+ping 192.168.88.1                          # MUST fail from IoT and Guest
+nslookup cloudflare.com 192.168.89.1
+
+# IPv6 path
+wg show                                    # on VPS: handshake < 3 min
+ping6 -c 2 <LAN_PREFIX>:0::2               # VPS -> MikroTik WG endpoint
+ip -6 route get <client-IPv6-addr>         # on VPS: expect "dev wg0"
+curl -6 -s https://test-ipv6.com/json/     # client: score 10/10
+
+# DNS
+dig @<ULA_PREFIX>:1::1 cloudflare.com
+scutil --dns | grep -i 'nameserver\['      # macOS: expect the ULA
+```
+
+## A. Appendix A — Sub-second IPv6 failover (BGP + BFD)
+A WireGuard interface stays administratively UP even when the path is dead —
+NAT mapping expired, peer rebooted, VPS null-routed — so neither interface
+state nor BGP keepalives alone are a reliable failure signal.
+Section&nbsp;5's static `::/0` with `check-gateway=ping` detects a dead
+tunnel in roughly 30&nbsp;seconds; during that window dual-stack apps stall
+on AAAA before Happy Eyeballs falls back to IPv4. Replacing the static route
+with a BGP-advertised one on a BFD-monitored session cuts detection to about
+600&nbsp;ms — pings fail once and clients are already on IPv4 by the next
+attempt.
+
+| Event                                          | Measured           |
+| ---------------------------------------------- | ------------------ |
+| WG silent → BFD down → route withdrawn         | `~600 ms`          |
+| WG restored → BFD up → route reinstalled       | `~3 s`             |
+| Full VPS reboot → bird up, route installed     | `~28 s`            |
+| BFD bandwidth (200 ms × 3, bidirectional)      | `~3.4 GB / mo`     |
+| BFD cost at $2.50/TB                           | `~$0.0085 / mo`    |
+
+### A.1 VPS — bird2 with BFD
+```bash title="bird2: BGP + BFD on the VPS"
+# 1. Add a link-local on wg0 (bird's "next hop self" needs one).
+# Append to /etc/wireguard/wg0.conf and reload:
+#   Address = fe80::1/64
+
+apt-get install -y bird2
+mkdir -p /etc/bird
+cat >/etc/bird/bird.conf <<EOF
+log syslog all;
+router id <VPS_ROUTER_ID>;
+
+protocol device { }
+protocol kernel kernel6 { ipv6 { export none; import all; }; learn yes; }
+
+protocol bfd {
+  interface "wg0" {
+    min rx interval 200 ms;
+    min tx interval 200 ms;
+    idle tx interval 1 s;
+    multiplier 3;
+  };
+  # Explicit neighbor so bird actively probes; passive-only stalls
+  # after a tunnel flap because both sides wait for the other.
+  neighbor <LAN_PREFIX>:0::2 dev "wg0";
+}
+
+protocol bgp mikrotik {
+  local <LAN_PREFIX>:0::1 as <VPS_AS>;
+  neighbor <LAN_PREFIX>:0::2 as <MT_AS>;
+  ipv6 { import none; export where net = ::/0; next hop self; };
+}
+EOF
+chown -R bird:bird /etc/bird
+
+# Restart on any exit (packaged unit uses on-abnormal).
+mkdir -p /etc/systemd/system/bird.service.d
+printf '[Service]\nRestart=on-failure\nRestartSec=2s\n' \
+  > /etc/systemd/system/bird.service.d/restart.conf
+systemctl daemon-reload && systemctl enable --now bird
+```
+
+<Rationale>
+The explicit `neighbor` in `protocol bfd` matters. Without it, bird is
+passive and only responds to probes; after a flap the MikroTik waits for BFD
+before re-establishing BGP, bird waits for BGP before initiating BFD, and
+recovery needs a manual `birdc restart`.
+</Rationale>
+
+### A.2 MikroTik — BGP, BFD, and remove the static route
+```bash title="RouterOS BGP + BFD"
+/routing/bgp/instance/add name=default-bgp as=<MT_AS> router-id=<MT_ROUTER_ID>
+/routing/bgp/template/add name=tpl-host as=<MT_AS> use-bfd=yes
+/routing/bgp/connection/add name=host-vps instance=default-bgp \
+    remote.address=<LAN_PREFIX>:0::1 remote.as=<VPS_AS> \
+    local.address=<LAN_PREFIX>:0::2 local.role=ebgp \
+    templates=tpl-host afi=ipv6
+
+/routing/bfd/configuration/add interfaces=wg-host \
+    min-rx=200ms min-tx=200ms multiplier=3
+
+/ipv6/firewall/filter add chain=input action=accept protocol=udp dst-port=3784 \
+    in-interface=wg-host comment="BFD from VPS" \
+    place-before=[find where chain=input and comment="defconf: drop everything else not coming from LAN"]
+
+# Remove the static ::/0; BGP-learned route at distance 20 takes over.
+/ipv6/route/remove [find comment="webhorizon primary"]
+```
+
+<Rationale>
+RouterOS&nbsp;7 splits BGP into `instance`, `template`, and `connection`. The
+address-family field is `afi=ipv6` (singular). The `as=` on both `instance`
+and `template` is the local AS, not the remote.
+</Rationale>
+
+## B. Appendix B — IoT printer exception
+The default policy is isolation. A printer is the canonical exception: pin
+its IP in the IoT scope, allow trusted LAN clients to initiate to that one
+address, and reflect mDNS between LAN and IoT so AirPrint discovery works.
+Guest stays excluded on purpose.
+
+```bash title="LAN → IoT printer + mDNS reflector"
+/ip/dhcp-server/lease add server=iot-dhcp mac-address=AA:BB:CC:DD:EE:FF \
+    address=192.168.89.200 comment="Brother printer"
+
+/ip/firewall/filter add chain=forward action=accept connection-state=new \
+    in-interface=bridge out-interface=vlan-iot dst-address=192.168.89.200 \
+    place-before=[find where comment="IOT !-> LAN"] \
+    comment="LAN -> printer"
+
+/ip/dns set mdns-repeat-ifaces=bridge,vlan-iot
+/ip/firewall/filter add chain=input action=accept in-interface=vlan-iot \
+    protocol=udp dst-address=224.0.0.251 dst-port=5353 \
+    comment="IOT: mDNS to router"
+```
+
+## C. Appendix C — Cost and provider notes
+The IPv6 leg is the only recurring cost in the build, and it depends entirely
+on whether the VPS provider routes a prefix to the instance or only hands out
+an on-link /64. Providers known to route prefixes (verify on your specific
+plan): WebHorizon&nbsp;SG (/48), Hetzner Cloud (/64 effectively routed via
+NDP-proxy), Linode/Akamai (/64 default, /56 on request), Oracle Cloud (/56).
+
+| Line item            | On-link /64 (e.g. Vultr) | Routed /48 (this build)     |
+| -------------------- | ------------------------ | --------------------------- |
+| VPS plan             | `$5 / mo`                | `$3 / mo (routed /48, 1 TB)`|
+| Reserved IPv6 fee    | `$3 / mo`                | `$0`                        |
+| Bandwidth overage    | `$0.01 / GB`             | `$0.0025 / GB`              |
+| LAN address space    | `one /64`                | `/48 — 65 k /64s`           |
+| Extra daemon on VPS  | `ndppd`                  | `none`                      |
+| Fixed total          | `$8 / mo`                | `$3 / mo`                   |
+
+## Glossary
+
+| Acronym   | Expansion                                  | Reference                                                                         |
+| --------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
+| AP        | Wireless access point                      | [Wikipedia](https://en.wikipedia.org/wiki/Wireless_access_point)                  |
+| AS        | Autonomous system (number)                 | [RFC&nbsp;1930](https://datatracker.ietf.org/doc/html/rfc1930)                    |
+| BFD       | Bidirectional Forwarding Detection         | [RFC&nbsp;5880](https://datatracker.ietf.org/doc/html/rfc5880)                    |
+| BGP       | Border Gateway Protocol                    | [RFC&nbsp;4271](https://datatracker.ietf.org/doc/html/rfc4271)                    |
+| CA        | Certificate authority                      | [Wikipedia](https://en.wikipedia.org/wiki/Certificate_authority)                  |
+| CGNAT     | Carrier-grade NAT                          | [Wikipedia](https://en.wikipedia.org/wiki/Carrier-grade_NAT)                      |
+| DHCP      | Dynamic Host Configuration Protocol        | [RFC&nbsp;2131](https://datatracker.ietf.org/doc/html/rfc2131)                    |
+| DoH       | DNS over HTTPS                             | [RFC&nbsp;8484](https://datatracker.ietf.org/doc/html/rfc8484)                    |
+| GRE       | Generic Routing Encapsulation              | [RFC&nbsp;2784](https://datatracker.ietf.org/doc/html/rfc2784)                    |
+| GUA       | Global unicast address                     | [RFC&nbsp;4291](https://datatracker.ietf.org/doc/html/rfc4291)                    |
+| IKEv2     | Internet Key Exchange v2                   | [RFC&nbsp;7296](https://datatracker.ietf.org/doc/html/rfc7296)                    |
+| IoT       | Internet of Things                         | [Wikipedia](https://en.wikipedia.org/wiki/Internet_of_things)                     |
+| IPsec     | Internet Protocol Security                 | [RFC&nbsp;4301](https://datatracker.ietf.org/doc/html/rfc4301)                    |
+| ISP       | Internet service provider                  | [Wikipedia](https://en.wikipedia.org/wiki/Internet_service_provider)              |
+| LAN       | Local area network                         | [Wikipedia](https://en.wikipedia.org/wiki/Local_area_network)                     |
+| mDNS      | Multicast DNS                              | [RFC&nbsp;6762](https://datatracker.ietf.org/doc/html/rfc6762)                    |
+| MTU       | Maximum transmission unit                  | [Wikipedia](https://en.wikipedia.org/wiki/Maximum_transmission_unit)              |
+| NAT       | Network address translation                | [Wikipedia](https://en.wikipedia.org/wiki/Network_address_translation)            |
+| NDP       | Neighbor Discovery Protocol                | [RFC&nbsp;4861](https://datatracker.ietf.org/doc/html/rfc4861)                    |
+| OpenVPN   | OpenVPN tunnel daemon                      | [Wikipedia](https://en.wikipedia.org/wiki/OpenVPN)                                |
+| RA        | Router advertisement                       | [RFC&nbsp;4861](https://datatracker.ietf.org/doc/html/rfc4861)                    |
+| RDNSS     | Recursive DNS Server option in RA          | [RFC&nbsp;8106](https://datatracker.ietf.org/doc/html/rfc8106)                    |
+| SA        | Security association (IPsec)               | [RFC&nbsp;4301](https://datatracker.ietf.org/doc/html/rfc4301)                    |
+| SIGILL    | Illegal-instruction signal                 | [Wikipedia](https://en.wikipedia.org/wiki/Signal_(IPC)#SIGILL)                    |
+| SLAAC     | Stateless address autoconfiguration        | [RFC&nbsp;4862](https://datatracker.ietf.org/doc/html/rfc4862)                    |
+| SSID      | Service set identifier (Wi-Fi)             | [Wikipedia](<https://en.wikipedia.org/wiki/Service_set_(802.11_network)>)         |
+| TLS       | Transport Layer Security                   | [RFC&nbsp;8446](https://datatracker.ietf.org/doc/html/rfc8446)                    |
+| ULA       | Unique local address                       | [RFC&nbsp;4193](https://datatracker.ietf.org/doc/html/rfc4193)                    |
+| VLAN      | Virtual LAN                                | [Wikipedia](https://en.wikipedia.org/wiki/VLAN)                                   |
+| VPS       | Virtual private server                     | [Wikipedia](https://en.wikipedia.org/wiki/Virtual_private_server)                 |
+| WAN       | Wide area network                          | [Wikipedia](https://en.wikipedia.org/wiki/Wide_area_network)                      |
+| WireGuard | WireGuard VPN                              | [wireguard.com](https://www.wireguard.com/)                                       |
+
+## D. References
+- [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
+- [DoH + IPv6 RA RDNSS with ULA DNS — source gist](https://gist.github.com/marfillaster/d34bd199b9e265ccd74af6d31fd9df85)
+- [Vultr / on-link /64 variant — when the VPS does not route a prefix](https://gist.github.com/marfillaster/a80d378124db0d879a962ce73d31b345)
+- RFC 3849 — IPv6 documentation prefix `2001:db8::/32`.
+- RFC 4193 — Unique Local IPv6 unicast addresses (`fd00::/8`).
+- RFC 6996 — Private 2-byte ASNs (`64512–65534`) for Appendix&nbsp;A.

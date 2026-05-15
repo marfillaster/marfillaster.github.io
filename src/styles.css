@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --background: 60 9% 98%;
+    --foreground: 20 14% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14% 10%;
+    --primary: 173 58% 25%;
+    --primary-foreground: 60 9% 98%;
+    --secondary: 60 5% 92%;
+    --secondary-foreground: 24 10% 10%;
+    --muted: 60 5% 93%;
+    --muted-foreground: 25 7% 38%;
+    --accent: 39 42% 90%;
+    --accent-foreground: 24 10% 10%;
+    --border: 35 15% 84%;
+    --input: 35 15% 84%;
+    --ring: 173 58% 25%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 20 14% 6%;
+    --foreground: 60 9% 96%;
+    --card: 20 12% 9%;
+    --card-foreground: 60 9% 96%;
+    --primary: 173 47% 56%;
+    --primary-foreground: 20 14% 6%;
+    --secondary: 20 10% 15%;
+    --secondary-foreground: 60 9% 96%;
+    --muted: 20 10% 15%;
+    --muted-foreground: 36 9% 66%;
+    --accent: 173 28% 17%;
+    --accent-foreground: 60 9% 96%;
+    --border: 20 9% 20%;
+    --input: 20 9% 20%;
+    --ring: 173 47% 56%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  a,
+  span,
+  code {
+    overflow-wrap: anywhere;
+  }
+
+  figure,
+  pre {
+    max-width: 100%;
+  }
+
+  .prose code::before,
+  .prose code::after {
+    content: none;
+  }
+
+  ::selection {
+    @apply bg-primary/20;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+>
+  <url>
+    <loc>https://marfillaster.github.io/</loc>
+    <lastmod>2026-05-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marfillaster.github.io/mikrotik-home-network/</loc>
+    <lastmod>2026-05-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://marfillaster.github.io/mikrotik-home-network/og.png</image:loc>
+      <image:title>Home network on residential CGNAT — RB5009 build log</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://marfillaster.github.io/solar-report/</loc>
+    <lastmod>2026-05-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://marfillaster.github.io/solar-report/og-image.png</image:loc>
+      <image:title>Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://marfillaster.github.io/solar-report/full-report</loc>
+    <lastmod>2026-05-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://marfillaster.github.io/solar-report/og-image.png</image:loc>
+      <image:title>Full residential solar performance report — Cavite, Philippines</image:title>
+    </image:image>
+  </url>
+</urlset>

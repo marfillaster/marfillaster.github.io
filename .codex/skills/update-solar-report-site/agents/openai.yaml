@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Solar Report"
+  short_description: "Refresh the report site deterministically"
+  default_prompt: "Use $update-solar-report-site to refresh the public solar report site from the latest solar-analysis.md."

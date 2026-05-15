@@ -1,0 +1,10 @@
+node_modules/
+build/
+dist/
+.react-router/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+.DS_Store
+__pycache__/
+*.pyc
