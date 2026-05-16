@@ -315,47 +315,56 @@ interruption, then you're officially exporting.
 
 ## Should you waive the REC meter?
 
-**What the REC meter is *not* for: your bill.** Your bill is import energy
-minus export energy, both read off the bi-directional meter, and that math is
-identical whether or not a REC meter exists. The REC meter does not touch
-billing. What it measures is *gross* generation — everything the panels
-produce, including what the house consumes on the spot — and under ERC
-Resolution No. 15 that number serves two purposes, neither of which is your
-monthly bill:
+**What the REC meter is *not* for: your bill.** Your net-metering credit is
+defined as a peso amount from *net energy exported*, read off the
+bi-directional meter (Sec. 4(s), Sec. 13). That math is identical whether or
+not a REC meter exists. What the REC meter measures is *gross* generation —
+everything the panels produce, including what the house consumes on the spot
+(Sec. 4(dd)). Under
+[ERC Resolution No. 15, Series of 2025](https://www.erc.gov.ph/Files/Render/issuance/46093)
+— the 2025 Amended Net-Metering Rules — that gross figure serves exactly two
+purposes (Sec. 10), neither of which is your monthly bill:
 
-- **The utility's RPS compliance.** Meralco earns Renewable Energy
-  Certificates from your gross generation, counting toward its Renewable
-  Portfolio Standards obligation. This benefits the *distribution utility*,
-  not you — a residential net-metering customer does not personally trade
-  RECs, with or without the meter.
+- **The utility's RPS compliance.** The DU computes RECs from your gross
+  generation toward its Renewable Portfolio Standards obligation. A REC is a
+  certificate issued to "Mandated Participants of the RPS" (Sec. 4(cc)) — that
+  is the utility and suppliers, *not* you. A residential net-metering customer
+  has no way to personally trade RECs, with or without the meter.
 - **Subsidy classification.** Gross generation is used to derive your "actual
-  energy consumption" (import + own-use, where own-use ≈ gross − export) for
-  lifeline and senior-citizen subsidy determination. It only changes anything
-  if you sit near the lifeline threshold.
+  energy consumption" — import energy plus own-use (Sec. 14) — for
+  *non-exemption* from the lifeline subsidy rate and for the senior-citizen
+  subsidy rate (Sec. 10(a)–(c), Sec. 15). It changes nothing unless your
+  actual consumption sits near the DU's lifeline threshold.
 
-A **September 2025** ERC issuance
-([Resolution No. 15](https://www.erc.gov.ph/Files/Render/issuance/46093)) made
-the REC meter optional: you waive it with a notarized affidavit, and gross
-generation is then computed by a formula in the rules instead of being
-metered.
+The rules make the REC meter optional: the ERC publishes two NMA templates —
+Annex A-2.1 *with* REC meter and Annex A-2.2 *no* REC meter — plus an Affidavit
+and Waiver template (Annex 4). You take the no-REC-meter agreement and the
+notarized waiver; gross generation is then computed by the Sec. 19 formula
+instead of being metered. (Resolution No. 15 was deliberated 13 August 2025
+and takes effect 15 days after publication; Meralco rolled it into its process
+via a 22 September 2025 advisory.)
 
-**Why this collapses to "just waive it" for most households.** Meralco's
-lifeline rate applies only at very low consumption — on the order of
-≤100&nbsp;kWh/month. A house big enough to justify a multi-kWp array is far
-above that, so the subsidy derivation is moot: formula versus real meter
-changes nothing about your rate. The RPS benefit was never yours. So the
-decision shrinks to one real trade-off — skip the REC meter's wiring and the
-extra commissioning step, and accept that there is no independently metered
-gross-generation record on the *utility* side. You still have your inverter's
-own telemetry (SolisCloud, in my case) for production data, so even that loss
-is minor.
+**Why this collapses to "just waive it" for most households.** Look at who
+pays for what (Sec. 10): the DU shoulders the bi-directional meter, *except*
+that an end-user installing an RE facility pays the cost difference over the
+old meter — that is the PHP 2,312.77 line above. For the REC meter, the DU
+shoulders the meter and its installation, **but the QE bears the wiring cost
+from the facility to the REC meter.** Waiving it deletes exactly that
+QE-borne wiring run plus the extra commissioning step. Against that, the only
+thing you give up is an independently metered gross-generation record on the
+*utility* side — and for any house above the lifeline threshold (Meralco's is
+on the order of ≤100&nbsp;kWh/month, far below a multi-kWp household) the
+subsidy derivation is moot, so formula-vs-meter changes nothing about your
+rate. The RPS benefit was never yours. You also still have your inverter's
+own telemetry (SolisCloud, in my case) for production data.
 
 **Bottom line:** for a typical above-lifeline residential net-metering
-customer this is mostly upside — fewer parts, one less inspection, zero
-billing consequence — which is why my contract is the *amended*, no-REC-meter
-version with the separate notarized affidavit. The only reason to keep the
-meter is if you sit near the lifeline threshold and want gross generation
-metered rather than formula-estimated for subsidy purposes.
+customer this is mostly upside — you avoid the QE-paid REC-meter wiring, one
+device, and one commissioning step, with zero billing consequence — which is
+why my contract is the *amended*, no-REC-meter agreement (Annex A-2.2) with
+the separate notarized affidavit (Annex 4). The only reason to keep the meter
+is if your consumption sits near the lifeline threshold and you want gross
+generation metered rather than Sec. 19-estimated for subsidy purposes.
 
 ## Total elapsed time
 
