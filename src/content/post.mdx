@@ -655,7 +655,7 @@ no GUA.
 
 # ULA only — deliberately no <LAN_PREFIX>:30::1 GUA.
 /ipv6/address add interface=vlan30 address=<ULA_PREFIX>:30::1/64 advertise=yes comment="VLAN30 ULA"
-/ipv6/nd add interface=vlan30 advertise-dns=yes dns=<ULA_PREFIX>:30::1 \
+/ipv6/nd add interface=vlan30 advertise-dns=self \
   managed-address-configuration=no other-configuration=no
 
 /ipv6/firewall/address-list
@@ -666,9 +666,13 @@ add list=vlan30-legit address=fe80::/10
 ```
 
 *`dns-none=yes` on the DHCP scope is intentional: VLAN&nbsp;30 hands out no
-DHCPv4 resolver, so clients take DNS from the ND RDNSS at the ULA, the same as
-the main LAN's `defconf` scope. The RA also omits the `mtu=1420` clamp the
-tunnel-bound VLANs carry (§5.4) — VLAN&nbsp;30's v6 never reaches the
+DHCPv4 resolver, so clients take DNS from the ND RDNSS, the same as the main
+LAN's `defconf` scope. `advertise-dns=self` supersedes the explicit
+`dns=<ULA_PREFIX>:X::1` of §5.4 — the router advertises whatever address it
+holds on the interface, so the RDNSS can never point at a stale or wrong
+address and it survives a renumber with nothing to keep in sync; it is now set
+on every RA interface, not just VLAN&nbsp;30. The RA also omits the `mtu=1420`
+clamp the tunnel-bound VLANs carry (§5.4) — VLAN&nbsp;30's v6 never reaches the
 1420-byte WireGuard path, so clamping its on-link MTU would only shrink local
 traffic for nothing.*
 
