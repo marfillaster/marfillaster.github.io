@@ -667,7 +667,13 @@ add list=vlan30-legit address=fe80::/10
 
 *`dns-none=yes` on the DHCP scope is intentional: VLAN&nbsp;30 hands out no
 DHCPv4 resolver, so clients take DNS from the ND RDNSS, the same as the main
-LAN's `defconf` scope. `advertise-dns=self` supersedes the explicit
+LAN's `defconf` scope. The IoT and Guest scopes of §3.2 were since moved to
+`dns-none=yes` as well — no VLAN hands out a DHCPv4 resolver anymore, so DNS
+is uniformly the ND RDNSS and the router resolves upstream over DoH (§6). The
+trade-off: a client with no RFC&nbsp;8106 RDNSS support gets no DNS at all —
+acceptable here because every VLAN carries a ULA and the device population
+supports it, but it makes IPv6 a hard dependency for name resolution.
+`advertise-dns=self` supersedes the explicit
 `dns=<ULA_PREFIX>:X::1` of §5.4 — the router advertises whatever address it
 holds on the interface, so the RDNSS can never point at a stale or wrong
 address and it survives a renumber with nothing to keep in sync; it is now set
