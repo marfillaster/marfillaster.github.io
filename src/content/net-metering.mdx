@@ -51,13 +51,25 @@ question follows:
 - **A modest battery.** Shifts the day's surplus into the evening instead of
   exporting it cheap and re-importing it dear. The win is the
   retail-minus-generation spread you stop losing, plus outage ride-through.
-- **More battery.** Each added kWh is used fewer days per year — it earns its
-  keep only in long cloudy stretches or long outages. Past one evening's load,
-  extra capacity is insurance, not savings.
+- **More battery (discharge-bound).** Each added kWh is discharged fewer days
+  per year — it earns its keep only in long cloudy stretches or long outages.
+  Past one evening's load, extra capacity is insurance, not savings.
+- **More battery than your surplus can fill (charge-bound).** A battery only
+  pays back on energy that actually cycles through it. If your midday surplus
+  — production *minus whatever the house is drawing at that moment* — is
+  modest, a larger battery never fully charges: it sits at partial state of
+  charge day after day, the extra kWh never cycle, and that capacity returns
+  nothing while still aging on the calendar. This is the stricter limit, and
+  the one people miss: sizing past your evening load buys a battery that is at
+  least full and idle; sizing past your daily *chargeable surplus* buys one
+  that is never even full. Pull your real daily export figures from the
+  inverter logs before upsizing — if you are exporting only a few kWh on a
+  good day, a bigger battery cannot be charged to use them.
 
 Honest framing for a net-metered house: net metering is the cheap backstop
-for surplus you can't store; a battery is worth adding up to roughly one
-evening of essential load; beyond that you are buying resilience, not return.
+for surplus you can't store; a useful battery is bounded by the *smaller* of
+one evening's essential load and the surplus a typical day can actually charge
+into it; beyond that you are buying resilience, not return.
 
 ### What "net-meter ready" actually costs
 
@@ -339,10 +351,12 @@ purposes (Sec. 10), neither of which is your monthly bill:
 The rules make the REC meter optional: the ERC publishes two NMA templates —
 Annex A-2.1 *with* REC meter and Annex A-2.2 *no* REC meter — plus an Affidavit
 and Waiver template (Annex 4). You take the no-REC-meter agreement and the
-notarized waiver; gross generation is then computed by the Sec. 19 formula
-instead of being metered. (Resolution No. 15 was deliberated 13 August 2025
-and takes effect 15 days after publication; Meralco rolled it into its process
-via a 22 September 2025 advisory.)
+notarized waiver; gross generation is then *estimated* by the Sec. 19 formula
+instead of metered — for rooftop solar, a flat `installed kWp × 18.05%
+capacity factor × 0.7519 DC/AC ratio × monthly operating hours`, which is a
+nameplate estimate, not your real production. (Resolution No. 15 was
+deliberated 13 August 2025 and takes effect 15 days after publication; Meralco
+rolled it into its process via a 22 September 2025 advisory.)
 
 **Why this collapses to "just waive it" for most households.** Look at who
 pays for what (Sec. 10): the DU shoulders the bi-directional meter, *except*
