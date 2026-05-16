@@ -83,13 +83,14 @@ export const meta: MetaFunction = () => [
 
 const navItems = [
   ["#why-bother-with-net-metering", "Why net metering"],
+  ["#who-net-metering-is-for", "Who it's for"],
   ["#prep-work-before-filing", "Prep work"],
   ["#whats-actually-on-the-a3-sld", "What's on the A3 SLD"],
   ["#the-timeline-step-by-step", "Timeline"],
+  ["#should-you-waive-the-rec-meter", "Waive the REC meter?"],
   ["#total-elapsed-time", "Elapsed time"],
   ["#lessons-learned", "Lessons learned"],
   ["#closing", "Closing"],
-  ["#downloadable-forms", "Downloadable forms"],
 ] as const;
 
 export default function NetMeteringGeneralTrias() {

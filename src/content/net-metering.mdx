@@ -17,6 +17,76 @@ fees included, so you can budget your patience.
 > specifics below as a worked example, not a current price list, and confirm
 > the latest requirements with your Meralco business center before filing.
 
+## Who net metering is for
+
+Net metering pays you back only for energy you *export* — the surplus your
+panels make while the house isn't using it. That shapes who actually benefits:
+
+- **Daytime exporters.** If the house is empty from morning to late afternoon
+  — nobody home, no aircon, no midday EV charging — production has nowhere to
+  go but the grid. Net metering captures it. This is the strong case.
+- **Oversized arrays.** A 6 kWp array on a house drawing 1–2 kW at noon spills
+  most of what it makes. Net metering turns that spill into credit instead of
+  waste.
+- **Poor fit:** a small array sized tightly to a load that runs all day, or a
+  household that already self-consumes nearly everything. The credit is small
+  and the fees (roughly PHP 3,700 in government/meter charges plus the
+  PHP 3,500 PEE drawing) may outweigh it.
+
+One point worth internalizing: **the export credit is at the blended
+generation rate, not the retail rate.** You are not selling power back at what
+you pay for it. Every kWh you consume on-site is worth more than the same kWh
+exported. Net metering recovers *otherwise-wasted* surplus; it is not a
+revenue stream.
+
+### Battery, or more battery?
+
+Once you accept that self-consumed energy beats exported energy, the battery
+question follows:
+
+- **No battery (grid-tied + net metering).** Cheapest. All surplus exports
+  for credit; you still buy from the grid at night at retail and offset it
+  with credits earned at the lower generation rate. Lowest capex, nothing to
+  replace in 8–10 years.
+- **A modest battery.** Shifts the day's surplus into the evening instead of
+  exporting it cheap and re-importing it dear. The win is the
+  retail-minus-generation spread you stop losing, plus outage ride-through.
+- **More battery.** Each added kWh is used fewer days per year — it earns its
+  keep only in long cloudy stretches or long outages. Past one evening's load,
+  extra capacity is insurance, not savings.
+
+Honest framing for a net-metered house: net metering is the cheap backstop
+for surplus you can't store; a battery is worth adding up to roughly one
+evening of essential load; beyond that you are buying resilience, not return.
+
+### What "net-meter ready" actually costs
+
+Net metering approves an install that already exists, so some cost lands on
+the *install*, not the filing:
+
+- **The installer's net-meter-ready surcharge.** This is the cost most people
+  miss. A standard grid-tie install does *not* include the continuous rigid
+  metal conduit (RMC) run from the service entrance to the inverter — and that
+  run is the one thing the inspector actually scrutinizes (see *Prep work*,
+  below). Making the setup net-meter ready means the installer bills extra
+  for: the RMC itself, the additional cable to run inside it, the clamps and
+  supports at code spacing, and the labor — bending 1-inch rigid pipe to
+  follow the wall and corners cleanly is slow, skilled work, not a quick add.
+  Get this scoped and *priced* in the original contract; specifying it up
+  front is far cheaper than discovering at the Dec 18 inspection that it has
+  to be torn out and redone.
+- **The PEE-sealed A3 SLD** — PHP 3,500 in my case, entirely outside the
+  install.
+- **Government/meter fees** — about PHP 3,700 (City Hall cert + wiring permit
+  + the bi-directional meter cost difference).
+- **Access to the service-entrance post.** Meralco's crew has to physically
+  reach the service entrance to swap in the bi-directional meter (and,
+  historically, to mount a REC meter beside it). If the post is boxed in,
+  behind a locked gate, or hard to reach with a bucket truck, that becomes
+  your problem on meter-swap day. Confirm it is accessible *before* you file —
+  it is the one prerequisite with nothing to do with paperwork, and the
+  easiest to forget.
+
 ## Prep work before filing
 
 **Before anything else, make your installation net-meter ready.** Net metering
@@ -234,17 +304,56 @@ difference in meter cost for the bi-directional meter, and brought another
 photocopy of the TCT/Contract to Sell. *What to expect:* a notary is involved
 — budget time, and bring spare TCT photocopies.
 
-Note the recurring "no REC meter" language. A Renewable Energy Certificate
-(REC) meter used to be mandatory, but a regulatory update around September
-2025 made it optional for net-metering customers. I opted out — which is why
-the agreement is the *amended* version and why there's a separate notarized
-**Affidavit and Waiver on REC Metering**. Opting out means one less meter and
-one less thing to install; if you don't intend to trade RECs, ask whether you
-can waive it and save the hassle.
+Note the recurring "no REC meter" language. I opted out, which is why the
+agreement is the *amended* version and why there is a separate notarized
+**Affidavit and Waiver on REC Metering**. Whether you should do the same is
+its own decision — see *Should you waive the REC meter?*, below.
 
 **Jan 28, 2026 — Meter swap.** A crew came to the service address and
 installed the bi-directional meter. *What to expect:* a brief power
 interruption, then you're officially exporting.
+
+## Should you waive the REC meter?
+
+**What the REC meter is *not* for: your bill.** Your bill is import energy
+minus export energy, both read off the bi-directional meter, and that math is
+identical whether or not a REC meter exists. The REC meter does not touch
+billing. What it measures is *gross* generation — everything the panels
+produce, including what the house consumes on the spot — and under ERC
+Resolution No. 15 that number serves two purposes, neither of which is your
+monthly bill:
+
+- **The utility's RPS compliance.** Meralco earns Renewable Energy
+  Certificates from your gross generation, counting toward its Renewable
+  Portfolio Standards obligation. This benefits the *distribution utility*,
+  not you — a residential net-metering customer does not personally trade
+  RECs, with or without the meter.
+- **Subsidy classification.** Gross generation is used to derive your "actual
+  energy consumption" (import + own-use, where own-use ≈ gross − export) for
+  lifeline and senior-citizen subsidy determination. It only changes anything
+  if you sit near the lifeline threshold.
+
+A **September 2025** ERC issuance (Resolution No. 15) made the REC meter
+optional: you waive it with a notarized affidavit, and gross generation is
+then computed by a formula in the rules instead of being metered.
+
+**Why this collapses to "just waive it" for most households.** Meralco's
+lifeline rate applies only at very low consumption — on the order of
+≤100&nbsp;kWh/month. A house big enough to justify a multi-kWp array is far
+above that, so the subsidy derivation is moot: formula versus real meter
+changes nothing about your rate. The RPS benefit was never yours. So the
+decision shrinks to one real trade-off — skip the REC meter's wiring and the
+extra commissioning step, and accept that there is no independently metered
+gross-generation record on the *utility* side. You still have your inverter's
+own telemetry (SolisCloud, in my case) for production data, so even that loss
+is minor.
+
+**Bottom line:** for a typical above-lifeline residential net-metering
+customer this is mostly upside — fewer parts, one less inspection, zero
+billing consequence — which is why my contract is the *amended*, no-REC-meter
+version with the separate notarized affidavit. The only reason to keep the
+meter is if you sit near the lifeline threshold and want gross generation
+metered rather than formula-estimated for subsidy purposes.
 
 ## Total elapsed time
 
