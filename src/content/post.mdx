@@ -603,6 +603,111 @@ dig @<ULA_PREFIX>:1::1 cloudflare.com
 scutil --dns | grep -i 'nameserver\['      # macOS: expect the ULA
 ```
 
+## 8. Update — keeping streaming off the metered tunnel
+*Added May 16, 2026. Running the build surfaced a failure mode the original
+design did not anticipate.*
+
+Two problems compounded on the IPv6 leg, both rooted in the same fact: every
+global IPv6 packet from the house egresses the VPS, so to the outside world it
+originates from a datacenter ASN, not the residential ISP.
+
+- **VPN / geo detection.** Streaming apps increasingly treat datacenter
+  address space as a VPN and either refuse to play or pin the wrong region.
+  Because Happy&nbsp;Eyeballs (RFC&nbsp;8305) prefers IPv6, the app reaches for
+  the flagged path *first*; the perfectly good native IPv4 route never gets a
+  turn.
+- **Metered bandwidth.** The VPS plan is 1&nbsp;TB/month with overage billed
+  per Appendix&nbsp;C. High-bitrate video has no reason to transit a rented
+  tunnel — it just burns the cap.
+
+The realization: not every trusted device needs global IPv6. The cheapest and
+most robust lever is a VLAN that has a **ULA but no GUA**. With no global
+address there is no global v6 route at all — the client uses native ISP IPv4
+for anything internet-facing, while the ULA still carries router DNS (RA
+RDNSS, §5.4) and on-link v6. This is failsafe by construction: it is the
+*absence of a route*, not a firewall rule something could slip past, and the
+per-VLAN anti-spoof list (§5.5) enforces that nothing forges its way back onto
+a global prefix.
+
+*Why not just drop the GUA's forward path in the firewall instead? Because the
+client would still autoconfigure a GUA, still prefer it per Happy&nbsp;Eyeballs,
+and stall for the fallback timeout on every new connection. Removing the GUA
+means the client never attempts the tunnel — there is nothing to fall back
+from.*
+
+### 8.1 A ULA-only trusted VLAN
+VLAN&nbsp;30 is trusted exactly like VLAN&nbsp;1 — the only thing that makes a
+VLAN "trusted" here is membership in the `LAN` interface list, which the
+defconf input/forward rules gate on. It differs from VLAN&nbsp;1 in one way:
+no GUA.
+
+```bash title="VLAN 30 — trusted, ULA-only"
+/interface/vlan add interface=bridge name=vlan30 vlan-id=30
+/interface/bridge/vlan add bridge=bridge vlan-ids=30 \
+  tagged=bridge,ether2,ether3 comment="VLAN30 trusted, tagged to APs"
+
+/ip/address add address=192.168.91.1/24 interface=vlan30
+/ip/pool add name=vlan30-pool ranges=192.168.91.100-192.168.91.200
+/ip/dhcp-server add name=vlan30-dhcp interface=vlan30 address-pool=vlan30-pool lease-time=1d
+/ip/dhcp-server/network add address=192.168.91.0/24 gateway=192.168.91.1 dns-none=yes
+
+/interface/list/member add list=LAN interface=vlan30
+
+# ULA only — deliberately no <LAN_PREFIX>:30::1 GUA.
+/ipv6/address add interface=vlan30 address=<ULA_PREFIX>:30::1/64 advertise=yes comment="VLAN30 ULA"
+/ipv6/nd add interface=vlan30 advertise-dns=yes dns=<ULA_PREFIX>:30::1 \
+  managed-address-configuration=no other-configuration=no
+
+/ipv6/firewall/address-list
+add list=vlan30-legit address=<ULA_PREFIX>:30::/64
+add list=vlan30-legit address=fe80::/10
+/ipv6/firewall/filter add chain=forward action=drop in-interface=vlan30 \
+  src-address-list=!vlan30-legit comment="VLAN30: anti-spoof"
+```
+
+*`dns-none=yes` on the DHCP scope is intentional: VLAN&nbsp;30 hands out no
+DHCPv4 resolver, so clients take DNS from the ND RDNSS at the ULA, the same as
+the main LAN's `defconf` scope. The RA also omits the `mtu=1420` clamp the
+tunnel-bound VLANs carry (§5.4) — VLAN&nbsp;30's v6 never reaches the
+1420-byte WireGuard path, so clamping its on-link MTU would only shrink local
+traffic for nothing.*
+
+Move the main client SSID onto VLAN&nbsp;30 in the controller and leave a
+second AP (or VLAN&nbsp;1) for the few devices that genuinely want global v6.
+Guest (VLAN&nbsp;20) gets the same treatment — drop its GUA and the matching
+`guest-legit` entry from §5.5; guests never needed metered global
+reachability:
+
+```bash title="Strip the Guest GUA too"
+/ipv6/address remove [find comment="GUEST GUA"]
+/ipv6/firewall/address-list remove [find list=guest-legit address=<LAN_PREFIX>:20::/64]
+```
+
+IoT (VLAN&nbsp;10) keeps its GUA — its handful of outbound v6 flows are
+negligible against the cap, and some devices behave better with working v6
+than with a half-deprecated one.
+
+### 8.2 The cutover gotcha
+A device that is associated at the moment its SSID's VLAN changes keeps the
+*old* VLAN's SLAAC addresses until their lifetimes expire — RouterOS
+advertises prefixes with a one-week preferred / four-week valid lifetime by
+default. So for up to a week those devices still prefer the old GUA, the
+anti-spoof rule on the new VLAN drops it, and they fall back to IPv4 with a
+brief Happy-Eyeballs delay on the first connection to each host.
+
+This is harmless — nothing leaks; the drop counter on the new anti-spoof rule
+is exactly that retried traffic being contained — but it is not instant. There
+is no router-side fix, because a prefix can only be retracted on the link the
+client has already left. The one effective cleanup is a single Wi-Fi
+reconnect (or reboot) of each moved device: on re-association it rebuilds its
+address set for the new link and the stale prefix is simply never recreated.
+
+*Net effect: streaming and other high-bitrate traffic from the main SSID now
+rides native ISP IPv4 — no datacenter ASN, no VPN flag, no metered GB — while
+DNS, on-link IPv6, and the trusted-LAN posture are unchanged. The VPS tunnel
+goes back to doing what it is actually for: giving the devices that want it
+real, routable IPv6.*
+
 ## A. Appendix A — Sub-second IPv6 failover (BGP + BFD)
 A WireGuard interface stays administratively UP even when the path is dead —
 NAT mapping expired, peer rebooted, VPS null-routed — so neither interface
@@ -778,3 +883,4 @@ NDP-proxy), Linode/Akamai (/64 default, /56 on request), Oracle Cloud (/56).
 - RFC 3849 — IPv6 documentation prefix `2001:db8::/32`.
 - RFC 4193 — Unique Local IPv6 unicast addresses (`fd00::/8`).
 - RFC 6996 — Private 2-byte ASNs (`64512–65534`) for Appendix&nbsp;A.
+- RFC 8305 — Happy Eyeballs v2; why a flagged IPv6 path is tried before native IPv4 (§8).
