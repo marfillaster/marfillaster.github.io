@@ -381,18 +381,32 @@ no RouterOS port. WireGuard fills the same role with a current in-kernel
 implementation, and the encryption is a bonus rather than a cost.
 
 [Route64](https://route64.org/) is a free IPv6 tunnel broker that already
-runs on WireGuard, which initially makes it look like a drop-in replacement
-for the VPS in this build. The catch is what Route64 binds the tunnel to.
-The peer config it issues pins your **registered public IPv4** as the
-allowed remote endpoint. Behind CGNAT that IP is shared with other
-subscribers and rotates on the carrier's schedule, so the tunnel either
-authenticates the wrong subscriber's address or stops accepting the
-re-NAT'd session entirely; there is no per-restart re-registration in the
-broker UI. The VPS topology sidesteps the binding problem — the RB5009
-reaches *out* to a known public IP, `PersistentKeepalive = 25` keeps the
-carrier's NAT44 mapping warm, and the VPS does not care what source IP the
-mapping happens to land on. Owning the reachable side of the tunnel is
-what the $3/month VPS actually buys.
+runs on WireGuard, and — unlike HE's 6in4 — it genuinely traverses CGNAT.
+This was verified on the live build, not inferred. The tunnel is plain
+outbound UDP, and with the RB5009 always initiating (a 15&nbsp;s
+`PersistentKeepalive`), Route64's server tracks the real source from each
+key-authenticated handshake. The portal asks for a public IPv4 and ships a
+DynDNS-style updater, so the obvious worry is that a stale or shared CGNAT
+IPv4 breaks the tunnel. A deliberately wrong pin was tested both ways: an
+established tunnel kept flowing through it, and a fully cold handshake
+(5&nbsp;min down, server session expired) still came up — a WireGuard
+responder replies to whatever source sent a valid initiation, regardless
+of the registered address. The registered endpoint would only matter if
+Route64 had to *initiate* toward the client, which never happens here. So
+the DynDNS updater is hygiene, not a dependency; section&nbsp;5.6 keeps it
+anyway because it costs nothing and keeps the portal honest.
+
+The reason this build still pays $3/month for a VPS is not CGNAT traversal
+— it is prefix size, failover speed, and owning the endpoint. Route64
+hands out a **/56**; the address plan in section&nbsp;1 needs a routed
+**/48**. The VPS tunnel also carries BGP, so primary-path failure is
+detected by BFD in well under a second (Appendix&nbsp;A); the Route64 leg
+has no control plane and leans on ~8-second netwatch instead. And
+terminating on a VPS you control makes the reachable side yours — the
+`AllowedIPs` return-routing in section&nbsp;5.1 is your call, with no
+dependence on a free broker's PoP, ToS, or (still missing) portal 2FA.
+Route64's role here is the *free secondary*: section&nbsp;5.6 wires it as
+an automatic IPv6 failover path behind the VPS.
 
 ### 5.1 Return routing: why each /64 has to appear in AllowedIPs
 The provider routes the /48 to the VPS, then configures one address from it on
@@ -539,6 +553,96 @@ add chain=forward action=drop in-interface=bridge     src-address-list=!lan-legi
 add chain=forward action=drop in-interface=vlan-iot   src-address-list=!iot-legit   comment="IOT: anti-spoof"
 add chain=forward action=drop in-interface=vlan-guest src-address-list=!guest-legit comment="GUEST: anti-spoof"
 ```
+
+### 5.6 Route64 — free IPv6 failover behind the VPS
+The VPS is primary; [Route64](https://route64.org/) is a free WireGuard
+tunnel broker that makes a credible *secondary* IPv6 uplink. The goal is
+automatic, client-transparent failover with no LAN renumbering.
+
+**Route64 dashboard.** Create a tunnel of type *WireGuard* and note: the
+PoP `endpoint:port`, the server public key, the client private key, the
+tunnel-link `/64` (point-to-point, client `::2`), the routed **/56**
+delegated for LAN use — a *different* prefix from the link `/64` — the
+numeric tunnel ID, and an API key for the DynDNS endpoint. The portal
+prompts for a public IPv4; behind CGNAT that value is not load-bearing
+(see section&nbsp;5).
+
+**WireGuard client.** The RB5009 always initiates; `::/0` in
+`allowed-address` lets the peer carry any IPv6 (the path is chosen by route
+distance, not here). The tunnel-link address is `advertise=no` — it is
+point-to-point, no SLAAC.
+
+```bash title="MikroTik — Route64 WireGuard client"
+/interface/wireguard add name=wg-route64 mtu=1420 listen-port=20063 \
+    private-key="<R64_PRIVKEY>"
+/interface/wireguard/peers add interface=wg-route64 \
+    public-key="<R64_SRV_PUBKEY>" \
+    endpoint-address=<R64_POP_IP> endpoint-port=<R64_POP_PORT> \
+    allowed-address=::/0 persistent-keepalive=15s
+/ipv6/address add address=<R64_LINK>::2/64 interface=wg-route64 advertise=no
+```
+
+**DynDNS hygiene (optional).** Not required — the tunnel survives a wrong
+pin on both established and cold handshakes. Kept only to keep the portal
+accurate, on a 15-minute scheduler (Route64 rate-limits endpoint *changes*
+to one per 10&nbsp;min; `nochg` is unmetered, so 15&nbsp;min never trips
+it). `start-time=startup` corrects a stale pin after a reboot.
+
+```bash title="MikroTik — Route64 DynDNS scheduler"
+/system/script add name=route64-ddns source=":do { :local r [/tool fetch url=\"https://manager.route64.org/nic/update?hostname=<R64_TUNNEL_ID>\" user=\"<R64_USER>\" password=\"<R64_APIKEY>\" mode=https output=user as-value]; :log info (\"route64-ddns: \" . (\$r->\"data\")); } on-error={ :log warning \"route64-ddns: fetch error\"; }"
+/system/scheduler add name=route64-ddns start-time=startup interval=15m \
+    on-event="/system/script/run route64-ddns"
+```
+
+**NPTv6 — one stable LAN prefix.** LAN clients keep their VPS `/48`
+addresses; on the Route64 path a stateless 1:1 prefix map rewrites the LAN
+`/56` window into Route64's delegated `/56`. Clients never see a second
+prefix, so there is no RFC&nbsp;6724 / Happy-Eyeballs source-selection
+lottery. The LAN only uses the low subnet byte, so the existing
+`:1::/64`, `:10::/64` already fall inside one `/56` — no renumbering.
+
+```bash title="MikroTik — NPTv6 (staged disabled; netwatch arms it)"
+/ipv6/firewall/nat add chain=srcnat action=netmap out-interface=wg-route64 \
+    src-address=<LAN_PREFIX>::/56 to-address=<R64_DELEG_56> \
+    comment=r64npts disabled=yes
+/ipv6/firewall/nat add chain=dstnat action=netmap in-interface=wg-route64 \
+    dst-address=<R64_DELEG_56> to-address=<LAN_PREFIX>::/56 \
+    comment=r64nptd disabled=yes
+```
+
+**Failover trigger.** A static `::/0` via Route64 at distance&nbsp;30 sits
+behind the BGP default (distance&nbsp;20, Appendix&nbsp;A) — inert while
+the VPS is up. netwatch pings the Route64 tunnel gateway (reachable only
+through `wg-route64`, so it tracks Route64's own health independent of
+BGP) and arms/disarms the failover route and NPTv6 together. Comments are
+single tokens so the scripts need no nested quotes.
+
+```bash title="MikroTik — netwatch arms/disarms the Route64 path"
+/ipv6/route add dst-address=::/0 gateway=<R64_LINK>::1%wg-route64 \
+    distance=30 comment=r64fail disabled=yes
+
+/tool/netwatch add name=r64health type=icmp host=<R64_LINK>::1 \
+    interval=5s timeout=2s comment=r64health \
+    up-script="/ipv6/route enable [find comment=r64fail]; /ipv6/firewall/nat enable [find comment=r64npts]; /ipv6/firewall/nat enable [find comment=r64nptd]; :log info route64-armed" \
+    down-script="/ipv6/route disable [find comment=r64fail]; /ipv6/firewall/nat disable [find comment=r64npts]; /ipv6/firewall/nat disable [find comment=r64nptd]; :log info route64-disarmed"
+```
+
+<Rationale>
+Verified on the live build (idle tunnel, primary untouched): the client
+handshakes and egresses behind CGNAT; NPTv6 srcnat rewrites a LAN-sourced
+packet into the Route64 `/56` and the reply returns; the DynDNS scheduler
+ticks autonomously (`nochg`); netwatch arms on up and, against a realistic
+path failure (gateway timeouts), fires the down-script in ~8&nbsp;seconds.
+Two honesty notes. netwatch catches *path* failure (timeouts) quickly, but
+a brief blackhole can self-recover because WireGuard keeps using a live
+session's learned endpoint until it expires — sustained outage is what
+holds the failover. And BFD fails the *primary* leg over sub-second while
+Route64 has no control plane, so the secondary's ~8&nbsp;s netwatch is the
+floor; Happy&nbsp;Eyeballs drops new connections to IPv4 in the meantime,
+so a double failure degrades rather than breaks. The one path not yet
+exercised end-to-end is a real primary-down cutover with live LAN traffic;
+everything up to the trigger is verified.
+</Rationale>
 
 ## 6. Encrypted DNS with stable resolver addresses
 Upstream DNS leaves the house through Cloudflare DoH; downstream, the router
