@@ -40,7 +40,7 @@ const posts = [
   {
     href: "/mikrotik-vlan-guest-iot/",
     eyebrow: "Build log · 2026-05",
-    title: "LAN segmentation on a MikroTik RB5009",
+    title: "Trusted, IoT, and Guest VLANs on a MikroTik RB5009",
     description:
       "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. RouterOS v7 for the RB5009.",
   },
