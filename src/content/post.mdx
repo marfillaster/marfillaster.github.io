@@ -11,7 +11,7 @@ first the LAN is split into VLANs, then IPv6 reachability is recovered through
 a $3/month VPS (1&nbsp;TB monthly transfer included) that routes a /48 down to
 the house. The first layer — VLAN segmentation, paste-ready and in full — is
 its own companion post:
-[LAN segmentation on a MikroTik RB5009](/lan-segmentation-vlans-mikrotik/);
+[LAN segmentation on a MikroTik RB5009](/mikrotik-vlan-guest-iot/);
 this log assumes it has been applied and builds the IPv6 layer on top.
 Encrypted DNS and a
 stable resolver address — the part of this build that needs neither layer —
@@ -146,7 +146,7 @@ isolation enforced in the `forward` chain.
 This first layer needs nothing else in this build — no IPv6, no VPS, no
 WireGuard — so it is broken out, paste-ready and in full, as its own
 companion post:
-[LAN segmentation on a MikroTik RB5009](/lan-segmentation-vlans-mikrotik/).
+[LAN segmentation on a MikroTik RB5009](/mikrotik-vlan-guest-iot/).
 That post covers the bridge VLAN table and L3 gateways, the per-VLAN DHCP
 scopes, and the input/forward firewall, with the hybrid-trunk rationale.
 
@@ -649,7 +649,7 @@ NDP-proxy), Linode/Akamai (/64 default, /56 on request), Oracle Cloud (/56).
 ## D. References
 - [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
 - [DoH + IPv6 RA RDNSS with ULA DNS — source gist](https://gist.github.com/marfillaster/d34bd199b9e265ccd74af6d31fd9df85)
-- [LAN segmentation on a MikroTik RB5009 (§3 in full) — companion post](/lan-segmentation-vlans-mikrotik/)
+- [LAN segmentation on a MikroTik RB5009 (§3 in full) — companion post](/mikrotik-vlan-guest-iot/)
 - [Encrypted DNS with a stable resolver address (§5 in full) — companion post](/encrypted-dns-stable-resolver-mikrotik/)
 - [Running the UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
 - [Guest SSID on a VLAN via a MikroTik hybrid port — source gist](https://gist.github.com/marfillaster/bb95bce7959d150b264e54de9c496c65)

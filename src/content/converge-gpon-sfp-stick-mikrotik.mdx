@@ -135,6 +135,8 @@ it is provisioned on different OLT policy.
 Do the first configuration with the fiber disconnected. You only need
 management access to the SFP stick.
 
+First, insert the ODI stick into the RB5009 SFP+ cage.
+
 The ODI stick management IP is typically `192.168.1.1`, with `admin` as the
 password. On RouterOS, prepare the SFP+ port and give the SFP interface a
 static address in the same `192.168.1.0/24` network first:
@@ -278,8 +280,7 @@ Put the DHCP client on VLAN 10 over `sfp-sfpplus1`.
 Once the stick and RouterOS are configured, move the fiber handoff to the
 RB5009:
 
-1. Insert the ODI stick into the RB5009 SFP+ cage.
-2. Connect fiber through the correct APC-to-UPC patch cord.
+Connect fiber through the correct APC-to-UPC patch cord.
 
 If you need to roll back, put the fiber back into the Skyworth ONT.
 

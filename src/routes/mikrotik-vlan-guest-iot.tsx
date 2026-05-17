@@ -1,6 +1,6 @@
 import { MDXProvider } from "@mdx-js/react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/lan-segmentation-vlans-mikrotik.mdx";
+import Post from "../content/mikrotik-vlan-guest-iot.mdx";
 import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
@@ -11,7 +11,7 @@ const title =
 const description =
   "Split a flat home LAN into trusted, IoT, and Guest VLANs on a single MikroTik RB5009 with two UniFi APs on hybrid-trunk ports — bridge VLAN table, per-VLAN DHCP, and a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. Paste-ready RouterOS v7.";
 const url =
-  "https://marfillaster.github.io/lan-segmentation-vlans-mikrotik/";
+  "https://marfillaster.github.io/mikrotik-vlan-guest-iot/";
 const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";

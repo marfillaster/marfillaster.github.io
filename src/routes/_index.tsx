@@ -38,7 +38,7 @@ const posts = [
       "Add real routed IPv6 to an already-segmented IPv4-only LAN behind CGNAT with Route64's free WireGuard /56 — a native global /64 per VLAN, no VPS, fast fail-to-IPv4 on outage. RouterOS v7 for the RB5009.",
   },
   {
-    href: "/lan-segmentation-vlans-mikrotik/",
+    href: "/mikrotik-vlan-guest-iot/",
     eyebrow: "Build log · 2026-05",
     title: "LAN segmentation on a MikroTik RB5009",
     description:
