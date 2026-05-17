@@ -25,55 +25,57 @@ export const meta: MetaFunction = () => [
 const sections = [
   {
     name: "Infrastructure",
+    blurb:
+      "A six-part series building one MikroTik RB5009 from a flat LAN into a segmented, IPv6-capable, self-hosted home network behind residential CGNAT. Read in order, or jump to a layer — each post stands alone. Steps 3 and 4 are two equal ways to get routed IPv6; pick one.",
     posts: [
       {
-        href: "/converge-gpon-sfp-stick-mikrotik/",
-        eyebrow: "Build log · 2026-05",
-        title: "Replacing a Converge ONT with a GPON SFP stick",
-        description:
-          "Skyworth GN630V to ODI DFP-34X-2C2 in a MikroTik RB5009: the SC/APC to SC/UPC connector gotcha, VLAN 10 DHCP handoff, and the minimum stick config that worked.",
-      },
-      {
-        href: "/route64-ipv6-cgnat-mikrotik/",
-        eyebrow: "Build log · 2026-05",
-        title: "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT",
-        description:
-          "Add real routed IPv6 to an already-segmented IPv4-only LAN behind CGNAT with Route64's free WireGuard /56 — a native global /64 per VLAN, no VPS, fast fail-to-IPv4 on outage. RouterOS v7 for the RB5009.",
-      },
-      {
         href: "/mikrotik-vlan-guest-iot/",
-        eyebrow: "Build log · 2026-05",
+        eyebrow: "Series 1/6 · Build log · 2026-05",
         title: "Trusted, IoT, and Guest VLANs on a MikroTik RB5009",
         description:
-          "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. RouterOS v7 for the RB5009.",
-      },
-      {
-        href: "/mikrotik-ipv6-failover-bgp-bfd/",
-        eyebrow: "Build log · 2026-05",
-        title: "Sub-second IPv6 failover on RouterOS",
-        description:
-          "Replace the static IPv6 default with a BGP route on a BFD-monitored WireGuard session — dead-tunnel detection from ~30 s down to ~600 ms. bird2 on the VPS, RouterOS v7 BGP/BFD, measured numbers. Companion to the CGNAT build log.",
+          "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. The foundation the rest of the series sits on.",
       },
       {
         href: "/encrypted-dns-stable-resolver-mikrotik/",
-        eyebrow: "Build log · 2026-05",
+        eyebrow: "Series 2/6 · Build log · 2026-05",
         title: "Encrypted DNS with a stable resolver address on RouterOS",
         description:
-          "Resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA over RA RDNSS. No VLANs, no IPv6 uplink; works on a flat IPv4-only LAN. RouterOS v7 for the RB5009.",
+          "Resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA over RA RDNSS. No VLANs, no IPv6 uplink; works on a flat IPv4-only LAN.",
+      },
+      {
+        href: "/mikrotik-home-network/",
+        eyebrow: "Series 3/6 · Build log · 2026-05",
+        title: "Building a usable home network behind residential CGNAT",
+        description:
+          "The overview, plus the VPS-routed /48 path to real IPv6 over WireGuard. Ties the VLAN, IPv6, and DNS layers together with a reproducible, paste-ready RB5009 build.",
+      },
+      {
+        href: "/route64-ipv6-cgnat-mikrotik/",
+        eyebrow: "Series 4/6 · Build log · 2026-05",
+        title: "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT",
+        description:
+          "The no-VPS IPv6 path: Route64's free WireGuard /56 — a native global /64 per VLAN, nothing to operate, fast fail-to-IPv4 on outage. An equal alternative to step 3's IPv6 layer.",
+      },
+      {
+        href: "/mikrotik-ipv6-failover-bgp-bfd/",
+        eyebrow: "Series 5/6 · Build log · 2026-05",
+        title: "Sub-second IPv6 failover on RouterOS",
+        description:
+          "Replace the static IPv6 default with a BGP route on a BFD-monitored WireGuard session — dead-tunnel detection from ~30 s down to ~600 ms. bird2 on the VPS, RouterOS v7 BGP/BFD, measured numbers. VPS path only.",
       },
       {
         href: "/unifi-controller-routeros-containers-mikrotik/",
-        eyebrow: "Build log · 2026-05",
+        eyebrow: "Series 6/6 · Build log · 2026-05",
         title: "Running the UniFi controller on the router itself",
         description:
           "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap, the ARMv8.0-A Mongo 4.4.18 pin, veths, memory caps, verification.",
       },
       {
-        href: "/mikrotik-home-network/",
+        href: "/converge-gpon-sfp-stick-mikrotik/",
         eyebrow: "Build log · 2026-05",
-        title: "Building a usable home network behind residential CGNAT",
+        title: "Replacing a Converge ONT with a GPON SFP stick",
         description:
-          "VLANs, routed IPv6 over WireGuard, and encrypted DNS. Reproducible, paste-ready snippets for the MikroTik RB5009.",
+          "Skyworth GN630V to ODI DFP-34X-2C2 in a MikroTik RB5009: the SC/APC to SC/UPC connector gotcha, VLAN 10 DHCP handoff, and the minimum stick config that worked. Standalone — not part of the series above.",
       },
     ],
   },
@@ -136,6 +138,11 @@ export default function Index() {
               >
                 {section.name}
               </h2>
+              {"blurb" in section && section.blurb ? (
+                <p className="mt-3 max-w-[42rem] text-sm text-muted-foreground">
+                  {section.blurb}
+                </p>
+              ) : null}
               <ul className="mt-8 space-y-10">
                 {section.posts.map((p) => (
                   <li key={p.href}>

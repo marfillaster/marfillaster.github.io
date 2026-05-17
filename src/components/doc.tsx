@@ -96,6 +96,99 @@ export function TableOfContents({
 }
 
 // -----------------------------------------------------------------------------
+// Series navigation. Single source of truth for the RB5009 home-network
+// series order; each series post renders <SeriesNav current="..." /> as its
+// first MDX block. Steps 3 and 4 are alternative IPv6 layers, not sequential.
+// (The GPON SFP-stick post is deliberately not part of this series.)
+// -----------------------------------------------------------------------------
+
+const SERIES: ReadonlyArray<{
+  slug: string;
+  href: string;
+  title: string;
+  note: string;
+}> = [
+  {
+    slug: "vlan",
+    href: "/mikrotik-vlan-guest-iot/",
+    title: "Trusted, IoT, and Guest VLANs",
+    note: "Foundation — everything else sits on this",
+  },
+  {
+    slug: "dns",
+    href: "/encrypted-dns-stable-resolver-mikrotik/",
+    title: "Encrypted DNS with a stable resolver",
+    note: "Independent layer — needs no IPv6 uplink",
+  },
+  {
+    slug: "cgnat",
+    href: "/mikrotik-home-network/",
+    title: "Routed IPv6 over CGNAT",
+    note: "Overview + the VPS-routed /48 path",
+  },
+  {
+    slug: "route64",
+    href: "/route64-ipv6-cgnat-mikrotik/",
+    title: "Routed IPv6 without a VPS",
+    note: "The free Route64 /56 path — an alternative to step 3’s IPv6 layer",
+  },
+  {
+    slug: "failover",
+    href: "/mikrotik-ipv6-failover-bgp-bfd/",
+    title: "Sub-second IPv6 failover",
+    note: "Optional — VPS path only",
+  },
+  {
+    slug: "unifi",
+    href: "/unifi-controller-routeros-containers-mikrotik/",
+    title: "UniFi controller on the router",
+    note: "Optional add-on",
+  },
+];
+
+export function SeriesNav({ current }: { current: string }) {
+  return (
+    <nav
+      aria-label="Series navigation"
+      className="not-prose my-8 rounded-md border bg-muted/30 p-4"
+    >
+      <p className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
+        RB5009 home-network series · pick a layer, or read in order
+      </p>
+      <ol className="mt-3 space-y-1.5 text-sm">
+        {SERIES.map((s, idx) => {
+          const isCurrent = s.slug === current;
+          return (
+            <li key={s.slug} className="flex gap-2">
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                {idx + 1}.
+              </span>
+              <span>
+                {isCurrent ? (
+                  <span className="font-semibold">{s.title}</span>
+                ) : (
+                  <a
+                    href={s.href}
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    {s.title}
+                  </a>
+                )}
+                <span className="text-muted-foreground">
+                  {" "}
+                  — {s.note}
+                  {isCurrent ? " · you are here" : ""}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // MDX → component map. Re-styles Markdown elements so the .mdx file reads as
 // plain Markdown while preserving the RFC-style structure of the document.
 // -----------------------------------------------------------------------------
@@ -258,4 +351,5 @@ export const mdxComponents = {
   // JSX-only blocks the MDX file can use directly:
   Ascii,
   Rationale,
+  SeriesNav,
 };

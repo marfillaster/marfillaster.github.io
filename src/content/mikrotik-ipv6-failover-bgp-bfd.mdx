@@ -1,3 +1,5 @@
+<SeriesNav current="failover" />
+
 ## Abstract
 This is an optional enhancement to the
 [CGNAT build log](/mikrotik-home-network/): replace that build's static
@@ -11,6 +13,12 @@ the CGNAT build is already up — specifically the `wg-host` interface, the
 commented `vps primary` that this post removes. Nothing here is needed for
 IPv6 to work; it only changes how fast the LAN gives up on a dead tunnel and
 fails over to native IPv4.
+
+This applies to the **VPS-routed /48 path only**. If you took the
+[Route64 /56 path](/route64-ipv6-cgnat-mikrotik/) instead, skip this post:
+that path has no VPS to run bird2 on and ships its own netwatch-driven
+fail-to-IPv4 (Route64 post §7). BGP+BFD here replaces the *static* default
+that the VPS path installs.
 
 The problem it solves: a WireGuard interface stays administratively UP even
 when the path is dead — NAT mapping expired, peer rebooted, VPS null-routed —
@@ -44,7 +52,7 @@ announcing a black hole. BFD adds an independent forwarding-path liveness
 signal so the routing layer can tell "interface up" apart from "packets
 actually reach the other side".
 
-## Conventions and placeholders
+## 1. Conventions and placeholders
 The snippets continue the CGNAT build's placeholders and add the routing
 ones. Substitute before pasting.
 
@@ -55,7 +63,7 @@ ones. Substitute before pasting.
 | `<VPS_ROUTER_ID>` / `<MT_ROUTER_ID>` | Any unique 32-bit router IDs (IPv4-formatted).          |
 | `wg-host`           | The WireGuard interface created in the CGNAT build (§4.3).              |
 
-## 1. VPS — bird2 with BFD
+## 2. VPS — bird2 with BFD
 ```bash title="bird2: BGP + BFD on the VPS"
 # 1. Add a link-local on wg0 (bird's "next hop self" needs one).
 # Append to /etc/wireguard/wg0.conf and reload:
@@ -104,7 +112,7 @@ before re-establishing BGP, bird waits for BGP before initiating BFD, and
 recovery needs a manual `birdc restart`.
 </Rationale>
 
-## 2. MikroTik — BGP, BFD, and remove the static route
+## 3. MikroTik — BGP, BFD, and remove the static route
 ```bash title="RouterOS BGP + BFD"
 /routing/bgp/instance/add name=default-bgp as=<MT_AS> router-id=<MT_ROUTER_ID>
 /routing/bgp/template/add name=tpl-host as=<MT_AS> use-bfd=yes
@@ -130,7 +138,7 @@ address-family field is `afi=ipv6` (singular). The `as=` on both `instance`
 and `template` is the local AS, not the remote.
 </Rationale>
 
-## 3. Verification
+## 4. Verification
 ```bash title="Confirm BGP/BFD and the failover"
 # On the VPS:
 birdc show protocols                       # bgp + bfd both Established/Up
@@ -153,6 +161,6 @@ of a ~30&nbsp;second AAAA stall — is the whole point of this change.
 ## References
 - [CGNAT build log — the WireGuard/VPS IPv6 layer this enhances](/mikrotik-home-network/)
 - [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
-- RFC 4271 — Border Gateway Protocol 4 (BGP).
-- RFC 5880 — Bidirectional Forwarding Detection (BFD).
-- RFC 6996 — Private 2-byte ASNs (`64512–65534`).
+- [RFC&nbsp;4271 — Border Gateway Protocol 4 (BGP)](https://datatracker.ietf.org/doc/html/rfc4271)
+- [RFC&nbsp;5880 — Bidirectional Forwarding Detection (BFD)](https://datatracker.ietf.org/doc/html/rfc5880)
+- [RFC&nbsp;6996 — Autonomous System reservation for private use](https://datatracker.ietf.org/doc/html/rfc6996) (`64512–65534`)

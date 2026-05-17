@@ -83,10 +83,10 @@ export const meta: MetaFunction = () => [
 const navItems = [
   ["#abstract", "Abstract"],
   ["#design-decisions", "Design"],
-  ["#conventions-and-placeholders", "Conventions"],
-  ["#1-vps--bird2-with-bfd", "VPS bird2"],
-  ["#2-mikrotik--bgp-bfd-and-remove-the-static-route", "MikroTik"],
-  ["#3-verification", "Verify"],
+  ["#1-conventions-and-placeholders", "Conventions"],
+  ["#2-vps--bird2-with-bfd", "VPS bird2"],
+  ["#3-mikrotik--bgp-bfd-and-remove-the-static-route", "MikroTik"],
+  ["#4-verification", "Verify"],
   ["#references", "References"],
 ] as const;
 

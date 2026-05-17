@@ -1,3 +1,5 @@
+<SeriesNav current="cgnat" />
+
 ## Abstract
 This is a journal of building a small, opinionated home network on a single
 MikroTik RB5009 behind a residential fiber connection that uses carrier-grade
@@ -7,10 +9,16 @@ the trusted LAN and have real IPv6 so the network stays useful as the rest of
 the internet finishes the v6 migration.
 
 The build proceeds in two layers, in the order they were actually installed:
-first the LAN is split into VLANs, then IPv6 reachability is recovered through
-a $3/month VPS (1&nbsp;TB monthly transfer included) that routes a /48 down to
-the house. The first layer — VLAN segmentation, paste-ready and in full — is
-its own companion post:
+first the LAN is split into VLANs, then real IPv6 is recovered over the
+CGNAT'd line. There are two equally valid ways to do that second layer, and
+they are siblings, not a primary and a fallback: a $3/month VPS that routes a
+/48 you operate (documented here, §4), or [Route64](https://route64.org/)'s
+free WireGuard /56 with no server to run
+([its own companion post](/route64-ipv6-cgnat-mikrotik/)). Pick by whether you
+want a prefix you control and inbound you can define, or zero recurring cost
+and nothing to operate; the rest of this build is identical either way. The
+first layer — VLAN segmentation, paste-ready and in full — is its own
+companion post:
 [Trusted, IoT, and Guest VLANs on a MikroTik RB5009](/mikrotik-vlan-guest-iot/);
 this log assumes it has been applied and builds the IPv6 layer on top.
 Encrypted DNS and a
@@ -156,9 +164,24 @@ post is where that trade-off is made concrete.
 
 ## 4. IPv6 over WireGuard via a routed /48
 CGNAT eats inbound IPv4. IPv6 sidesteps that problem entirely — but only if
-the network has real, routable IPv6. The recipe is a $3/month VPS that routes
-a /48 to its instance, a WireGuard tunnel from the RB5009 to that VPS, and
-per-VLAN /64s carved out of the /48.
+the network has real, routable IPv6. Two paths get you there over the same
+WireGuard transport, and they are equal choices for the same layer:
+
+- **A VPS that routes a /48 to you** — documented in full below. You operate
+  the endpoint, so the prefix, the return routing (§4.1), and the failover
+  ([its own companion post](/mikrotik-ipv6-failover-bgp-bfd/)) are yours to
+  define. Recurring cost is one cheap VPS (Appendix&nbsp;A).
+- **Route64's free /56** — documented in the companion post,
+  [Routed IPv6 for a segmented IPv4-only LAN behind CGNAT](/route64-ipv6-cgnat-mikrotik/).
+  No server to run and no recurring bill; the trade is a broker-operated PoP
+  and a single uplink that fails fast to IPv4 when it drops.
+
+Everything else in this build — VLANs (§3), DNS (§5), the per-VLAN /64
+address plan (§1) — is identical either way. The rest of this section is the
+VPS path; if you take the Route64 path, follow that post for §4 and rejoin
+here at §5. The recipe is a $3/month VPS that routes a /48 to its instance, a
+WireGuard tunnel from the RB5009 to that VPS, and per-VLAN /64s carved out of
+the /48.
 
 <Rationale>
 A routed /48 is what unlocks the address plan in section&nbsp;1. With an
@@ -168,17 +191,11 @@ routed /48 there are no helper daemons and 65k subnets to spare.
 
 The transport is WireGuard to a VPS you control. Residential CGNAT
 guarantees only outbound UDP, which is all WireGuard needs, and terminating
-on your own instance makes the routed /48, the return routing
+on your own instance is what makes the routed /48, the return routing
 (section&nbsp;4.1), and the failover ([its own companion
 post](/mikrotik-ipv6-failover-bgp-bfd/)) yours to define rather than a third
-party's. The only recurring cost is one cheap VPS
-(Appendix&nbsp;A); everything reachable is on an endpoint you own, with no
-dependence on a broker's PoP, ToS, or portal.
-
-If you would rather not pay for a VPS and can accept a single *free* IPv6
-uplink that fails fast to IPv4 when it drops, the companion post —
-[Routed IPv6 for a segmented IPv4-only LAN behind CGNAT](/route64-ipv6-cgnat-mikrotik/) —
-does exactly that with Route64's free WireGuard /56 and no VPS.
+party's — the trade you accept for the recurring VPS cost over the Route64
+path above.
 
 ### 4.1 Return routing: why each /64 has to appear in AllowedIPs
 The provider routes the /48 to the VPS, then configures one address from it on
@@ -278,8 +295,10 @@ replaces it with BGP+BFD for ~600&nbsp;ms detection if that matters.
 
 ### 4.4 Per-VLAN addresses and RA RDNSS
 Each VLAN gets a GUA from the /48 and a stable ULA from the locally-generated
-`fd…` prefix. The ULA is what gets advertised as the DNS server — it stays
-the same when the global prefix is renumbered, which it eventually will be.
+`fd…` prefix. RA RDNSS uses `advertise-dns=self`, so the router advertises the
+address it holds on the interface rather than a hardcoded one — the DNS
+companion post explains why that survives a renumber and how the ULA stays
+the memorized resolver.
 
 ```bash title="GUA + ULA + RDNSS per VLAN"
 /ipv6/address
@@ -289,9 +308,9 @@ add interface=vlan-guest address=<LAN_PREFIX>:20::1/64 advertise=yes comment="GU
 add interface=vlan-guest address=<ULA_PREFIX>:20::1/64 advertise=yes comment="GUEST ULA"
 
 /ipv6/nd
-add interface=bridge     advertise-dns=yes dns=<ULA_PREFIX>:1::1  managed-address-configuration=no other-configuration=no
-add interface=vlan-iot   advertise-dns=yes dns=<ULA_PREFIX>:10::1 managed-address-configuration=no other-configuration=no
-add interface=vlan-guest advertise-dns=yes dns=<ULA_PREFIX>:20::1 managed-address-configuration=no other-configuration=no
+add interface=bridge     advertise-dns=self managed-address-configuration=no other-configuration=no
+add interface=vlan-iot   advertise-dns=self managed-address-configuration=no other-configuration=no
+add interface=vlan-guest advertise-dns=self managed-address-configuration=no other-configuration=no
 ```
 
 ### 4.5 IPv6 firewall and anti-spoofing
@@ -535,7 +554,7 @@ NDP-proxy), Linode/Akamai (/64 default, /56 on request), Oracle Cloud (/56).
 - [Running the UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
 - [Guest SSID on a VLAN via a MikroTik hybrid port — source gist](https://gist.github.com/marfillaster/bb95bce7959d150b264e54de9c496c65)
 - [Vultr / on-link /64 variant — when the VPS does not route a prefix](https://gist.github.com/marfillaster/a80d378124db0d879a962ce73d31b345)
-- RFC 3849 — IPv6 documentation prefix `2001:db8::/32`.
-- RFC 4193 — Unique Local IPv6 unicast addresses (`fd00::/8`).
+- [RFC&nbsp;3849 — IPv6 address prefix reserved for documentation](https://datatracker.ietf.org/doc/html/rfc3849) (`2001:db8::/32`)
+- [RFC&nbsp;4193 — Unique Local IPv6 unicast addresses](https://datatracker.ietf.org/doc/html/rfc4193) (`fd00::/8`)
 - [Sub-second IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post](/mikrotik-ipv6-failover-bgp-bfd/)
-- RFC 8305 — Happy Eyeballs v2; why a flagged IPv6 path is tried before native IPv4 (§7).
+- [RFC&nbsp;8305 — Happy Eyeballs v2](https://datatracker.ietf.org/doc/html/rfc8305) (why a flagged IPv6 path is tried before native IPv4, §7)
