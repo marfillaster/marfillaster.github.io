@@ -20,6 +20,10 @@ export default [
     "mikrotik-vlan-guest-iot",
     "routes/mikrotik-vlan-guest-iot.tsx",
   ),
+  route(
+    "mikrotik-ipv6-failover-bgp-bfd",
+    "routes/mikrotik-ipv6-failover-bgp-bfd.tsx",
+  ),
   route("solar-report", "routes/solar-report.tsx"),
   route("solar-report/full-report", "routes/solar-report-full.tsx"),
   route("nev-mileage", "routes/nev-mileage.tsx"),

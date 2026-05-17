@@ -1,0 +1,158 @@
+## Abstract
+This is an optional enhancement to the
+[CGNAT build log](/mikrotik-home-network/): replace that build's static
+IPv6 default route with a BGP-advertised one on a BFD-monitored session, so
+a dead WireGuard tunnel is detected in about **600&nbsp;ms** instead of
+~30&nbsp;seconds.
+
+It is **not** self-contained. It assumes the IPv6-over-WireGuard layer from
+the CGNAT build is already up — specifically the `wg-host` interface, the
+`<LAN_PREFIX>:0::1` / `::2` tunnel addresses, and the static `::/0` route
+commented `vps primary` that this post removes. Nothing here is needed for
+IPv6 to work; it only changes how fast the LAN gives up on a dead tunnel and
+fails over to native IPv4.
+
+The problem it solves: a WireGuard interface stays administratively UP even
+when the path is dead — NAT mapping expired, peer rebooted, VPS null-routed —
+so neither interface state nor BGP keepalives alone are a reliable failure
+signal. The CGNAT build's static `::/0` with `check-gateway=ping` detects a
+dead tunnel in roughly 30&nbsp;seconds; during that window dual-stack apps
+stall on AAAA before Happy&nbsp;Eyeballs falls back to IPv4. A BGP route on a
+BFD-monitored session withdraws the instant BFD declares the path dead —
+pings fail once and clients are already on IPv4 by the next attempt.
+
+| Event                                          | Measured           |
+| ---------------------------------------------- | ------------------ |
+| WG silent → BFD down → route withdrawn         | `~600 ms`          |
+| WG restored → BFD up → route reinstalled       | `~3 s`             |
+| Full VPS reboot → bird up, route installed     | `~28 s`            |
+| BFD bandwidth (200 ms × 3, bidirectional)      | `~3.4 GB / mo`     |
+| BFD cost at $2.50/TB                           | `~$0.0085 / mo`    |
+
+## Design decisions
+
+**BGP** is used only here, and only because it pairs cleanly with BFD: BGP
+withdraws a single `::/0` route the instant BFD declares the forwarding path
+dead, which gives sub-second IPv6 failover with no scripts and no controller.
+With one peer, BGP is not chosen for scaling — it is chosen for clean dynamic
+route withdrawal that static routes do not offer.
+
+**BFD** exists because a WireGuard interface stays administratively UP even
+when the tunnel is silently dead: NAT mapping expired, peer rebooted, ISP
+null-routed the VPS. Without BFD, BGP and interface state would happily keep
+announcing a black hole. BFD adds an independent forwarding-path liveness
+signal so the routing layer can tell "interface up" apart from "packets
+actually reach the other side".
+
+## Conventions and placeholders
+The snippets continue the CGNAT build's placeholders and add the routing
+ones. Substitute before pasting.
+
+| Placeholder         | Meaning                                                                 |
+| ------------------- | ----------------------------------------------------------------------- |
+| `<LAN_PREFIX>`      | The routed IPv6 /48 (or /56) from the CGNAT build; `:0::1`/`:0::2` are the tunnel ends. |
+| `<VPS_AS>` / `<MT_AS>` | Private 2-byte ASNs (RFC&nbsp;6996, `64512–65534`), one per side.     |
+| `<VPS_ROUTER_ID>` / `<MT_ROUTER_ID>` | Any unique 32-bit router IDs (IPv4-formatted).          |
+| `wg-host`           | The WireGuard interface created in the CGNAT build (§4.3).              |
+
+## 1. VPS — bird2 with BFD
+```bash title="bird2: BGP + BFD on the VPS"
+# 1. Add a link-local on wg0 (bird's "next hop self" needs one).
+# Append to /etc/wireguard/wg0.conf and reload:
+#   Address = fe80::1/64
+
+apt-get install -y bird2
+mkdir -p /etc/bird
+cat >/etc/bird/bird.conf <<EOF
+log syslog all;
+router id <VPS_ROUTER_ID>;
+
+protocol device { }
+protocol kernel kernel6 { ipv6 { export none; import all; }; learn yes; }
+
+protocol bfd {
+  interface "wg0" {
+    min rx interval 200 ms;
+    min tx interval 200 ms;
+    idle tx interval 1 s;
+    multiplier 3;
+  };
+  # Explicit neighbor so bird actively probes; passive-only stalls
+  # after a tunnel flap because both sides wait for the other.
+  neighbor <LAN_PREFIX>:0::2 dev "wg0";
+}
+
+protocol bgp mikrotik {
+  local <LAN_PREFIX>:0::1 as <VPS_AS>;
+  neighbor <LAN_PREFIX>:0::2 as <MT_AS>;
+  ipv6 { import none; export where net = ::/0; next hop self; };
+}
+EOF
+chown -R bird:bird /etc/bird
+
+# Restart on any exit (packaged unit uses on-abnormal).
+mkdir -p /etc/systemd/system/bird.service.d
+printf '[Service]\nRestart=on-failure\nRestartSec=2s\n' \
+  > /etc/systemd/system/bird.service.d/restart.conf
+systemctl daemon-reload && systemctl enable --now bird
+```
+
+<Rationale>
+The explicit `neighbor` in `protocol bfd` matters. Without it, bird is
+passive and only responds to probes; after a flap the MikroTik waits for BFD
+before re-establishing BGP, bird waits for BGP before initiating BFD, and
+recovery needs a manual `birdc restart`.
+</Rationale>
+
+## 2. MikroTik — BGP, BFD, and remove the static route
+```bash title="RouterOS BGP + BFD"
+/routing/bgp/instance/add name=default-bgp as=<MT_AS> router-id=<MT_ROUTER_ID>
+/routing/bgp/template/add name=tpl-host as=<MT_AS> use-bfd=yes
+/routing/bgp/connection/add name=host-vps instance=default-bgp \
+    remote.address=<LAN_PREFIX>:0::1 remote.as=<VPS_AS> \
+    local.address=<LAN_PREFIX>:0::2 local.role=ebgp \
+    templates=tpl-host afi=ipv6
+
+/routing/bfd/configuration/add interfaces=wg-host \
+    min-rx=200ms min-tx=200ms multiplier=3
+
+/ipv6/firewall/filter add chain=input action=accept protocol=udp dst-port=3784 \
+    in-interface=wg-host comment="BFD from VPS" \
+    place-before=[find where chain=input and comment="defconf: drop everything else not coming from LAN"]
+
+# Remove the static ::/0; BGP-learned route at distance 20 takes over.
+/ipv6/route/remove [find comment="vps primary"]
+```
+
+<Rationale>
+RouterOS&nbsp;7 splits BGP into `instance`, `template`, and `connection`. The
+address-family field is `afi=ipv6` (singular). The `as=` on both `instance`
+and `template` is the local AS, not the remote.
+</Rationale>
+
+## 3. Verification
+```bash title="Confirm BGP/BFD and the failover"
+# On the VPS:
+birdc show protocols                       # bgp + bfd both Established/Up
+birdc show route                           # ::/0 exported to mikrotik
+
+# On the MikroTik:
+/routing/bgp/session/print                 # established
+/routing/bfd/session/print                 # state=up
+/ipv6/route/print where dst-address=::/0   # bgp, distance 20, no static
+
+# Failover: stop WireGuard on the VPS and time it.
+#   wg-quick down wg0
+# A client's IPv6 should drop and Happy-Eyeballs to IPv4 within ~1 s;
+# the route reappears within a few seconds of bringing wg0 back.
+```
+
+A single ping that fails once and is on IPv4 by the next attempt — instead
+of a ~30&nbsp;second AAAA stall — is the whole point of this change.
+
+## References
+- [CGNAT build log — the WireGuard/VPS IPv6 layer this enhances](/mikrotik-home-network/)
+- [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
+- RFC 4271 — Border Gateway Protocol 4 (BGP).
+- RFC 5880 — Bidirectional Forwarding Detection (BFD).
+- RFC 6996 — Private 2-byte ASNs (`64512–65534`).

@@ -45,6 +45,13 @@ const posts = [
       "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. RouterOS v7 for the RB5009.",
   },
   {
+    href: "/mikrotik-ipv6-failover-bgp-bfd/",
+    eyebrow: "Build log · 2026-05",
+    title: "Sub-second IPv6 failover on RouterOS",
+    description:
+      "Replace the static IPv6 default with a BGP route on a BFD-monitored WireGuard session — dead-tunnel detection from ~30 s down to ~600 ms. bird2 on the VPS, RouterOS v7 BGP/BFD, measured numbers. Companion to the CGNAT build log.",
+  },
+  {
     href: "/encrypted-dns-stable-resolver-mikrotik/",
     eyebrow: "Build log · 2026-05",
     title: "Encrypted DNS with a stable resolver address on RouterOS",

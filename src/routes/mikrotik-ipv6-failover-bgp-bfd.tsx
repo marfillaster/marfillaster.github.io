@@ -1,19 +1,21 @@
 import { MDXProvider } from "@mdx-js/react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/post.mdx";
+import Post from "../content/mikrotik-ipv6-failover-bgp-bfd.mdx";
 import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
-const title = "Home network on residential CGNAT — RB5009 build log";
+const title =
+  "Sub-second IPv6 failover on RouterOS — BGP + BFD over WireGuard";
 const description =
-  "Build log for a usable home network behind residential CGNAT: VLAN segmentation, routed IPv6 over WireGuard with a $3/mo VPS, and DNS-over-HTTPS with ULA RDNSS. Reproducible, paste-ready snippets for MikroTik RB5009.";
-const url = "https://marfillaster.github.io/mikrotik-home-network/";
-const ogImage = "https://marfillaster.github.io/mikrotik-home-network/og.png";
+  "Replace the static IPv6 default route on a MikroTik RB5009 with a BGP-advertised one on a BFD-monitored WireGuard session, cutting dead-tunnel detection from ~30 s to ~600 ms. bird2 on the VPS, RouterOS v7 BGP/BFD, measured failover numbers. Companion to the CGNAT build log.";
+const url =
+  "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/";
+const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
-const datePublished = "2026-05-15";
-const dateModified = "2026-05-15";
+const datePublished = "2026-05-17";
+const dateModified = "2026-05-17";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -36,16 +38,16 @@ const structuredData = {
     url: "https://github.com/marfillaster",
   },
   keywords: [
-    "MikroTik RB5009",
-    "UniFi 6",
-    "Converge ICT",
-    "CGNAT",
-    "WireGuard",
-    "IPv6",
-    "DNS over HTTPS",
     "BGP",
     "BFD",
-    "home network",
+    "bird2",
+    "IPv6 failover",
+    "WireGuard",
+    "MikroTik RB5009",
+    "RouterOS v7",
+    "CGNAT",
+    "sub-second failover",
+    "RFC 6996",
   ],
 };
 
@@ -62,8 +64,7 @@ export const meta: MetaFunction = () => [
   { property: "og:image:height", content: "630" },
   {
     property: "og:image:alt",
-    content:
-      "RB5009 home network build log — diagram showing VPS, WireGuard tunnel, RB5009, APs, and VLANs",
+    content: "marfillaster · notes — Home · Network · Solar · EV",
   },
   { property: "og:site_name", content: "marfillaster · notes" },
   { property: "article:published_time", content: datePublished },
@@ -82,33 +83,31 @@ export const meta: MetaFunction = () => [
 const navItems = [
   ["#abstract", "Abstract"],
   ["#design-decisions", "Design"],
-  ["#1-topology-and-address-plan", "Topology"],
-  ["#2-conventions-and-placeholders", "Conventions"],
-  ["#3-lan-segmentation-comes-first", "VLANs"],
-  ["#4-ipv6-over-wireguard-via-a-routed-48", "IPv6"],
-  ["#5-encrypted-dns-with-stable-resolver-addresses", "DNS"],
-  ["#6-end-to-end-verification", "Verify"],
-  ["#a-appendix-a--cost-and-provider-notes", "Appendix"],
-  ["#glossary", "Glossary"],
+  ["#conventions-and-placeholders", "Conventions"],
+  ["#1-vps--bird2-with-bfd", "VPS bird2"],
+  ["#2-mikrotik--bgp-bfd-and-remove-the-static-route", "MikroTik"],
+  ["#3-verification", "Verify"],
+  ["#references", "References"],
 ] as const;
 
-export default function MikrotikHomeNetwork() {
+export default function MikrotikIpv6FailoverBgpBfd() {
   return (
     <SiteShell>
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Build log · MikroTik RB5009 · Converge fiber, PH
+            Build log · MikroTik RB5009 · BGP + BFD failover
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Building a usable home network behind residential CGNAT
+            Sub-second IPv6 failover on RouterOS
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            VLANs, routed IPv6 over WireGuard, and encrypted DNS. Each section
-            stands alone; pick the parts that match your situation.
+            Replace a static IPv6 default with a BGP route on a BFD-monitored
+            WireGuard session — ~30&nbsp;s dead-tunnel detection down to
+            ~600&nbsp;ms. An optional enhancement to the CGNAT build log.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            <time dateTime={datePublished}>Published 15 May 2026</time>
+            <time dateTime={datePublished}>Published 17 May 2026</time>
           </p>
         </article>
 
