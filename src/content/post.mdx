@@ -26,7 +26,7 @@ is no second always-on box — is its own companion post:
 Each numbered section below is paste-ready against a defconf RouterOS&nbsp;v7
 setup. The italicized notes after each step are the rationale — what trade-off
 was being made and why. The appendices document the optional pieces
-(sub-second IPv6 failover, an IoT printer exception, cost) and the references
+(sub-second IPv6 failover and cost) and the references
 point at the original gists.
 
 ## Design decisions
@@ -178,7 +178,7 @@ guarantees only outbound UDP, which is all WireGuard needs, and terminating
 on your own instance makes the routed /48, the return routing
 (section&nbsp;4.1), and the failover (Appendix&nbsp;A) yours to define
 rather than a third party's. The only recurring cost is one cheap VPS
-(Appendix&nbsp;C); everything reachable is on an endpoint you own, with no
+(Appendix&nbsp;B); everything reachable is on an endpoint you own, with no
 dependence on a broker's PoP, ToS, or portal.
 
 If you would rather not pay for a VPS and can accept a single *free* IPv6
@@ -390,7 +390,7 @@ originates from a datacenter ASN, not the residential ISP.
   the flagged path *first*; the perfectly good native IPv4 route never gets a
   turn.
 - **Metered bandwidth.** The VPS plan is 1&nbsp;TB/month with overage billed
-  per Appendix&nbsp;C. High-bitrate video has no reason to transit a rented
+  per Appendix&nbsp;B. High-bitrate video has no reason to transit a rented
   tunnel — it just burns the cap.
 
 The realization: not every trusted device needs global IPv6. The cheapest and
@@ -572,28 +572,7 @@ address-family field is `afi=ipv6` (singular). The `as=` on both `instance`
 and `template` is the local AS, not the remote.
 </Rationale>
 
-## B. Appendix B — IoT printer exception
-The default policy is isolation. A printer is the canonical exception: pin
-its IP in the IoT scope, allow trusted LAN clients to initiate to that one
-address, and reflect mDNS between LAN and IoT so AirPrint discovery works.
-Guest stays excluded on purpose.
-
-```bash title="LAN → IoT printer + mDNS reflector"
-/ip/dhcp-server/lease add server=iot-dhcp mac-address=AA:BB:CC:DD:EE:FF \
-    address=192.168.89.200 comment="Brother printer"
-
-/ip/firewall/filter add chain=forward action=accept connection-state=new \
-    in-interface=bridge out-interface=vlan-iot dst-address=192.168.89.200 \
-    place-before=[find where comment="IOT !-> LAN"] \
-    comment="LAN -> printer"
-
-/ip/dns set mdns-repeat-ifaces=bridge,vlan-iot
-/ip/firewall/filter add chain=input action=accept in-interface=vlan-iot \
-    protocol=udp dst-address=224.0.0.251 dst-port=5353 \
-    comment="IOT: mDNS to router"
-```
-
-## C. Appendix C — Cost and provider notes
+## B. Appendix B — Cost and provider notes
 The IPv6 leg is the only recurring cost in the build, and it depends entirely
 on whether the VPS provider routes a prefix to the instance or only hands out
 an on-link /64. Providers known to route prefixes (verify on your specific
@@ -646,7 +625,7 @@ NDP-proxy), Linode/Akamai (/64 default, /56 on request), Oracle Cloud (/56).
 | WAN       | Wide area network                          | [Wikipedia](https://en.wikipedia.org/wiki/Wide_area_network)                      |
 | WireGuard | WireGuard VPN                              | [wireguard.com](https://www.wireguard.com/)                                       |
 
-## D. References
+## C. References
 - [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
 - [DoH + IPv6 RA RDNSS with ULA DNS — source gist](https://gist.github.com/marfillaster/d34bd199b9e265ccd74af6d31fd9df85)
 - [Trusted, IoT, and Guest VLANs on a MikroTik RB5009 (§3 in full) — companion post](/mikrotik-vlan-guest-iot/)

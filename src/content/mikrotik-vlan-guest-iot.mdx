@@ -187,6 +187,35 @@ reaches its own gateway and the internet, but **cannot** ping the main-LAN
 gateway, is the whole proof: the VLANs are isolated boundaries, not just
 separate address ranges.
 
+## 7. The IoT printer exception
+The default policy from §5 is isolation; this is the canonical narrow
+exception, kept deliberately small. Pin the printer's IP in the IoT scope,
+allow trusted LAN clients to *initiate* to that one address, and reflect
+mDNS between LAN and IoT so AirPrint discovery works. Guest stays excluded
+on purpose.
+
+```bash title="LAN → IoT printer + mDNS reflector"
+/ip/dhcp-server/lease add server=iot-dhcp mac-address=AA:BB:CC:DD:EE:FF \
+    address=192.168.89.200 comment="Brother printer"
+
+/ip/firewall/filter add chain=forward action=accept connection-state=new \
+    in-interface=bridge out-interface=vlan-iot dst-address=192.168.89.200 \
+    place-before=[find where comment="IOT !-> LAN"] \
+    comment="LAN -> printer"
+
+/ip/dns set mdns-repeat-ifaces=bridge,vlan-iot
+/ip/firewall/filter add chain=input action=accept in-interface=vlan-iot \
+    protocol=udp dst-address=224.0.0.251 dst-port=5353 \
+    comment="IOT: mDNS to router"
+```
+
+<Rationale>
+The exception is one host, one direction (LAN initiates; the established
+reply is what carries the print job back). It is placed *before* the
+`IOT !-> LAN` drop from §5 so only this destination punches through —
+everything else on the IoT VLAN stays isolated.
+</Rationale>
+
 ## References
 - [CGNAT build log — the IPv6 / DoH / failover layers on top of this](/mikrotik-home-network/)
 - [Guest SSID on a VLAN via a MikroTik hybrid port — source gist](https://gist.github.com/marfillaster/bb95bce7959d150b264e54de9c496c65)

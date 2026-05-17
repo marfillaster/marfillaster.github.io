@@ -89,6 +89,7 @@ const navItems = [
   ["#4-dhcp-scopes", "DHCP"],
   ["#5-firewall--input-services-and-east-west-isolation", "Firewall"],
   ["#6-verification", "Verify"],
+  ["#7-the-iot-printer-exception", "Printer"],
   ["#references", "References"],
 ] as const;
 
