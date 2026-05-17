@@ -38,6 +38,13 @@ const posts = [
       "Add real routed IPv6 to an already-segmented IPv4-only LAN behind CGNAT with Route64's free WireGuard /56 — a native global /64 per VLAN, no VPS, fast fail-to-IPv4 on outage. RouterOS v7 for the RB5009.",
   },
   {
+    href: "/lan-segmentation-vlans-mikrotik/",
+    eyebrow: "Build log · 2026-05",
+    title: "LAN segmentation on a MikroTik RB5009",
+    description:
+      "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. RouterOS v7 for the RB5009.",
+  },
+  {
     href: "/encrypted-dns-stable-resolver-mikrotik/",
     eyebrow: "Build log · 2026-05",
     title: "Encrypted DNS with a stable resolver address on RouterOS",

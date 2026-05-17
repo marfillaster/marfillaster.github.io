@@ -1,0 +1,194 @@
+## Abstract
+This is the first-layer companion to the
+[CGNAT build log](/mikrotik-home-network/): split a flat home LAN into a
+trusted main network, an IoT VLAN, and a Guest VLAN on a single MikroTik
+RB5009, with two UniFi 6 APs hanging off hybrid-trunk ports.
+
+It depends on nothing further up the stack. There is **no IPv6, no VPS, and
+no WireGuard** here — this is plain IPv4 plus 802.1Q VLANs and a reviewable
+firewall. The CGNAT build's IPv6, DoH, and failover layers all sit *on top*
+of exactly this segmentation; none of them are needed to stand it up, and
+this post is the part you can apply on day one regardless of what your WAN
+looks like.
+
+Every numbered section is paste-ready against a defconf RouterOS&nbsp;v7
+box. The italic notes are the rationale — the trade-off being made and why.
+
+## Design decisions
+
+**Hybrid trunks, not a tagged management VLAN.** The AP uplink ports carry
+the main LAN *untagged* and only the client SSIDs tagged. APs boot and adopt
+on the main LAN with zero VLAN config on the AP side; only client traffic is
+tagged. The cost is that the trunk ports are genuinely hybrid (untagged +
+tagged on the same wire) and have to be documented as such — which the bridge
+VLAN table does.
+
+**Isolation in `forward`, services in `input`.** East-west isolation is one
+job (the `forward` chain dropping new flows back into trusted networks) and
+"let this VLAN reach the router's DHCP/DNS" is a different job (`input`
+accepts). Keeping them in separate chains is what keeps the ruleset
+reviewable a year later; starving a VLAN of DHCP to "isolate" it is the
+anti-pattern.
+
+**A separate L3 boundary per VLAN.** Each VLAN terminates on its own gateway
+address on the router, so inter-VLAN traffic is routed and filterable rather
+than bridged. This is what makes the Guest-can't-reach-IoT rule a one-liner.
+
+## 1. Topology and address plan
+```ascii
+                       Internet / WAN
+                              │
+                ┌─────────────┴─────────────┐
+                │  MikroTik RB5009 — edge   │
+                │  • per-VLAN L3 gateway    │
+                │  • DHCPv4 per VLAN        │
+                │  • east-west firewall     │
+                └──┬──────────┬──────────┬──┘
+                   │          │          │
+        ether2/3 (hybrid trunks)  ether4/5 (LAN-only access)
+                   │
+        ┌──────────┴──────────┐
+        │  UniFi 6 APs ×2     │
+        │  untagged = mgmt    │
+        │  tag 10 = IoT SSID  │
+        │  tag 20 = Guest SSID│
+        └──────────┬──────────┘
+                   │
+       LAN 1   IoT 10   Guest 20
+   192.168.88/24  .89/24  .90/24
+```
+
+One box does the LAN-side work: it terminates the WAN (whatever it is),
+gives each VLAN an L3 gateway, runs DHCPv4 per VLAN, and enforces isolation.
+Two UniFi 6 APs hang off bridge ports configured as hybrid trunks — untagged
+frames carry AP management on the main LAN, tagged frames carry IoT and Guest
+SSID traffic.
+
+<Rationale>
+One always-on device is enough. The UniFi controller can also run on this
+same RB5009 as RouterOS containers — no second box — which is its own
+companion post:
+[Running the UniFi controller on the router itself](/unifi-controller-routeros-containers-mikrotik/).
+</Rationale>
+
+#### Address plan
+
+| VLAN    | Tagging  | Role              | IPv4              |
+| ------- | -------- | ----------------- | ----------------- |
+| VLAN 1  | untagged | main LAN, AP mgmt | `192.168.88.0/24` |
+| VLAN 10 | tagged   | IoT SSID          | `192.168.89.0/24` |
+| VLAN 20 | tagged   | Guest SSID        | `192.168.90.0/24` |
+
+Each VLAN is a separate L3 boundary at the router. When the IPv6 layer of the
+[CGNAT build log](/mikrotik-home-network/) is added later, each VLAN simply
+gains a matching `:1::/64` / `:10::/64` / `:20::/64` prefix on the same
+interfaces created here — the IoT and Guest VLAN IDs deliberately reuse their
+numbers as the IPv6 slice IDs so the mapping stays obvious in tcpdump.
+
+## 2. Conventions and placeholders
+The snippets assume the defconf bridge name `bridge` and ports
+`ether2`–`ether5`; rename the interfaces where they appear to match your box.
+The rest of the text is literal RouterOS — there are no placeholders to
+substitute in this layer.
+
+## 3. Bridge VLAN table and L3 gateways
+Turn on bridge VLAN filtering, declare the two VLAN interfaces, mark the AP
+uplinks as trunks, and give each VLAN a gateway address.
+
+```bash title="VLAN bridge + gateways"
+/interface/bridge set [find name=bridge] vlan-filtering=yes
+
+/interface/vlan add interface=bridge name=vlan-iot   vlan-id=10
+/interface/vlan add interface=bridge name=vlan-guest vlan-id=20
+
+# Bridge VLAN table — hybrid trunks on ether2/ether3 (to APs),
+# access-only LAN on ether4/ether5.
+/interface/bridge/vlan
+add bridge=bridge vlan-ids=1  untagged=bridge,ether2,ether3,ether4,ether5 comment="main LAN untagged"
+add bridge=bridge vlan-ids=10 tagged=bridge,ether2,ether3                comment="IoT to UniFi APs"
+add bridge=bridge vlan-ids=20 tagged=bridge,ether2,ether3                comment="Guest to UniFi APs"
+
+/ip/address add address=192.168.89.1/24 interface=vlan-iot
+/ip/address add address=192.168.90.1/24 interface=vlan-guest
+```
+
+<Rationale>
+Main LAN stays VLAN&nbsp;1 untagged so AP adoption and existing wired devices
+stay boring. Only IoT and Guest are tagged, and they share the same uplinks
+to the APs — the hybrid-trunk trade-off from the design notes, made concrete
+in the bridge VLAN table above.
+</Rationale>
+
+## 4. DHCP scopes
+Each VLAN gets its own pool, server, and network record, with the router
+itself acting as DNS.
+
+```bash title="IoT + Guest DHCPv4"
+/ip/pool add name=iot-pool   ranges=192.168.89.100-192.168.89.200
+/ip/pool add name=guest-pool ranges=192.168.90.100-192.168.90.200
+
+/ip/dhcp-server add name=iot-dhcp   interface=vlan-iot   address-pool=iot-pool   lease-time=1d
+/ip/dhcp-server add name=guest-dhcp interface=vlan-guest address-pool=guest-pool lease-time=1d
+
+/ip/dhcp-server/network add address=192.168.89.0/24 gateway=192.168.89.1 dns-server=192.168.89.1
+/ip/dhcp-server/network add address=192.168.90.0/24 gateway=192.168.90.1 dns-server=192.168.90.1
+```
+
+<Rationale>
+The router is the resolver for now. Replacing the upstream side of that with
+encrypted DoH — and moving clients onto an RDNSS resolver address that
+survives a renumber — is its own companion post:
+[Encrypted DNS with a stable resolver address on RouterOS](/encrypted-dns-stable-resolver-mikrotik/).
+That layer is optional and sits on top of this one.
+</Rationale>
+
+## 5. Firewall — input services and east-west isolation
+The input chain accepts only the router services the VLANs actually need; the
+forward chain drops new flows back into trusted networks. Established replies
+are not affected, which is what makes narrow per-host exceptions practical
+later.
+
+```bash title="Input + forward firewall"
+# Input — place BEFORE defconf's "drop all not coming from LAN".
+/ip/firewall/filter
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=67-68 comment="IOT: DHCPv4"
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=53    comment="IOT: DNS UDP"
+add chain=input action=accept in-interface=vlan-iot   protocol=tcp dst-port=53    comment="IOT: DNS TCP"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=67-68 comment="GUEST: DHCPv4"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=53    comment="GUEST: DNS UDP"
+add chain=input action=accept in-interface=vlan-guest protocol=tcp dst-port=53    comment="GUEST: DNS TCP"
+
+# Forward — place BEFORE fasttrack / established accepts.
+/ip/firewall/filter
+add chain=forward action=drop in-interface=vlan-iot   out-interface=bridge   connection-state=new comment="IOT !-> LAN"
+add chain=forward action=drop in-interface=vlan-guest out-interface=bridge   connection-state=new comment="GUEST !-> LAN"
+add chain=forward action=drop in-interface=vlan-guest out-interface=vlan-iot connection-state=new comment="GUEST !-> IOT"
+```
+
+<Rationale>
+Isolation is enforced in `forward`, not by starving clients of DHCP/DNS in
+`input`. Mixing the two layers makes the rules unreviewable later.
+</Rationale>
+
+## 6. Verification
+Associate a client to each SSID (and a wired client on the main LAN) and
+confirm the boundary actually holds.
+
+```bash title="Segmentation smoke tests"
+# On a client in each VLAN:
+ip -4 addr show                            # expect the right /24 per SSID
+ping 192.168.89.1                          # own gateway: must succeed
+ping 192.168.88.1                          # MUST fail from IoT and Guest
+nslookup cloudflare.com 192.168.89.1       # router resolves for IoT
+```
+
+A client on the IoT or Guest SSID that gets a lease in its own subnet,
+reaches its own gateway and the internet, but **cannot** ping the main-LAN
+gateway, is the whole proof: the VLANs are isolated boundaries, not just
+separate address ranges.
+
+## References
+- [CGNAT build log — the IPv6 / DoH / failover layers on top of this](/mikrotik-home-network/)
+- [Guest SSID on a VLAN via a MikroTik hybrid port — source gist](https://gist.github.com/marfillaster/bb95bce7959d150b264e54de9c496c65)
+- [Running the UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
+- [Encrypted DNS with a stable resolver address — companion post](/encrypted-dns-stable-resolver-mikrotik/)

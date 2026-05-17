@@ -16,6 +16,10 @@ export default [
     "encrypted-dns-stable-resolver-mikrotik",
     "routes/encrypted-dns-stable-resolver-mikrotik.tsx",
   ),
+  route(
+    "lan-segmentation-vlans-mikrotik",
+    "routes/lan-segmentation-vlans-mikrotik.tsx",
+  ),
   route("solar-report", "routes/solar-report.tsx"),
   route("solar-report/full-report", "routes/solar-report-full.tsx"),
   route("nev-mileage", "routes/nev-mileage.tsx"),

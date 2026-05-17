@@ -16,6 +16,12 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://marfillaster.github.io/lan-segmentation-vlans-mikrotik/</loc>
+    <lastmod>2026-05-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
     <loc>https://marfillaster.github.io/net-metering-general-trias/</loc>
     <lastmod>2026-05-16</lastmod>
     <changefreq>monthly</changefreq>
