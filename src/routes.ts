@@ -3,6 +3,10 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 export default [
   index("routes/_index.tsx"),
   route("mikrotik-home-network", "routes/mikrotik-home-network.tsx"),
+  route(
+    "converge-gpon-sfp-stick-mikrotik",
+    "routes/converge-gpon-sfp-stick-mikrotik.tsx",
+  ),
   route("route64-ipv6-cgnat-mikrotik", "routes/route64-ipv6-cgnat-mikrotik.tsx"),
   route(
     "unifi-controller-routeros-containers-mikrotik",

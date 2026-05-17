@@ -24,6 +24,13 @@ export const meta: MetaFunction = () => [
 // Newest first, by publish date.
 const posts = [
   {
+    href: "/converge-gpon-sfp-stick-mikrotik/",
+    eyebrow: "Build log · 2026-05",
+    title: "Replacing a Converge ONT with a GPON SFP stick",
+    description:
+      "Skyworth GN630V to ODI DFP-34X-2C2 in a MikroTik RB5009: the SC/APC to SC/UPC connector gotcha, VLAN 10 DHCP handoff, and the minimum stick config that worked.",
+  },
+  {
     href: "/route64-ipv6-cgnat-mikrotik/",
     eyebrow: "Build log · 2026-05",
     title: "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT",

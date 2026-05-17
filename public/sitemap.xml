@@ -5,9 +5,15 @@
 >
   <url>
     <loc>https://marfillaster.github.io/</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-05-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marfillaster.github.io/converge-gpon-sfp-stick-mikrotik/</loc>
+    <lastmod>2026-05-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
   </url>
   <url>
     <loc>https://marfillaster.github.io/net-metering-general-trias/</loc>

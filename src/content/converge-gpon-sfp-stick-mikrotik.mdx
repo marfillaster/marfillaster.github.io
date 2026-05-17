@@ -1,0 +1,331 @@
+## Abstract
+This is the write-up of replacing my Converge-issued Skyworth GN630V ONT
+with an ODI `DFP-34X-2C2` GPON ONU SFP stick plugged directly into the
+MikroTik RB5009 SFP+ cage.
+
+```ascii
+Converge fiber
+    |
+    |  SC/APC house fiber -> SC/APC to SC/UPC patch cord
+    v
+ODI DFP-34X-2C2 GPON SFP stick
+    |
+    v
+RB5009 sfp-sfpplus1 -> VLAN 10 -> DHCP client -> LAN
+```
+
+The short version: on my line, Converge authenticated the ONU by GPON serial
+number only. After a factory reset, internet worked with just the original
+ONT's GPON serial number on the stick and VLAN handling set to transparent.
+No MAC cloning, model spoofing, software version spoofing, LOID, or PLOAM
+password was needed for this specific ONT/stick/line combination.
+
+This was inspired by [R1BNC's video](https://www.youtube.com/watch?v=92X2lnOek7M)
+and his [Converge FiberX ONT replacement post](https://r1bnc.com/post/94/).
+Huge thanks also to the [Anime4000/RTL960x](https://github.com/Anime4000/RTL960x)
+project and community work around these Realtek-based ONU sticks.
+
+## Disclaimer
+This is for educational documentation of my own residential fiber line. It is
+not a recommendation that you modify ISP equipment, impersonate equipment on
+a network you do not own, or violate your service agreement.
+
+You are dealing with optical fiber and carrier access equipment. Dirty or
+damaged fiber ends can degrade service. Looking into active fiber can be
+dangerous. Incorrect ONU identity, rapid swapping, or misconfiguration can
+trigger OLT alarms, rogue ONU detection, or an outage for your own service.
+
+You are responsible for your own hardware, service, account standing, and
+safety. I am not liable for damaged SFP modules, routers, ONTs, fiber
+connectors, ISP action, downtime, or other consequences. This guide was only
+tested on the hardware below and on one Converge line. Treat every value as
+something to verify on your own service before applying it.
+
+## Tested Hardware
+| Component | Tested item |
+| --- | --- |
+| ISP | Converge ICT residential fiber, Philippines |
+| Original ONT | Skyworth GN630V |
+| Replacement ONU | ODI `DFP-34X-2C2` GPON/XPON SFP stick, RTL960x-based |
+| Stick firmware | `M110_sfp_ODI_220923FS.tar`; reports `V1.0-220923` |
+| Router | MikroTik RB5009UG+S+ running RouterOS v7 |
+| WAN handoff | VLAN 10, DHCP |
+| Fiber connector issue | Converge drop is SC/APC; my ODI stick is SC/UPC |
+
+The connector row matters. My ODI `DFP-34X-2C2` has a blue **SC/UPC** port,
+while Converge's indoor fiber uses a green **SC/APC** connector. Those are
+not the same polish. Plugging APC into UPC is a bad optical match and can
+add enough loss and reflection to keep the ONU stuck around registration.
+
+The fix I used was an **SC/APC to SC/UPC single-mode patch fiber**. Another
+cleaner option is buying the APC variant of the ODI stick, commonly listed
+as `DFP-34X-2C3`.
+
+## What Actually Mattered
+The minimum working stick configuration was:
+
+```bash title="ODI stick - minimum working config"
+flash set GPON_SN <YOUR_GPON_SN>
+flash set VLAN_CFG_TYPE 0
+flash set VLAN_MANU_MODE 0
+reboot
+```
+
+For my line, these were not required:
+
+- `ELAN_MAC_ADDR` or `MAC_KEY` cloning
+- RouterOS WAN MAC spoofing
+- `PON_VENDOR_ID`, `GPON_ONU_MODEL`, `HW_HWVER`, or `HW_SERIAL_NO` spoofing
+- software version spoofing
+- `OMCI_OLT_MODE` override
+- LOID
+- PLOAM password
+
+The important lesson is not "everyone only needs three commands." The lesson
+is "prove the minimum before piling on spoofing." My original notes had a
+full spoof-heavy setup because I relied heavily on R1BNC's guide as my first
+path through the problem. Factory reset testing later proved that this
+particular Converge/Skyworth/ODI setup only needed the GPON serial and
+transparent VLAN behavior.
+
+## Connector Mismatch
+This was the first real trap, and the funny reason the stick sat unused for
+about six months: the problem was not the GPON serial, PLOAM, LOID, or model
+spoofing. It was the UPC/APC connector mismatch.
+
+| Side | Connector |
+| --- | --- |
+| Converge fiber | SC/APC, usually green |
+| ODI `DFP-34X-2C2` | SC/UPC, blue port |
+
+APC has an angled end face. UPC is flat. The connectors may physically fit,
+but the optical interface is wrong. In my testing this showed up as weak
+or missing receive power and failed registration.
+
+What I observed with the mismatched connector:
+
+- GPON registration only reached O3
+- Rx power reported as 0
+
+I did not observe other registration states or intermittent internet with the
+mismatched connector, so treat those as separate clues rather than symptoms
+proven by this test.
+
+Use a proper SC/APC to SC/UPC patch cord if your SFP stick is UPC. That is
+the adapter path I tested. Another possible adapter path is an SC/UPC male to
+SC/APC female adapter, but I did not test that one.
+
+## Gather Values
+Log in to the original ONT first and write down only what you need. Do not
+publish these values; a GPON serial number is enough to collide with or clone
+your line on the same PON.
+
+For the Skyworth GN630V I checked:
+
+| Value | Why |
+| --- | --- |
+| GPON serial number | The identity Converge accepted on my line; printed on the sticker at the back of the ONT |
+| WAN VLAN ID | Converge internet bridge was VLAN 10 |
+
+I did not find PLOAM, LOID, or LOID password values in the Skyworth admin UI,
+and I did not need them for this setup. Your line may differ, especially if
+it is provisioned on different OLT policy.
+
+## Configure Stick
+Do the first configuration with the fiber disconnected. You only need
+management access to the SFP stick.
+
+The ODI stick management IP is typically `192.168.1.1`, with `admin` as the
+password. On RouterOS, prepare the SFP+ port and give the SFP interface a
+static address in the same `192.168.1.0/24` network first:
+
+```bash title="RouterOS - reach the SFP stick"
+/interface ethernet set [ find default-name=sfp-sfpplus1 ] \
+    auto-negotiation=no sfp-ignore-rx-los=yes speed=2.5G-baseX
+/ip address add address=192.168.1.2/24 interface=sfp-sfpplus1
+```
+
+In my setup, forcing 2.5G base-X and ignoring Rx LOS mattered for clean
+management and link behavior. The stick is reachable at `192.168.1.1`.
+RouterOS automatically adds the connected route for `192.168.1.0/24`, so no
+manual route is needed just to reach the management page or SSH service.
+
+The SSH server may require legacy algorithms. My local SSH config entry looks
+like this:
+
+```text title="~/.ssh/config"
+Host odi-sfp
+    HostName 192.168.1.1
+    User admin
+    KexAlgorithms +diffie-hellman-group1-sha1
+    HostKeyAlgorithms +ssh-rsa
+    Ciphers +3des-cbc
+    PreferredAuthentications password
+    PubkeyAuthentication no
+```
+
+Before resetting or changing the stick, back up its current flash
+configuration. The web UI has a backup option, but from a shell I also like
+capturing `flash all` to a local file:
+
+```bash title="Back up the stick config"
+ssh odi-sfp 'flash all' > odi-sfp-flash-backup-$(date +%Y%m%d-%H%M%S).txt
+```
+
+Then factory reset the config partition so the stick starts from a clean
+baseline. **Confirm the config partition's mtd number on your own stick
+first** — the index can differ across stick variants and firmware, and
+erasing the wrong mtd can brick the module. Check `cat /proc/mtd` and match
+the partition labelled for config before running `flash_eraseall`:
+
+```bash title="ODI stick - factory reset"
+ssh odi-sfp
+
+cat /proc/mtd                 # verify which mtd is the config partition
+flash_eraseall /dev/mtd3      # mtd3 on my stick — confirm yours
+reboot
+```
+
+The reboot can take up to two minutes. Before running it, open another
+terminal and keep a ping running so you know when the stick is reachable
+again:
+
+```bash title="Watch the stick come back"
+ping 192.168.1.1
+```
+
+After the reset, apply or verify the firmware patch I used. My stick is a
+Realtek `RTL9601D`-based ODI `DFP-34X-2C2`; do not use this firmware on a
+stick with a different chipset.
+
+This patch step was inherited from R1BNC's guide. I am not sure it is
+strictly necessary for this Converge line: my final minimum-config test was
+done after a factory reset, but the stick still appeared to be running the
+patched firmware image. So this proves the setup works on `220923FS`; it does
+not prove that stock firmware would fail.
+
+See the upstream [RTL960x DFP-34X-2C2 firmware README](https://github.com/rajkosto/RTL960x/blob/main/Firmware/DFP-34X-2C2/README.md)
+for firmware notes and the `220923FS` patch details.
+
+Firmware file:
+
+```text
+M110_sfp_ODI_220923FS.tar
+```
+
+Upload that `.tar` from the stick's web UI firmware upgrade page, then let
+the stick reboot. If the patch is already installed, skip the upload and just
+verify it from SSH:
+
+```bash title="Verify 220923FS patch"
+cat /etc/version
+ls /etc/scripts/fix_speed.sh /etc/scripts/fix_vlan_tag.sh
+```
+
+Expected version marker:
+
+```text
+V1.0-220923
+```
+
+The `220923FS` tar uses the same `V1.0-220923` version string as the base
+firmware, so the more useful check is the presence of `fix_speed.sh` and
+`fix_vlan_tag.sh`. The README documents optional activation files under
+`/etc/config`, but I did not need to enable those toggles for this working
+configuration.
+
+Then apply the minimum settings:
+
+```bash title="ODI stick"
+ssh odi-sfp
+
+flash set GPON_SN <YOUR_GPON_SN>
+flash set VLAN_CFG_TYPE 0
+flash set VLAN_MANU_MODE 0
+reboot
+```
+
+The same wait applies to this reboot. Keep the ping running until
+`192.168.1.1` responds again.
+
+Verify after reboot:
+
+```bash title="ODI stick - verify settings"
+flash get GPON_SN
+flash get VLAN_CFG_TYPE
+flash get VLAN_MANU_MODE
+```
+
+`VLAN_CFG_TYPE=0` and `VLAN_MANU_MODE=0` keep the stick from doing its own
+VLAN manipulation. VLAN 10 must pass through to RouterOS so the RB5009 can
+run the DHCP client on the VLAN interface.
+
+## RouterOS
+Put the DHCP client on VLAN 10 over `sfp-sfpplus1`.
+
+```bash title="RouterOS - Converge WAN over GPON SFP"
+# Converge internet VLAN observed from the original ONT.
+/interface vlan add interface=sfp-sfpplus1 name=converge-wan vlan-id=10
+
+# DHCP from Converge.
+/ip dhcp-client add interface=converge-wan disabled=no
+
+# Let defconf firewall/NAT treat this as a WAN.
+/interface list member add list=WAN interface=converge-wan
+```
+
+## Swap the ONT
+Once the stick and RouterOS are configured, move the fiber handoff to the
+RB5009:
+
+1. Insert the ODI stick into the RB5009 SFP+ cage.
+2. Connect fiber through the correct APC-to-UPC patch cord.
+
+If you need to roll back, put the fiber back into the Skyworth ONT.
+
+## Verify
+Check the GPON state first:
+
+```bash title="ODI stick"
+diag gpon get onu-state
+```
+
+The target is:
+
+```text
+ONU state: Operation State(O5)
+```
+
+Then check DHCP on RouterOS:
+
+```bash title="RouterOS"
+/ip dhcp-client print
+/ping 8.8.8.8
+```
+
+Working state for my setup was:
+
+- ODI stick reaches `Operation State(O5)`
+- RouterOS DHCP client binds on `converge-wan`
+- internet works through the RB5009 SFP+ port
+
+If the stick says O5 but RouterOS DHCP stays `searching`, look at VLAN
+handling first. In my testing, O5 with no DHCP was caused by the stick not
+passing VLAN 10 transparently.
+
+## Command Reference
+Useful stick commands:
+
+```bash title="ODI stick - quick checks"
+diag gpon get onu-state
+flash get GPON_SN
+flash get VLAN_CFG_TYPE
+flash get VLAN_MANU_MODE
+cat /tmp/omcilog
+```
+
+## References
+- [R1BNC video: replacing ISP ONT with own hardware](https://www.youtube.com/watch?v=92X2lnOek7M)
+- [R1BNC post: Replacing ISP ONT with our own hardware, Converge FiberX](https://r1bnc.com/post/94/)
+- [Anime4000/RTL960x](https://github.com/Anime4000/RTL960x)
+- [RTL960x DFP-34X-2C2 firmware README](https://github.com/rajkosto/RTL960x/blob/main/Firmware/DFP-34X-2C2/README.md)
