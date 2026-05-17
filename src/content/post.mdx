@@ -3,17 +3,21 @@ This is a journal of building a small, opinionated home network on a single
 MikroTik RB5009 behind a residential fiber connection that uses carrier-grade
 NAT. The ISP gives a dynamic IPv4 address with no inbound reachability and no
 usable IPv6. The goals are pedestrian: keep IoT devices and guests away from
-the trusted LAN, manage the Wi-Fi APs without buying another always-on box,
-and have real IPv6 so the network stays useful as the rest of the internet
-finishes the v6 migration.
+the trusted LAN and have real IPv6 so the network stays useful as the rest of
+the internet finishes the v6 migration.
 
-The build proceeds in three layers, in the order they were actually installed:
-first the LAN is split into VLANs, then the UniFi controller is moved into
-RouterOS containers, then IPv6 reachability is recovered through a $3/month
-VPS (1&nbsp;TB monthly transfer included) that routes a /48 down to the
-house. DoH and RA RDNSS sit on top of the third layer. None of these steps
-depend on a specific brand of fiber service; they only assume that outbound
-UDP works and that the router can carry a small WireGuard tunnel.
+The build proceeds in two layers, in the order they were actually installed:
+first the LAN is split into VLANs, then IPv6 reachability is recovered through
+a $3/month VPS (1&nbsp;TB monthly transfer included) that routes a /48 down to
+the house. Encrypted DNS and a
+stable resolver address — the part of this build that needs neither layer —
+is broken out, paste-ready and in full, as its own companion post:
+[Encrypted DNS with a stable resolver address on RouterOS](/encrypted-dns-stable-resolver-mikrotik/).
+None of these steps depend on a specific brand of fiber service; they only
+assume that outbound UDP works and that the router can carry a small
+WireGuard tunnel. Running the UniFi controller on this same router — so there
+is no second always-on box — is its own companion post:
+[Running the UniFi controller on the router itself](/unifi-controller-routeros-containers-mikrotik/).
 
 Each numbered section below is paste-ready against a defconf RouterOS&nbsp;v7
 setup. The italicized notes after each step are the rationale — what trade-off
@@ -69,7 +73,6 @@ actually reach the other side".
                 │  • DHCPv4 + RA + RDNSS    │
                 │  • DoH resolver           │
                 │  • WireGuard client       │
-                │  • RouterOS containers    │
                 └──┬──────────┬──────────┬──┘
                    │          │          │
         ether2/3 (trunks)  ether4/5 (LAN-only access)
@@ -87,16 +90,17 @@ actually reach the other side".
 ```
 
 One box does everything the LAN side needs. The RB5009 terminates the WAN,
-runs DHCPv4 and IPv6 RA, runs DoH outbound, hosts the WireGuard client toward
-the VPS, and runs the UniFi Network Application and MongoDB as containers.
-Two UniFi 6 APs hang off bridge ports configured as hybrid trunks: untagged
+runs DHCPv4 and IPv6 RA, runs DoH outbound, and hosts the WireGuard client
+toward the VPS. Two UniFi 6 APs hang off bridge ports configured as hybrid
+trunks: untagged
 frames carry AP management on the main LAN, tagged frames carry IoT and Guest
 SSID traffic.
 
 <Rationale>
-One always-on device is enough. Running the controller on the router avoids a
-second box and a second attack surface; the cost is paid in memory pressure
-and is bounded by the limits in section&nbsp;4.
+One always-on device is enough. The UniFi controller also runs on this same
+RB5009 as RouterOS containers — no second box, no second attack surface —
+which is its own companion post:
+[Running the UniFi controller on the router itself](/unifi-controller-routeros-containers-mikrotik/).
 </Rationale>
 
 #### Address plan
@@ -122,8 +126,7 @@ pasting; the rest of the text is literal RouterOS or bash.
 | `<ULA_PREFIX>`                | Locally-generated ULA. `python3 -c 'import secrets; print(f"fd{secrets.token_hex(5)}")'`.        |
 | `<VPS_IP>`                    | VPS public IPv4 from the provider panel.                                                         |
 | `<VPS_NIC>`                   | VPS public interface. `ip -o link` shows it (typical: `enp3s0`, `ens3`).                         |
-| `<VPS_PUBKEY> / <MT_PUBKEY>`  | WireGuard public keys, one per side. Each is printed during section&nbsp;5.                      |
-| `<TZ>`                        | IANA tz database name for the controller container. Examples: `Asia/Manila`, `Europe/Berlin`.    |
+| `<VPS_PUBKEY> / <MT_PUBKEY>`  | WireGuard public keys, one per side. Each is printed during section&nbsp;4.                      |
 
 Documentation prefixes from RFC&nbsp;3849 (`2001:db8::/32`) and RFC&nbsp;4193
 (`fd00::/8`) work as stand-ins while testing. Snippets assume the defconf
@@ -167,7 +170,7 @@ add bridge=bridge vlan-ids=20 tagged=bridge,ether2,ether3                comment
 ### 3.2 DHCP scopes
 Each VLAN gets its own pool, server, and network record, with the router
 itself acting as DNS for now. DoH replaces the upstream side of that resolver
-in section&nbsp;6.
+in section&nbsp;5.
 
 ```bash title="IoT + Guest DHCPv4"
 /ip/pool add name=iot-pool   ranges=192.168.89.100-192.168.89.200
@@ -208,151 +211,7 @@ Isolation is enforced in `forward`, not by starving clients of DHCP/DNS in
 `input`. Mixing the two layers makes the rules unreviewable later.
 </Rationale>
 
-## 4. UniFi controller on the router
-The controller runs as two RouterOS containers — MongoDB at
-`192.168.88.2` and the UniFi Network Application at `192.168.88.3` — both
-bridged onto VLAN&nbsp;1 through veth interfaces. From the LAN they look like
-normal hosts; from the router they are services with hard memory limits.
-
-<Rationale>
-The RB5009 has 1&nbsp;GB of RAM. Without a swap file and explicit caps on
-Mongo's WiredTiger cache and UniFi's Java heap, a backup-restore burst can
-knock routing off the air.
-</Rationale>
-
-### 4.1 USB layout: swap + ext4 data
-```ascii
-/dev/usb1 (64 GB USB stick)
-├── part1   8 GiB  raw       → swap (smb-sharing=no, media-sharing=no, swap=yes)
-└── part2  ~56 GiB ext4      → /usb1-part2
-                              ├── images/         container image layers
-                              ├── tmp/            container tmpdir
-                              ├── unifi-config/   UniFi /config
-                              ├── mongo-data/     Mongo /data/db
-                              ├── mongo-config/   Mongo /data/configdb
-                              └── mongo-initdb/   Mongo init scripts (read-only)
-```
-
-The sequence below is destructive to the USB stick. Confirm it is expendable
-and run from a path that survives bridge and container changes.
-
-```bash title="USB swap + container storage"
-/container/config/set layer-dir="" tmpdir=""
-
-:foreach p in=[/disk/find slot~"usb1-part"] do={/disk/remove $p}
-/disk/add parent=usb1 type=partition partition-size=8589934592
-/disk/add parent=usb1 type=partition
-/disk/format numbers=usb1-part2 file-system=ext4
-
-/disk/set [find slot="usb1-part1"] smb-sharing=no media-sharing=no
-/disk/set [find slot="usb1-part1"] swap=yes
-
-/file/add type=directory name="usb1-part2/images"
-/file/add type=directory name="usb1-part2/tmp"
-/file/add type=directory name="usb1-part2/unifi-config"
-/file/add type=directory name="usb1-part2/mongo-data"
-/file/add type=directory name="usb1-part2/mongo-config"
-/file/add type=directory name="usb1-part2/mongo-initdb"
-
-/container/config/set layer-dir=/usb1-part2/images tmpdir=/usb1-part2/tmp
-```
-
-### 4.2 Container veths on VLAN 1
-Static veths make the containers ordinary LAN hosts. With bridge VLAN
-filtering on, the VLAN-1 untagged list must be updated to include the new
-veths or they will not pass traffic.
-
-```bash title="veths on the main LAN"
-/interface/veth/add name=veth1-mongo address=192.168.88.2/24 gateway=192.168.88.1 gateway6=""
-/interface/veth/add name=veth2-unifi address=192.168.88.3/24 gateway=192.168.88.1 gateway6=""
-
-/interface/bridge/port/add bridge=bridge interface=veth1-mongo pvid=1
-/interface/bridge/port/add bridge=bridge interface=veth2-unifi pvid=1
-
-# Required when bridge vlan-filtering is enabled.
-/interface/bridge/vlan/set [find vlan-ids=1] \
-    untagged=bridge,ether2,ether3,ether4,ether5,veth1-mongo,veth2-unifi
-```
-
-### 4.3 Mongo bootstrap user
-UniFi's LinuxServer image expects an external Mongo. The bootstrap user needs
-ownership of `unifi`, `unifi_stat`, and `unifi_audit`, plus broader admin
-roles for backup restore — UniFi creates a transient restore DB during import.
-
-```javascript title="Mongo bootstrap user"
-db.getSiblingDB("unifi").createUser({
-  user: "unifi",
-  pwd: "<MONGO_UNIFI_PASS>",
-  roles: [
-    { role: "dbOwner",              db: "unifi" },
-    { role: "dbOwner",              db: "unifi_stat" },
-    { role: "dbOwner",              db: "unifi_audit" },
-    { role: "readWriteAnyDatabase", db: "admin" },
-    { role: "dbAdminAnyDatabase",   db: "admin" }
-  ]
-});
-```
-
-### 4.4 Mongo and UniFi containers
-MongoDB is pinned to `arm64v8/mongo:4.4.18`. Newer ARM64 builds require
-ARMv8.2-A atomics that the RB5009 Cortex-A72 (ARMv8.0-A) does not have; they
-crash with `SIGILL`. The pinned version is EOL, so it stays LAN-only and
-never gets a WAN forward.
-
-```bash title="Mongo + UniFi containers"
-/container/envs/add list=mongo-envs key=MONGO_INITDB_ROOT_USERNAME value=root
-/container/envs/add list=mongo-envs key=MONGO_INITDB_ROOT_PASSWORD value=<MONGO_ROOT_PASS>
-
-/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-data   dst=/data/db
-/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-config dst=/data/configdb
-/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-initdb dst=/docker-entrypoint-initdb.d read-only=yes
-
-# Mongo 4.4.18 — newer ARM64 builds need ARMv8.2-A atomics that the
-# RB5009 Cortex-A72 (ARMv8.0-A) doesn't have; they exit with SIGILL.
-/container/add remote-image=arm64v8/mongo:4.4.18 interface=veth1-mongo envlist=mongo-envs
-/container/set [find name="mongo:4.4.18"] \
-    mountlists=mongo-mounts hostname=mongo name=mongo start-on-boot=yes logging=yes dns=192.168.88.1 \
-    cmd="mongod --wiredTigerCacheSizeGB 0.25 --bind_ip_all --ipv6" tmpfs="/tmp:64M:fixed"
-
-/container/envs/add list=unifi-envs key=PUID value=1000
-/container/envs/add list=unifi-envs key=PGID value=1000
-/container/envs/add list=unifi-envs key=TZ value=<TZ>          # e.g. Asia/Manila — see tzdata(5)
-/container/envs/add list=unifi-envs key=MONGO_HOST value=192.168.88.2
-/container/envs/add list=unifi-envs key=MONGO_PORT value=27017
-/container/envs/add list=unifi-envs key=MONGO_USER value=unifi
-/container/envs/add list=unifi-envs key=MONGO_PASS value=<MONGO_UNIFI_PASS>
-/container/envs/add list=unifi-envs key=MONGO_DBNAME value=unifi
-/container/envs/add list=unifi-envs key=MONGO_AUTHSOURCE value=unifi
-/container/envs/add list=unifi-envs key=MEM_LIMIT value=384
-/container/envs/add list=unifi-envs key=MEM_STARTUP value=256
-
-/container/mounts/add list=unifi-mounts src=/usb1-part2/unifi-config dst=/config
-/container/add remote-image=lscr.io/linuxserver/unifi-network-application:latest interface=veth2-unifi envlist=unifi-envs
-/container/set [find name="unifi-network-application:latest"] \
-    mountlists=unifi-mounts hostname=unifi name=unifi start-on-boot=yes logging=yes \
-    dns=192.168.88.1 tmpfs="/tmp:128M:fixed"
-
-/container/start [find name="mongo"]
-/container/start [find name="unifi"]
-```
-
-<Rationale>
-Container mounts use `list=` on the mount object and `mountlists=` on the
-container. RouterOS rejects `mountlists=` during the initial image pull, so
-set them with `/container/set` after the add.
-</Rationale>
-
-### 4.5 Verification
-```bash title="Controller smoke tests"
-/disk/print where slot~"usb1-part"
-/log/print where topics~"container"
-
-nc -z -w 2 192.168.88.2 27017 && echo OK
-curl -sk https://192.168.88.3:8443/manage/account/login \
-    -o /dev/null -w "HTTP %{http_code}\n"
-```
-
-## 5. IPv6 over WireGuard via a routed /48
+## 4. IPv6 over WireGuard via a routed /48
 CGNAT eats inbound IPv4. IPv6 sidesteps that problem entirely — but only if
 the network has real, routable IPv6. The recipe is a $3/month VPS that routes
 a /48 to its instance, a WireGuard tunnel from the RB5009 to that VPS, and
@@ -364,51 +223,20 @@ on-link /64 the only options are NDP-proxying and a single subnet; with a
 routed /48 there are no helper daemons and 65k subnets to spare.
 </Rationale>
 
-[Hurricane Electric's tunnel broker](https://tunnelbroker.net/) is the
-obvious first answer for residential IPv6: a free /64 (or /48 on request),
-worldwide PoPs, and a dyndns-style endpoint update so a changing client IPv4
-does not break the tunnel. It still does not help behind CGNAT. HE's primary
-service is 6in4, which encapsulates IPv6 directly inside IP protocol 41 — no
-TCP or UDP ports for the carrier's NAT to track, so most CGNAT deployments
-drop the packets outright. The dyndns hook keeps the tunnel *configured*
-against the current public IPv4; the encapsulated frames just never make it
-through the carrier's NAT44.
+The transport is WireGuard to a VPS you control. Residential CGNAT
+guarantees only outbound UDP, which is all WireGuard needs, and terminating
+on your own instance makes the routed /48, the return routing
+(section&nbsp;4.1), and the failover (Appendix&nbsp;A) yours to define
+rather than a third party's. The only recurring cost is one cheap VPS
+(Appendix&nbsp;C); everything reachable is on an endpoint you own, with no
+dependence on a broker's PoP, ToS, or portal.
 
-HE also offers AYIYA, which is UDP-encapsulated and would traverse CGNAT,
-but its only working client (`aiccu`) is unmaintained: SixXS shut down in
-June 2017 and Debian removed the package as non-functional, and there is
-no RouterOS port. WireGuard fills the same role with a current in-kernel
-implementation, and the encryption is a bonus rather than a cost.
+If you would rather not pay for a VPS and can accept a single *free* IPv6
+uplink that fails fast to IPv4 when it drops, the companion post —
+[Routed IPv6 for a segmented IPv4-only LAN behind CGNAT](/route64-ipv6-cgnat-mikrotik/) —
+does exactly that with Route64's free WireGuard /56 and no VPS.
 
-[Route64](https://route64.org/) is a free IPv6 tunnel broker that already
-runs on WireGuard, and — unlike HE's 6in4 — it genuinely traverses CGNAT.
-This was verified on the live build, not inferred. The tunnel is plain
-outbound UDP, and with the RB5009 always initiating (a 15&nbsp;s
-`PersistentKeepalive`), Route64's server tracks the real source from each
-key-authenticated handshake. The portal asks for a public IPv4 and ships a
-DynDNS-style updater, so the obvious worry is that a stale or shared CGNAT
-IPv4 breaks the tunnel. A deliberately wrong pin was tested both ways: an
-established tunnel kept flowing through it, and a fully cold handshake
-(5&nbsp;min down, server session expired) still came up — a WireGuard
-responder replies to whatever source sent a valid initiation, regardless
-of the registered address. The registered endpoint would only matter if
-Route64 had to *initiate* toward the client, which never happens here. So
-the DynDNS updater is hygiene, not a dependency; section&nbsp;5.6 keeps it
-anyway because it costs nothing and keeps the portal honest.
-
-The reason this build still pays $3/month for a VPS is not CGNAT traversal
-— it is prefix size, failover speed, and owning the endpoint. Route64
-hands out a **/56**; the address plan in section&nbsp;1 needs a routed
-**/48**. The VPS tunnel also carries BGP, so primary-path failure is
-detected by BFD in well under a second (Appendix&nbsp;A); the Route64 leg
-has no control plane and leans on ~8-second netwatch instead. And
-terminating on a VPS you control makes the reachable side yours — the
-`AllowedIPs` return-routing in section&nbsp;5.1 is your call, with no
-dependence on a free broker's PoP, ToS, or (still missing) portal 2FA.
-Route64's role here is the *free secondary*: section&nbsp;5.6 wires it as
-an automatic IPv6 failover path behind the VPS.
-
-### 5.1 Return routing: why each /64 has to appear in AllowedIPs
+### 4.1 Return routing: why each /64 has to appear in AllowedIPs
 The provider routes the /48 to the VPS, then configures one address from it on
 the public NIC at /48 mask. That installs a connected route for the entire
 /48 on the public interface, which competes with the WireGuard tunnel for
@@ -434,7 +262,7 @@ and the network looks broken in a way that no log line explains. The fix is
 paste-only — but only if it is paste-correct.
 </Rationale>
 
-### 5.2 VPS — WireGuard relay
+### 4.2 VPS — WireGuard relay
 ```bash title="VPS wg0 + AllowedIPs per /64"
 set -e
 apt-get update -qq
@@ -475,7 +303,7 @@ systemctl enable --now wg-quick@wg0
 echo "VPS public key: $(cat /etc/wireguard/server.pub)"
 ```
 
-### 5.3 MikroTik — WireGuard client and main-LAN IPv6
+### 4.3 MikroTik — WireGuard client and main-LAN IPv6
 The static `::/0` with `check-gateway=ping` detects a dead tunnel in roughly
 30 seconds. Appendix&nbsp;A replaces it with BGP+BFD for ~600&nbsp;ms
 detection if that matters.
@@ -503,7 +331,7 @@ detection if that matters.
     place-before=[find where chain=input and comment="defconf: drop everything else not coming from LAN"]
 ```
 
-### 5.4 Per-VLAN addresses and RA RDNSS
+### 4.4 Per-VLAN addresses and RA RDNSS
 Each VLAN gets a GUA from the /48 and a stable ULA from the locally-generated
 `fd…` prefix. The ULA is what gets advertised as the DNS server — it stays
 the same when the global prefix is renumbered, which it eventually will be.
@@ -521,7 +349,7 @@ add interface=vlan-iot   advertise-dns=yes dns=<ULA_PREFIX>:10::1 managed-addres
 add interface=vlan-guest advertise-dns=yes dns=<ULA_PREFIX>:20::1 managed-address-configuration=no other-configuration=no
 ```
 
-### 5.5 IPv6 firewall and anti-spoofing
+### 4.5 IPv6 firewall and anti-spoofing
 Mirror the IPv4 isolation in IPv6, then drop traffic whose source prefix does
 not belong on the ingress VLAN. SLAAC makes prefix forgery trivially cheap;
 the address-list filters make it not work.
@@ -554,138 +382,29 @@ add chain=forward action=drop in-interface=vlan-iot   src-address-list=!iot-legi
 add chain=forward action=drop in-interface=vlan-guest src-address-list=!guest-legit comment="GUEST: anti-spoof"
 ```
 
-### 5.6 Route64 — free IPv6 failover behind the VPS
-The VPS is primary; [Route64](https://route64.org/) is a free WireGuard
-tunnel broker that makes a credible *secondary* IPv6 uplink. The goal is
-automatic, client-transparent failover with no LAN renumbering.
-
-**Route64 dashboard.** Create a tunnel of type *WireGuard* and note: the
-PoP `endpoint:port`, the server public key, the client private key, the
-tunnel-link `/64` (point-to-point, client `::2`), the routed **/56**
-delegated for LAN use — a *different* prefix from the link `/64` — the
-numeric tunnel ID, and an API key for the DynDNS endpoint. The portal
-prompts for a public IPv4; behind CGNAT that value is not load-bearing
-(see section&nbsp;5).
-
-**WireGuard client.** The RB5009 always initiates; `::/0` in
-`allowed-address` lets the peer carry any IPv6 (the path is chosen by route
-distance, not here). The tunnel-link address is `advertise=no` — it is
-point-to-point, no SLAAC.
-
-```bash title="MikroTik — Route64 WireGuard client"
-/interface/wireguard add name=wg-route64 mtu=1420 listen-port=20063 \
-    private-key="<R64_PRIVKEY>"
-/interface/wireguard/peers add interface=wg-route64 \
-    public-key="<R64_SRV_PUBKEY>" \
-    endpoint-address=<R64_POP_IP> endpoint-port=<R64_POP_PORT> \
-    allowed-address=::/0 persistent-keepalive=15s
-/ipv6/address add address=<R64_LINK>::2/64 interface=wg-route64 advertise=no
-```
-
-**DynDNS hygiene (optional).** Not required — the tunnel survives a wrong
-pin on both established and cold handshakes. Kept only to keep the portal
-accurate, on a 15-minute scheduler (Route64 rate-limits endpoint *changes*
-to one per 10&nbsp;min; `nochg` is unmetered, so 15&nbsp;min never trips
-it). `start-time=startup` corrects a stale pin after a reboot.
-
-```bash title="MikroTik — Route64 DynDNS scheduler"
-/system/script add name=route64-ddns source=":do { :local r [/tool fetch url=\"https://manager.route64.org/nic/update?hostname=<R64_TUNNEL_ID>\" user=\"<R64_USER>\" password=\"<R64_APIKEY>\" mode=https output=user as-value]; :log info (\"route64-ddns: \" . (\$r->\"data\")); } on-error={ :log warning \"route64-ddns: fetch error\"; }"
-/system/scheduler add name=route64-ddns start-time=startup interval=15m \
-    on-event="/system/script/run route64-ddns"
-```
-
-**NPTv6 — one stable LAN prefix.** LAN clients keep their VPS `/48`
-addresses; on the Route64 path a stateless 1:1 prefix map rewrites the LAN
-`/56` window into Route64's delegated `/56`. Clients never see a second
-prefix, so there is no RFC&nbsp;6724 / Happy-Eyeballs source-selection
-lottery. The LAN only uses the low subnet byte, so the existing
-`:1::/64`, `:10::/64` already fall inside one `/56` — no renumbering.
-
-```bash title="MikroTik — NPTv6 (staged disabled; netwatch arms it)"
-/ipv6/firewall/nat add chain=srcnat action=netmap out-interface=wg-route64 \
-    src-address=<LAN_PREFIX>::/56 to-address=<R64_DELEG_56> \
-    comment=r64npts disabled=yes
-/ipv6/firewall/nat add chain=dstnat action=netmap in-interface=wg-route64 \
-    dst-address=<R64_DELEG_56> to-address=<LAN_PREFIX>::/56 \
-    comment=r64nptd disabled=yes
-```
-
-**Failover trigger.** A static `::/0` via Route64 at distance&nbsp;30 sits
-behind the BGP default (distance&nbsp;20, Appendix&nbsp;A) — inert while
-the VPS is up. netwatch pings the Route64 tunnel gateway (reachable only
-through `wg-route64`, so it tracks Route64's own health independent of
-BGP) and arms/disarms the failover route and NPTv6 together. Comments are
-single tokens so the scripts need no nested quotes.
-
-```bash title="MikroTik — netwatch arms/disarms the Route64 path"
-/ipv6/route add dst-address=::/0 gateway=<R64_LINK>::1%wg-route64 \
-    distance=30 comment=r64fail disabled=yes
-
-/tool/netwatch add name=r64health type=icmp host=<R64_LINK>::1 \
-    interval=5s timeout=2s comment=r64health \
-    up-script="/ipv6/route enable [find comment=r64fail]; /ipv6/firewall/nat enable [find comment=r64npts]; /ipv6/firewall/nat enable [find comment=r64nptd]; :log info route64-armed" \
-    down-script="/ipv6/route disable [find comment=r64fail]; /ipv6/firewall/nat disable [find comment=r64npts]; /ipv6/firewall/nat disable [find comment=r64nptd]; :log info route64-disarmed"
-```
-
-<Rationale>
-Verified on the live build (idle tunnel, primary untouched): the client
-handshakes and egresses behind CGNAT; NPTv6 srcnat rewrites a LAN-sourced
-packet into the Route64 `/56` and the reply returns; the DynDNS scheduler
-ticks autonomously (`nochg`); netwatch arms on up and, against a realistic
-path failure (gateway timeouts), fires the down-script in ~8&nbsp;seconds.
-Two honesty notes. netwatch catches *path* failure (timeouts) quickly, but
-a brief blackhole can self-recover because WireGuard keeps using a live
-session's learned endpoint until it expires — sustained outage is what
-holds the failover. And BFD fails the *primary* leg over sub-second while
-Route64 has no control plane, so the secondary's ~8&nbsp;s netwatch is the
-floor; Happy&nbsp;Eyeballs drops new connections to IPv4 in the meantime,
-so a double failure degrades rather than breaks. The one path not yet
-exercised end-to-end is a real primary-down cutover with live LAN traffic;
-everything up to the trigger is verified.
-</Rationale>
-
-## 6. Encrypted DNS with stable resolver addresses
+## 5. Encrypted DNS with stable resolver addresses
 Upstream DNS leaves the house through Cloudflare DoH; downstream, the router
-is the resolver and advertises itself via RA RDNSS at its ULA. The bootstrap
-records are A/AAAA pins for `cloudflare-dns.com`, needed once at boot before
-DoH itself can resolve anything.
+is the resolver and advertises itself via RA RDNSS at a ULA, so SLAAC prefix
+churn never moves the DNS server clients have memorized. Every DHCPv4 scope
+is set `dns-none=yes` — resolution is uniformly the ND RDNSS path.
+
+This piece stands entirely on its own — it needs neither the VLAN
+segmentation of §3 nor the routed IPv6 of §4 (the ULA is locally assigned;
+DoH egresses over IPv4) — so it is written up, paste-ready and in full, as
+its own companion post:
+[Encrypted DNS with a stable resolver address on RouterOS](/encrypted-dns-stable-resolver-mikrotik/).
+That post covers the DoH bootstrap pins, the LAN ULA and `router.lan`
+record, `advertise-dns=self`, the uniform `dns-none=yes` posture, and the
+verification — the same configuration this build runs.
 
 <Rationale>
-Endpoints stay simple — they keep using a local resolver. Resolver identity
-is on ULA, so SLAAC prefix churn never changes the DNS server the OS has
-memorized.
+Pinning the DoH bootstrap A-only matters more here than in the standalone
+post: a client's first query must not ride the IPv6 path, which only becomes
+reachable after the WireGuard tunnel handshakes (and, with Appendix&nbsp;A,
+after BFD converges). The companion post explains the rest.
 </Rationale>
 
-```bash title="DoH resolver + ULA RDNSS"
-/tool/fetch url=https://curl.se/ca/cacert.pem dst-path=cacert.pem
-/certificate/import file-name=cacert.pem passphrase=""
-
-/ip/dns set allow-remote-requests=yes max-concurrent-queries=200 \
-    use-doh-server=https://cloudflare-dns.com/dns-query verify-doh-cert=yes
-
-/ip/dns/static
-# A-only on purpose — see rationale below.
-add address=104.16.248.249       name=cloudflare-dns.com comment="DoH bootstrap"
-add address=104.16.249.249       name=cloudflare-dns.com comment="DoH bootstrap"
-# Reachable as the FQDN `router.lan` from any client whose resolver is the
-# router (the default — clients use RDNSS, and the router answers its own
-# static zone). No search-domain magic; type the dot-lan suffix.
-add address=<ULA_PREFIX>:1::1    name=router.lan type=AAAA comment="LAN ULA"
-
-# Stop DHCPv4 from handing out the router as DNS; clients use RDNSS instead.
-/ip/dhcp-server/network set [find address=192.168.88.0/24] dns-none=yes
-```
-
-<Rationale>
-The DoH bootstrap is A-only on purpose. IPv4 is up the moment the WAN is up;
-IPv6 only becomes reachable after the WireGuard tunnel handshakes (and, with
-Appendix&nbsp;A, after BFD converges). Pinning AAAA records here would push
-the first DoH query onto a half-warm — or broken — tunnel, while the IPv4
-path is direct to a nearby Cloudflare PoP. Once DoH is up, regular client
-queries still resolve and use AAAA records normally.
-</Rationale>
-
-## 7. End-to-end verification
+## 6. End-to-end verification
 The build has enough moving parts that it is worth testing each layer
 independently before declaring victory.
 
@@ -707,7 +426,7 @@ dig @<ULA_PREFIX>:1::1 cloudflare.com
 scutil --dns | grep -i 'nameserver\['      # macOS: expect the ULA
 ```
 
-## 8. Update — keeping streaming off the metered tunnel
+## 7. Update — keeping streaming off the metered tunnel
 *Added May 16, 2026. Running the build surfaced a failure mode the original
 design did not anticipate.*
 
@@ -728,9 +447,9 @@ The realization: not every trusted device needs global IPv6. The cheapest and
 most robust lever is a VLAN that has a **ULA but no GUA**. With no global
 address there is no global v6 route at all — the client uses native ISP IPv4
 for anything internet-facing, while the ULA still carries router DNS (RA
-RDNSS, §5.4) and on-link v6. This is failsafe by construction: it is the
+RDNSS, §4.4) and on-link v6. This is failsafe by construction: it is the
 *absence of a route*, not a firewall rule something could slip past, and the
-per-VLAN anti-spoof list (§5.5) enforces that nothing forges its way back onto
+per-VLAN anti-spoof list (§4.5) enforces that nothing forges its way back onto
 a global prefix.
 
 *Why not just drop the GUA's forward path in the firewall instead? Because the
@@ -739,11 +458,10 @@ and stall for the fallback timeout on every new connection. Removing the GUA
 means the client never attempts the tunnel — there is nothing to fall back
 from.*
 
-### 8.1 A ULA-only trusted VLAN
-VLAN&nbsp;30 is trusted exactly like VLAN&nbsp;1 — the only thing that makes a
-VLAN "trusted" here is membership in the `LAN` interface list, which the
-defconf input/forward rules gate on. It differs from VLAN&nbsp;1 in one way:
-no GUA.
+### 7.1 A ULA-only trusted VLAN
+VLAN&nbsp;30 is a normal trusted VLAN — `LAN` interface-list membership is the
+only thing "trusted" means here — with exactly one difference from
+VLAN&nbsp;1: no GUA is assigned, so there is no global v6 route to leave on.
 
 ```bash title="VLAN 30 — trusted, ULA-only"
 /interface/vlan add interface=bridge name=vlan30 vlan-id=30
@@ -769,39 +487,27 @@ add list=vlan30-legit address=fe80::/10
   src-address-list=!vlan30-legit comment="VLAN30: anti-spoof"
 ```
 
-*`dns-none=yes` on the DHCP scope is intentional: VLAN&nbsp;30 hands out no
-DHCPv4 resolver, so clients take DNS from the ND RDNSS, the same as the main
-LAN's `defconf` scope. The IoT and Guest scopes of §3.2 were since moved to
-`dns-none=yes` as well — no VLAN hands out a DHCPv4 resolver anymore, so DNS
-is uniformly the ND RDNSS and the router resolves upstream over DoH (§6). The
-trade-off: a client with no RFC&nbsp;8106 RDNSS support gets no DNS at all —
-acceptable here because every VLAN carries a ULA and the device population
-supports it, but it makes IPv6 a hard dependency for name resolution.
-`advertise-dns=self` supersedes the explicit
-`dns=<ULA_PREFIX>:X::1` of §5.4 — the router advertises whatever address it
-holds on the interface, so the RDNSS can never point at a stale or wrong
-address and it survives a renumber with nothing to keep in sync; it is now set
-on every RA interface, not just VLAN&nbsp;30. The RA also omits the `mtu=1420`
-clamp the tunnel-bound VLANs carry (§5.4) — VLAN&nbsp;30's v6 never reaches the
-1420-byte WireGuard path, so clamping its on-link MTU would only shrink local
-traffic for nothing.*
+*The DNS lines (`dns-none=yes`, `advertise-dns=self`) are the standard
+RDNSS posture from §5 — see the DNS companion post for why. One detail is
+VLAN&nbsp;30-specific: its RA omits the `mtu=1420` clamp the tunnel-bound
+VLANs carry (§4.4), because VLAN&nbsp;30's v6 never reaches the WireGuard
+path and clamping would only shrink local traffic for nothing.*
 
-Move the main client SSID onto VLAN&nbsp;30 in the controller and leave a
-second AP (or VLAN&nbsp;1) for the few devices that genuinely want global v6.
-Guest (VLAN&nbsp;20) gets the same treatment — drop its GUA and the matching
-`guest-legit` entry from §5.5; guests never needed metered global
-reachability:
+Move the main client SSID onto VLAN&nbsp;30 in the controller, leaving
+VLAN&nbsp;1 for the few devices that genuinely want global v6. Guest
+(VLAN&nbsp;20) gets the same treatment — it never needed metered global
+reachability, so drop its GUA and the matching `guest-legit` entry from §4.5:
 
 ```bash title="Strip the Guest GUA too"
 /ipv6/address remove [find comment="GUEST GUA"]
 /ipv6/firewall/address-list remove [find list=guest-legit address=<LAN_PREFIX>:20::/64]
 ```
 
-IoT (VLAN&nbsp;10) keeps its GUA — its handful of outbound v6 flows are
+IoT (VLAN&nbsp;10) keeps its GUA: its handful of outbound v6 flows are
 negligible against the cap, and some devices behave better with working v6
 than with a half-deprecated one.
 
-### 8.2 The cutover gotcha
+### 7.2 The cutover gotcha
 A device that is associated at the moment its SSID's VLAN changes keeps the
 *old* VLAN's SLAAC addresses until their lifetimes expire — RouterOS
 advertises prefixes with a one-week preferred / four-week valid lifetime by
@@ -993,10 +699,11 @@ NDP-proxy), Linode/Akamai (/64 default, /56 on request), Oracle Cloud (/56).
 ## D. References
 - [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
 - [DoH + IPv6 RA RDNSS with ULA DNS — source gist](https://gist.github.com/marfillaster/d34bd199b9e265ccd74af6d31fd9df85)
-- [UniFi + MongoDB as RouterOS containers on the RB5009 — source gist](https://gist.github.com/marfillaster/9fa1a9571d4d93b2992977d33d99b1a9)
+- [Encrypted DNS with a stable resolver address (§5 in full) — companion post](/encrypted-dns-stable-resolver-mikrotik/)
+- [Running the UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
 - [Guest SSID on a VLAN via a MikroTik hybrid port — source gist](https://gist.github.com/marfillaster/bb95bce7959d150b264e54de9c496c65)
 - [Vultr / on-link /64 variant — when the VPS does not route a prefix](https://gist.github.com/marfillaster/a80d378124db0d879a962ce73d31b345)
 - RFC 3849 — IPv6 documentation prefix `2001:db8::/32`.
 - RFC 4193 — Unique Local IPv6 unicast addresses (`fd00::/8`).
 - RFC 6996 — Private 2-byte ASNs (`64512–65534`) for Appendix&nbsp;A.
-- RFC 8305 — Happy Eyeballs v2; why a flagged IPv6 path is tried before native IPv4 (§8).
+- RFC 8305 — Happy Eyeballs v2; why a flagged IPv6 path is tried before native IPv4 (§7).

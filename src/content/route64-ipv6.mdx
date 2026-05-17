@@ -1,0 +1,281 @@
+## Abstract
+This is the no-VPS companion to the [CGNAT build log](/mikrotik-home-network/).
+That build recovers IPv6 by paying a $3/month VPS to route a /48 over
+WireGuard. This one assumes you already have a working, segmented IPv4 LAN
+behind carrier-grade NAT — VLANs, inter-VLAN firewall, DHCP — and you want
+real routed IPv6 without a recurring bill and without an endpoint to operate.
+
+[Route64](https://route64.org/) is a free tunnel broker that hands out a
+routed **/56** over **WireGuard**. Because the transport is plain outbound
+UDP, it traverses residential CGNAT — verified on a live Converge line, not
+inferred. A /56 is 256 /64s: enough to give every VLAN its own native global
+prefix straight from the delegation, with no helper daemon and no second
+prefix for clients to choose between. The single trade-off is honest and
+designed-for: Route64 is the *only* IPv6 uplink, so when it is down the LAN
+fails fast and cleanly back to IPv4 rather than blackholing.
+
+Every numbered section is paste-ready against a RouterOS&nbsp;v7 box that
+already has the VLAN segmentation from the companion post. The italic notes
+are the rationale — the trade-off being made and why.
+
+## Design decisions
+
+**WireGuard, not 6in4.** The obvious free broker is Hurricane Electric, but
+its tunnel is 6in4 (IP protocol&nbsp;41) — no UDP/TCP ports for a carrier's
+NAT44 to track, so it is dropped behind CGNAT (transmits fine, nothing ever
+returns; confirmed on the live line). Route64's WireGuard is stateful
+outbound UDP: the RB5009 always initiates, the responder replies to whatever
+source sent a valid key-authenticated handshake, and the registered portal
+IPv4 is hygiene, not a dependency.
+
+**A real /64 per VLAN.** The routed /56 is 256 /64s; each VLAN gets its own
+native global prefix straight from it. Clients SLAAC a genuine Route64
+address and the broker routes it straight back — no translation, no helper
+daemon, nothing for a client to choose between.
+
+**Fail to IPv4, not blackhole.** A single uplink means a Route64 outage is a
+total IPv6 outage. The cleanest behavior then is for the router to stop being
+an IPv6 default router so hosts immediately Happy-Eyeballs to IPv4, instead
+of holding a dead default and stalling every new connection.
+
+## 1. Topology and what you need first
+```ascii
+                     Internet (IPv4 + IPv6)
+                            │
+              ┌─────────────┴─────────────┐
+              │   Route64 PoP (WireGuard) │
+              │   routes a /56 to you     │
+              └─────────────┬─────────────┘
+                            │ WireGuard / outbound UDP
+                            │ (only IPv6 transits the tunnel)
+              ┌─────────────┴─────────────┐
+              │   Residential fiber+CGNAT │
+              │   (IPv4 outbound only)    │
+              └─────────────┬─────────────┘
+                            │
+                ┌───────────┴───────────┐
+                │       RB5009          │
+                │  wg-route64  ::2/64   │  ← tunnel link
+                │  bridge   <56>:1::1   │  ← LAN  GUA + ULA
+                │  vlan-iot <56>:10::1  │  ← IoT  GUA + ULA
+                │  vlan-gst <56>:20::1  │  ← Guest GUA + ULA
+                └───────────────────────┘
+```
+
+This post starts where the segmentation post ends. You should already have:
+the bridge/`vlan-iot`/`vlan-guest` interfaces, the IPv4 inter-VLAN firewall,
+per-VLAN DHCPv4, and a working DoH resolver advertised on a ULA. If you do
+not, build [sections&nbsp;3, 4 and 6 of the CGNAT
+post](/mikrotik-home-network/#3-lan-segmentation-comes-first) first; only
+the IPv6 layer differs here.
+
+## 2. Conventions and placeholders
+Substitute every `<PLACEHOLDER>` before pasting. Comments are single tokens
+so the netwatch scripts need no nested quotes.
+
+| Placeholder       | Meaning                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| `<R64_PRIVKEY>`   | Client (RB5009) WireGuard private key from the Route64 tunnel page.                   |
+| `<R64_SRV_PUBKEY>`| Route64 server public key.                                                           |
+| `<R64_POP_IP>`    | Route64 PoP endpoint IPv4.                                                            |
+| `<R64_POP_PORT>`  | Route64 PoP endpoint UDP port (also the local `listen-port`).                         |
+| `<R64_LINK>`      | Tunnel-link /64 prefix. Client is `<R64_LINK>::2`, gateway `<R64_LINK>::1`.           |
+| `<R64_56>`        | Routed /56 written without its trailing subnet byte, e.g. `2001:db8:abcd:c0`.         |
+| `<ULA_PREFIX>`    | Your locally-generated ULA, e.g. `fd96:7d0b:7dc2`. Same one the DNS section uses.     |
+| `<R64_TUNNEL_ID>` | Numeric Route64 tunnel ID (DynDNS `hostname`).                                        |
+| `<R64_USER>` / `<R64_APIKEY>` | Route64 account user and API key for the DynDNS endpoint.                |
+
+`<R64_56>` is the one to read carefully. Route64 delegates a /56 such as
+`2001:db8:abcd:c000::/56`; the usable LAN /64s are
+`2001:db8:abcd:c001::/64` … `2001:db8:abcd:c0ff::/64`. Write `<R64_56>` as
+the part *before* the subnet byte (`2001:db8:abcd:c0`) so `<R64_56>01::1`
+expands to `2001:db8:abcd:c001::1`. This guide uses `01`/`10`/`20` to echo
+the VLAN numbering.
+
+## 3. Route64 dashboard
+Create a tunnel of type **WireGuard** and note: the PoP `endpoint:port`, the
+server public key, the client private key, the tunnel-link `/64` (the
+point-to-point pair, client `::2`, gateway `::1`), the routed **/56**
+delegated for LAN use — a *different* prefix from the link `/64` — the
+numeric tunnel ID, and an API key for the DynDNS endpoint. The portal asks
+for a public IPv4; behind CGNAT that value is not load-bearing (see the
+design note above).
+
+## 4. WireGuard client
+The RB5009 always initiates; `::/0` in `allowed-address` lets the peer carry
+any IPv6 (the path is a routing decision, not set here). The tunnel-link
+address is `advertise=no` — it is point-to-point, no SLAAC.
+
+```bash title="MikroTik — Route64 WireGuard client"
+/interface/wireguard add name=wg-route64 mtu=1420 \
+    listen-port=<R64_POP_PORT> private-key="<R64_PRIVKEY>"
+/interface/wireguard/peers add interface=wg-route64 \
+    public-key="<R64_SRV_PUBKEY>" \
+    endpoint-address=<R64_POP_IP> endpoint-port=<R64_POP_PORT> \
+    allowed-address=::/0 persistent-keepalive=15s
+/ipv6/address add address=<R64_LINK>::2/64 interface=wg-route64 advertise=no
+```
+
+<Rationale>
+`persistent-keepalive=15s` keeps the carrier's NAT mapping fresh and keeps
+Route64's learned endpoint under 15&nbsp;s old, so the tunnel roams across a
+changing CGNAT egress without re-registration. A deliberately wrong portal
+pin was tested on both an established tunnel and a fully cold handshake; both
+worked, because a WireGuard responder answers the source of any valid
+initiation regardless of the registered address.
+</Rationale>
+
+## 5. Native per-VLAN IPv6 from the /56
+Each VLAN gets a real global /64 carved straight from the routed /56, plus
+the stable ULA that the DNS section advertises as the resolver. Pick the
+subnet byte to mirror the VLAN — `01` for LAN, `10` for IoT, `20` for guest.
+
+```bash title="MikroTik — GUA + ULA + RDNSS per VLAN"
+/ipv6/address
+add interface=bridge     address=<R64_56>01::1/64 advertise=yes comment="LAN GUA"
+add interface=bridge     address=<ULA_PREFIX>:1::1/64  advertise=yes comment="LAN ULA"
+add interface=vlan-iot   address=<R64_56>10::1/64 advertise=yes comment="IOT GUA"
+add interface=vlan-iot   address=<ULA_PREFIX>:10::1/64 advertise=yes comment="IOT ULA"
+add interface=vlan-guest address=<R64_56>20::1/64 advertise=yes comment="GUEST GUA"
+add interface=vlan-guest address=<ULA_PREFIX>:20::1/64 advertise=yes comment="GUEST ULA"
+
+/ipv6/nd
+set [find interface=bridge]     ra-interval=10s-30s advertise-dns=self
+set [find interface=vlan-iot]   ra-interval=10s-30s advertise-dns=self
+set [find interface=vlan-guest] ra-interval=10s-30s advertise-dns=self
+```
+
+<Rationale>
+`ra-interval=10s-30s` is short on purpose. It is the only knob bounding how
+fast section&nbsp;7's fail-to-IPv4 reaches clients: when Route64 drops, the
+Router-Lifetime-0 advertisement only takes effect on the next scheduled RA.
+Thirty seconds is the floor for that, three&nbsp;minutes of extra multicast
+is the cost; `10s-30s` is the balance. The ULA is advertised as the DNS
+server because it is on-link for clients and survives a Route64 outage even
+when the global prefix does not.
+</Rationale>
+
+## 6. Default route — single uplink
+There is no second IPv6 path, so the Route64 default is just the default. It
+carries a comment because section&nbsp;7's netwatch enables and disables it
+by that token.
+
+```bash title="MikroTik — Route64 default route"
+/ipv6/route add dst-address=::/0 gateway=<R64_LINK>::1%wg-route64 \
+    distance=1 comment=r64def
+```
+
+## 7. Fast fail-to-IPv4
+netwatch pings the tunnel gateway — reachable only through `wg-route64`, so
+it tracks Route64's own health. On failure it disables the default route
+**and** sets `ra-lifetime=0` on every GUA-bearing VLAN. A Router Lifetime of
+zero tells hosts "I am not a default router": they purge the IPv6 default and
+Happy&nbsp;Eyeballs to IPv4 within one RA interval. On recovery it restores
+the route and a normal `ra-lifetime`. Comments are single tokens.
+
+```bash title="MikroTik — netwatch arms/disarms the IPv6 uplink"
+/tool/netwatch add name=r64health type=icmp host=<R64_LINK>::1 \
+    interval=5s timeout=2s comment=r64health \
+    up-script="/ipv6/route enable [find comment=r64def]; /ipv6/nd set [find interface=bridge] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=30m; :log info route64-up" \
+    down-script="/ipv6/route disable [find comment=r64def]; /ipv6/nd set [find interface=bridge] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=0s; :log info route64-down-failedtoIPv4"
+```
+
+<Rationale>
+Verified on a live build: both transitions fire and `ra-lifetime=0s` is
+accepted (RouterOS renders it as `none`). End-to-end the failover is
+≈&nbsp;netwatch detection (~8&nbsp;s at `interval=5s timeout=2s`) plus one RA
+(≤&nbsp;30&nbsp;s) ≈&nbsp;~38&nbsp;s to clean IPv4, symmetric on recovery.
+This withdraws the router as a default router for *all* IPv6, so
+router-forwarded inter-VLAN IPv6 also pauses during the outage — by design,
+it falls to IPv4 with everything else. Same-VLAN IPv6 and the ULA resolver
+are on-link and keep working throughout.
+</Rationale>
+
+## 8. IPv6 firewall and anti-spoofing
+Mirror the IPv4 isolation in IPv6, then drop traffic whose source prefix does
+not belong on the ingress VLAN. SLAAC makes prefix forgery trivially cheap;
+the address-list filters make it not work. Substitute the same VLAN policy
+you already run on IPv4.
+
+```bash title="MikroTik — IPv6 isolation + anti-spoof"
+/ipv6/firewall/filter
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=53 comment="IOT: DNSv6"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=53 comment="GUEST: DNSv6"
+
+add chain=forward action=drop in-interface=vlan-iot   out-interface=bridge   connection-state=new comment="IOT !-> LAN (v6)"
+add chain=forward action=drop in-interface=vlan-guest out-interface=bridge   connection-state=new comment="GUEST !-> LAN (v6)"
+add chain=forward action=drop in-interface=vlan-guest out-interface=vlan-iot connection-state=new comment="GUEST !-> IOT (v6)"
+
+/ipv6/firewall/address-list
+add list=lan-legit   address=<R64_56>01::/64
+add list=lan-legit   address=<ULA_PREFIX>:1::/64
+add list=lan-legit   address=fe80::/10
+add list=iot-legit   address=<R64_56>10::/64
+add list=iot-legit   address=<ULA_PREFIX>:10::/64
+add list=iot-legit   address=fe80::/10
+add list=guest-legit address=<R64_56>20::/64
+add list=guest-legit address=<ULA_PREFIX>:20::/64
+add list=guest-legit address=fe80::/10
+
+/ipv6/firewall/filter
+add chain=forward action=drop in-interface=bridge     src-address-list=!lan-legit   comment="LAN: anti-spoof"
+add chain=forward action=drop in-interface=vlan-iot   src-address-list=!iot-legit   comment="IOT: anti-spoof"
+add chain=forward action=drop in-interface=vlan-guest src-address-list=!guest-legit comment="GUEST: anti-spoof"
+```
+
+## 9. DynDNS hygiene (optional)
+Not required — the tunnel survives a wrong pin on both established and cold
+handshakes. Kept only to keep the portal accurate, on a 15-minute scheduler
+(Route64 rate-limits endpoint *changes* to one per 10&nbsp;min; `nochg` is
+unmetered, so 15&nbsp;min never trips it). `start-time=startup` corrects a
+stale pin after a reboot.
+
+```bash title="MikroTik — Route64 DynDNS scheduler"
+/system/script add name=route64-ddns source=":do { :local r [/tool fetch url=\"https://manager.route64.org/nic/update?hostname=<R64_TUNNEL_ID>\" user=\"<R64_USER>\" password=\"<R64_APIKEY>\" mode=https output=user as-value]; :log info (\"route64-ddns: \" . (\$r->\"data\")); } on-error={ :log warning \"route64-ddns: fetch error\"; }"
+/system/scheduler add name=route64-ddns start-time=startup interval=15m \
+    on-event="/system/script/run route64-ddns"
+```
+
+## 10. Verification
+```bash title="End-to-end checks"
+# Tunnel handshake is recent and bytes are moving
+/interface/wireguard/peers print where interface=wg-route64
+
+# Egress from a real LAN GUA (NOT the tunnel link) — proves native routing
+/ping 2606:4700:4700::1111 src-address=<R64_56>01::1 count=4
+/ping 2001:4860:4860::8888 src-address=<R64_56>10::1 count=3
+
+# Single default, via Route64
+/ipv6/route print where dst-address=::/0
+
+# netwatch health + the fail/recover log trail
+/tool/netwatch print where comment=r64health
+/log/print where message~"route64-(up|down)"
+```
+
+A client test that survives reboots: from a LAN host, `curl -6 https://ifconfig.co`
+returns an address inside your `<R64_56>` /56, and pulling the WireGuard
+peer's endpoint (or briefly disabling `wg-route64`) drops the host to IPv4
+within ~40&nbsp;s with no manual action.
+
+## 11. Caveats
+- **Single uplink.** A Route64 outage is a full IPv6 outage; the network
+  fails fast to IPv4 by design.
+- **No inbound services on the GUA.** Reachability depends on Route64's PoP
+  and ToS; treat the prefix as egress-grade. Anything you must reach from
+  outside belongs behind something you operate.
+- **ULA addressing survives an outage; routed IPv6 does not.** Hosts keep
+  their `<ULA_PREFIX>` addresses and same-VLAN/​on-link IPv6 (including the
+  ULA DNS resolver) through a Route64 outage.
+- **/56, not /48.** 256 /64s — ample for a home's VLANs. A /48's 65k only
+  matters if you sub-delegate at scale, which a home LAN does not.
+- **Free broker.** No SLA, no portal 2FA at time of writing, and use is
+  governed by Route64's [terms of service](https://route64.org/en/tos).
+  Acceptable for a home LAN's egress IPv6; weigh it for anything you care
+  about.
+
+## References
+- [Route64 tunnel broker](https://route64.org/) · [terms of service](https://route64.org/en/tos)
+- [CGNAT build log — VLANs, controller, VPS-routed /48, DoH](/mikrotik-home-network/)
+- [RFC&nbsp;8305 — Happy Eyeballs v2](https://datatracker.ietf.org/doc/html/rfc8305) (why a host drops to IPv4 once the v6 default is gone)
+- [RFC&nbsp;4861&nbsp;§6.2.5 — Router Lifetime 0](https://datatracker.ietf.org/doc/html/rfc4861#section-6.2.5) (a router advertising itself as non-default)

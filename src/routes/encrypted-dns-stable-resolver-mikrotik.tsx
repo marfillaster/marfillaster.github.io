@@ -1,19 +1,21 @@
 import { MDXProvider } from "@mdx-js/react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/post.mdx";
+import Post from "../content/encrypted-dns-stable-resolver-mikrotik.mdx";
 import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
-const title = "Home network on residential CGNAT — RB5009 build log";
+const title =
+  "Encrypted DNS with a stable resolver address on RouterOS — no VLANs, no IPv6 uplink";
 const description =
-  "Build log for a usable home network behind residential CGNAT: VLAN segmentation, routed IPv6 over WireGuard with a $3/mo VPS, and DNS-over-HTTPS with ULA RDNSS. Reproducible, paste-ready snippets for MikroTik RB5009.";
-const url = "https://marfillaster.github.io/mikrotik-home-network/";
-const ogImage = "https://marfillaster.github.io/mikrotik-home-network/og.png";
+  "Make a MikroTik RouterOS v7 box resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA advertised via RA RDNSS. No VLAN segmentation and no IPv6 uplink required; works on a flat IPv4-only LAN. Paste-ready RouterOS v7 snippets.";
+const url =
+  "https://marfillaster.github.io/encrypted-dns-stable-resolver-mikrotik/";
+const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
-const datePublished = "2026-05-15";
-const dateModified = "2026-05-15";
+const datePublished = "2026-05-17";
+const dateModified = "2026-05-17";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -36,15 +38,15 @@ const structuredData = {
     url: "https://github.com/marfillaster",
   },
   keywords: [
-    "MikroTik RB5009",
-    "UniFi 6",
-    "Converge ICT",
-    "CGNAT",
-    "WireGuard",
-    "IPv6",
+    "DoH",
     "DNS over HTTPS",
-    "BGP",
-    "BFD",
+    "RA RDNSS",
+    "ULA",
+    "RFC 4193",
+    "RFC 8106",
+    "MikroTik RB5009",
+    "RouterOS v7",
+    "encrypted DNS",
     "home network",
   ],
 };
@@ -62,8 +64,7 @@ export const meta: MetaFunction = () => [
   { property: "og:image:height", content: "630" },
   {
     property: "og:image:alt",
-    content:
-      "RB5009 home network build log — diagram showing VPS, WireGuard tunnel, RB5009, APs, and VLANs",
+    content: "marfillaster · notes — Home · Network · Solar · EV",
   },
   { property: "og:site_name", content: "marfillaster · notes" },
   { property: "article:published_time", content: datePublished },
@@ -82,33 +83,34 @@ export const meta: MetaFunction = () => [
 const navItems = [
   ["#abstract", "Abstract"],
   ["#design-decisions", "Design"],
-  ["#1-topology-and-address-plan", "Topology"],
+  ["#1-what-you-need-first", "Prereqs"],
   ["#2-conventions-and-placeholders", "Conventions"],
-  ["#3-lan-segmentation-comes-first", "VLANs"],
-  ["#4-ipv6-over-wireguard-via-a-routed-48", "IPv6"],
-  ["#5-encrypted-dns-with-stable-resolver-addresses", "DNS"],
-  ["#6-end-to-end-verification", "Verify"],
-  ["#a-appendix-a--sub-second-ipv6-failover-bgp--bfd", "Appendix"],
-  ["#glossary", "Glossary"],
+  ["#3-encrypted-upstream--doh-with-bootstrap-pins", "DoH"],
+  ["#4-a-ula-on-the-lan--the-stable-resolver-address", "LAN ULA"],
+  ["#5-advertise-the-resolver--ra-rdnss", "RA RDNSS"],
+  ["#6-stop-handing-out-a-dhcpv4-resolver", "dns-none"],
+  ["#7-verification", "Verify"],
+  ["#references", "References"],
 ] as const;
 
-export default function MikrotikHomeNetwork() {
+export default function EncryptedDnsStableResolver() {
   return (
     <SiteShell>
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Build log · MikroTik RB5009 · Converge fiber, PH
+            Build log · MikroTik RB5009 · DoH + stable RDNSS
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Building a usable home network behind residential CGNAT
+            Encrypted DNS with a stable resolver address on RouterOS
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            VLANs, routed IPv6 over WireGuard, and encrypted DNS. Each section
-            stands alone; pick the parts that match your situation.
+            Cloudflare DoH upstream and a resolver address clients never have
+            to relearn — a locally assigned ULA over RA RDNSS. No VLANs, no
+            IPv6 uplink. The DNS companion to the CGNAT build log.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            <time dateTime={datePublished}>Published 15 May 2026</time>
+            <time dateTime={datePublished}>Published 17 May 2026</time>
           </p>
         </article>
 

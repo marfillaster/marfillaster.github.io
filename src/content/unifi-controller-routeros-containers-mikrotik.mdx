@@ -1,0 +1,211 @@
+## Abstract
+This is a companion to the [CGNAT build log](/mikrotik-home-network/). That
+post builds a segmented home LAN on a single MikroTik RB5009. This one runs
+the **UniFi Network Application and its MongoDB on the router itself**, as two
+RouterOS containers — so there is no second always-on box and no second attack
+surface to manage two UniFi 6 APs.
+
+The controller runs as two containers — MongoDB and the UniFi Network
+Application — bridged onto the main LAN through veth interfaces. From the LAN
+they look like ordinary hosts; from the router they are services with hard
+memory limits. Two constraints are load-bearing and explain almost every odd
+line below: the RB5009 has **1&nbsp;GB of RAM**, and its Cortex-A72 is
+**ARMv8.0-A**, which the current ARM64 MongoDB builds do not run on.
+
+Every numbered section is paste-ready against a RouterOS&nbsp;v7 box that
+already has the LAN segmentation from the companion post. The italic notes are
+the rationale — the trade-off being made and why.
+
+## Design decisions
+
+**On the router, not a Pi or the cloud.** One always-on device is enough.
+Running the controller on the edge router avoids a second box and a second
+attack surface; the cost is paid in memory pressure and is bounded by the
+caps in section&nbsp;6.
+
+**External Mongo, pinned to 4.4.18.** UniFi's LinuxServer image expects an
+external MongoDB. Newer ARM64 Mongo builds require ARMv8.2-A atomics that the
+RB5009 Cortex-A72 (ARMv8.0-A) does not have; they exit immediately with
+`SIGILL`. `arm64v8/mongo:4.4.18` is the last build that runs. It is EOL, so
+it stays LAN-only and never gets a WAN forward.
+
+**Swap and explicit memory caps.** With 1&nbsp;GB of RAM, an uncapped Mongo
+WiredTiger cache or UniFi Java heap plus a backup-restore burst can knock
+routing off the air. A USB swap file and explicit limits make the controller
+a bounded tenant rather than a noisy neighbour.
+
+## 1. What you need first
+This post starts where the segmentation post ends. You should already have:
+the `bridge` with VLAN filtering enabled, the main LAN on VLAN&nbsp;1
+(`192.168.88.0/24`, router at `192.168.88.1`), and the two UniFi 6 APs cabled
+to trunk ports. If you do not, build
+[section&nbsp;3 of the CGNAT post](/mikrotik-home-network/#3-lan-segmentation-comes-first)
+first. You also need a dedicated **64&nbsp;GB USB stick** for container
+storage and swap — its contents will be destroyed.
+
+## 2. Conventions and placeholders
+Substitute every `<PLACEHOLDER>` before pasting. Snippets assume the defconf
+bridge name `bridge`, the router at `192.168.88.1`, and place the containers
+at `192.168.88.2` (Mongo) and `192.168.88.3` (UniFi) on VLAN&nbsp;1.
+
+| Placeholder          | Meaning                                                                       |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `<MONGO_ROOT_PASS>`  | MongoDB root password (set on first init; keep it).                           |
+| `<MONGO_UNIFI_PASS>` | Password for the `unifi` Mongo user the application logs in with.             |
+| `<TZ>`               | IANA tz database name for the controller container, e.g. `Asia/Manila`.       |
+
+## 3. USB layout: swap and ext4 data
+```ascii
+/dev/usb1 (64 GB USB stick)
+├── part1   8 GiB  raw       → swap (smb-sharing=no, media-sharing=no, swap=yes)
+└── part2  ~56 GiB ext4      → /usb1-part2
+                              ├── images/         container image layers
+                              ├── tmp/            container tmpdir
+                              ├── unifi-config/   UniFi /config
+                              ├── mongo-data/     Mongo /data/db
+                              ├── mongo-config/   Mongo /data/configdb
+                              └── mongo-initdb/   Mongo init scripts (read-only)
+```
+
+The sequence below is destructive to the USB stick. Confirm it is expendable
+and run from a path that survives bridge and container changes.
+
+```bash title="USB swap + container storage"
+/container/config/set layer-dir="" tmpdir=""
+
+:foreach p in=[/disk/find slot~"usb1-part"] do={/disk/remove $p}
+/disk/add parent=usb1 type=partition partition-size=8589934592
+/disk/add parent=usb1 type=partition
+/disk/format numbers=usb1-part2 file-system=ext4
+
+/disk/set [find slot="usb1-part1"] smb-sharing=no media-sharing=no
+/disk/set [find slot="usb1-part1"] swap=yes
+
+/file/add type=directory name="usb1-part2/images"
+/file/add type=directory name="usb1-part2/tmp"
+/file/add type=directory name="usb1-part2/unifi-config"
+/file/add type=directory name="usb1-part2/mongo-data"
+/file/add type=directory name="usb1-part2/mongo-config"
+/file/add type=directory name="usb1-part2/mongo-initdb"
+
+/container/config/set layer-dir=/usb1-part2/images tmpdir=/usb1-part2/tmp
+```
+
+## 4. Container veths on VLAN 1
+Static veths make the containers ordinary LAN hosts. With bridge VLAN
+filtering on, the VLAN-1 untagged list must be updated to include the new
+veths or they will not pass traffic.
+
+```bash title="veths on the main LAN"
+/interface/veth/add name=veth1-mongo address=192.168.88.2/24 gateway=192.168.88.1 gateway6=""
+/interface/veth/add name=veth2-unifi address=192.168.88.3/24 gateway=192.168.88.1 gateway6=""
+
+/interface/bridge/port/add bridge=bridge interface=veth1-mongo pvid=1
+/interface/bridge/port/add bridge=bridge interface=veth2-unifi pvid=1
+
+# Required when bridge vlan-filtering is enabled.
+/interface/bridge/vlan/set [find vlan-ids=1] \
+    untagged=bridge,ether2,ether3,ether4,ether5,veth1-mongo,veth2-unifi
+```
+
+## 5. Mongo bootstrap user
+UniFi's LinuxServer image expects an external Mongo. The bootstrap user needs
+ownership of `unifi`, `unifi_stat`, and `unifi_audit`, plus broader admin
+roles for backup restore — UniFi creates a transient restore DB during import.
+
+```javascript title="Mongo bootstrap user"
+db.getSiblingDB("unifi").createUser({
+  user: "unifi",
+  pwd: "<MONGO_UNIFI_PASS>",
+  roles: [
+    { role: "dbOwner",              db: "unifi" },
+    { role: "dbOwner",              db: "unifi_stat" },
+    { role: "dbOwner",              db: "unifi_audit" },
+    { role: "readWriteAnyDatabase", db: "admin" },
+    { role: "dbAdminAnyDatabase",   db: "admin" }
+  ]
+});
+```
+
+## 6. Mongo and UniFi containers
+MongoDB is pinned to `arm64v8/mongo:4.4.18`. Newer ARM64 builds require
+ARMv8.2-A atomics that the RB5009 Cortex-A72 (ARMv8.0-A) does not have; they
+crash with `SIGILL`. The pinned version is EOL, so it stays LAN-only and
+never gets a WAN forward.
+
+```bash title="Mongo + UniFi containers"
+/container/envs/add list=mongo-envs key=MONGO_INITDB_ROOT_USERNAME value=root
+/container/envs/add list=mongo-envs key=MONGO_INITDB_ROOT_PASSWORD value=<MONGO_ROOT_PASS>
+
+/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-data   dst=/data/db
+/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-config dst=/data/configdb
+/container/mounts/add list=mongo-mounts src=/usb1-part2/mongo-initdb dst=/docker-entrypoint-initdb.d read-only=yes
+
+# Mongo 4.4.18 — newer ARM64 builds need ARMv8.2-A atomics that the
+# RB5009 Cortex-A72 (ARMv8.0-A) doesn't have; they exit with SIGILL.
+/container/add remote-image=arm64v8/mongo:4.4.18 interface=veth1-mongo envlist=mongo-envs
+/container/set [find name="mongo:4.4.18"] \
+    mountlists=mongo-mounts hostname=mongo name=mongo start-on-boot=yes logging=yes dns=192.168.88.1 \
+    cmd="mongod --wiredTigerCacheSizeGB 0.25 --bind_ip_all --ipv6" tmpfs="/tmp:64M:fixed"
+
+/container/envs/add list=unifi-envs key=PUID value=1000
+/container/envs/add list=unifi-envs key=PGID value=1000
+/container/envs/add list=unifi-envs key=TZ value=<TZ>          # e.g. Asia/Manila — see tzdata(5)
+/container/envs/add list=unifi-envs key=MONGO_HOST value=192.168.88.2
+/container/envs/add list=unifi-envs key=MONGO_PORT value=27017
+/container/envs/add list=unifi-envs key=MONGO_USER value=unifi
+/container/envs/add list=unifi-envs key=MONGO_PASS value=<MONGO_UNIFI_PASS>
+/container/envs/add list=unifi-envs key=MONGO_DBNAME value=unifi
+/container/envs/add list=unifi-envs key=MONGO_AUTHSOURCE value=unifi
+/container/envs/add list=unifi-envs key=MEM_LIMIT value=384
+/container/envs/add list=unifi-envs key=MEM_STARTUP value=256
+
+/container/mounts/add list=unifi-mounts src=/usb1-part2/unifi-config dst=/config
+/container/add remote-image=lscr.io/linuxserver/unifi-network-application:latest interface=veth2-unifi envlist=unifi-envs
+/container/set [find name="unifi-network-application:latest"] \
+    mountlists=unifi-mounts hostname=unifi name=unifi start-on-boot=yes logging=yes \
+    dns=192.168.88.1 tmpfs="/tmp:128M:fixed"
+
+/container/start [find name="mongo"]
+/container/start [find name="unifi"]
+```
+
+<Rationale>
+Container mounts use `list=` on the mount object and `mountlists=` on the
+container. RouterOS rejects `mountlists=` during the initial image pull, so
+set them with `/container/set` after the add.
+</Rationale>
+
+## 7. Verification
+```bash title="Controller smoke tests"
+/disk/print where slot~"usb1-part"
+/log/print where topics~"container"
+
+nc -z -w 2 192.168.88.2 27017 && echo OK
+curl -sk https://192.168.88.3:8443/manage/account/login \
+    -o /dev/null -w "HTTP %{http_code}\n"
+```
+
+Then browse to `https://192.168.88.3:8443/`, finish the setup wizard, and
+adopt the APs. If an AP does not appear, point it at the controller with
+`set-inform http://192.168.88.3:8080/inform` from its SSH console (or set the
+controller hostname via DHCP option&nbsp;43 / a DNS `unifi` record).
+
+## 8. Notes and caveats
+- **EOL Mongo, LAN-only.** `4.4.18` receives no security updates. It is
+  reachable only from the LAN and never port-forwarded; do not expose it.
+- **Memory is the failure mode.** The caps (`wiredTigerCacheSizeGB 0.25`,
+  `MEM_LIMIT 384`) plus USB swap keep a backup-restore burst from starving
+  the routing plane. Lower them further on a busier box rather than removing
+  them.
+- **Backups create a transient DB.** UniFi spins up a temporary restore
+  database during import — that is why the bootstrap user carries
+  `*AnyDatabase` admin roles, not just `unifi` ownership.
+- **USB stick is single-point.** Container data and swap live on one stick;
+  back up `unifi-config` (UniFi's own settings → backup) and treat the stick
+  as replaceable.
+
+## References
+- [UniFi + MongoDB as RouterOS containers on the RB5009 — source gist](https://gist.github.com/marfillaster/9fa1a9571d4d93b2992977d33d99b1a9)
+- [CGNAT build log — VLANs, routed IPv6 over WireGuard, DoH](/mikrotik-home-network/)
+- [linuxserver/unifi-network-application image](https://docs.linuxserver.io/images/docker-unifi-network-application/)

@@ -24,6 +24,27 @@ export const meta: MetaFunction = () => [
 // Newest first, by publish date.
 const posts = [
   {
+    href: "/route64-ipv6-cgnat-mikrotik/",
+    eyebrow: "Build log · 2026-05",
+    title: "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT",
+    description:
+      "Add real routed IPv6 to an already-segmented IPv4-only LAN behind CGNAT with Route64's free WireGuard /56 — a native global /64 per VLAN, no VPS, fast fail-to-IPv4 on outage. RouterOS v7 for the RB5009.",
+  },
+  {
+    href: "/encrypted-dns-stable-resolver-mikrotik/",
+    eyebrow: "Build log · 2026-05",
+    title: "Encrypted DNS with a stable resolver address on RouterOS",
+    description:
+      "Resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA over RA RDNSS. No VLANs, no IPv6 uplink; works on a flat IPv4-only LAN. RouterOS v7 for the RB5009.",
+  },
+  {
+    href: "/unifi-controller-routeros-containers-mikrotik/",
+    eyebrow: "Build log · 2026-05",
+    title: "Running the UniFi controller on the router itself",
+    description:
+      "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap, the ARMv8.0-A Mongo 4.4.18 pin, veths, memory caps, verification.",
+  },
+  {
     href: "/net-metering-general-trias/",
     eyebrow: "Field log · 2026-05",
     title: "Net Metering Journey in General Trias",
@@ -35,7 +56,7 @@ const posts = [
     eyebrow: "Build log · 2026-05",
     title: "Building a usable home network behind residential CGNAT",
     description:
-      "VLANs, a UniFi controller running on the router itself, routed IPv6 over WireGuard, and encrypted DNS. Reproducible, paste-ready snippets for the MikroTik RB5009.",
+      "VLANs, routed IPv6 over WireGuard, and encrypted DNS. Reproducible, paste-ready snippets for the MikroTik RB5009.",
   },
   {
     href: "/nev-mileage/",

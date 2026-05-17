@@ -3,6 +3,15 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 export default [
   index("routes/_index.tsx"),
   route("mikrotik-home-network", "routes/mikrotik-home-network.tsx"),
+  route("route64-ipv6-cgnat-mikrotik", "routes/route64-ipv6-cgnat-mikrotik.tsx"),
+  route(
+    "unifi-controller-routeros-containers-mikrotik",
+    "routes/unifi-controller-routeros-containers-mikrotik.tsx",
+  ),
+  route(
+    "encrypted-dns-stable-resolver-mikrotik",
+    "routes/encrypted-dns-stable-resolver-mikrotik.tsx",
+  ),
   route("solar-report", "routes/solar-report.tsx"),
   route("solar-report/full-report", "routes/solar-report-full.tsx"),
   route("nev-mileage", "routes/nev-mileage.tsx"),
