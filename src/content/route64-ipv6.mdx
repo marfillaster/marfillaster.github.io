@@ -1,6 +1,6 @@
 <SeriesNav current="route64" />
 
-## Abstract
+## Overview
 This is the no-VPS companion to the [CGNAT build log](/mikrotik-home-network/).
 That build recovers IPv6 by paying a $3/month VPS to route a /48 over
 WireGuard. This one assumes you already have a working, segmented IPv4 LAN
@@ -19,26 +19,6 @@ fails fast and cleanly back to IPv4 rather than blackholing.
 Every numbered section is paste-ready against a RouterOS&nbsp;v7 box that
 already has the VLAN segmentation from the companion post. The italic notes
 are the rationale — the trade-off being made and why.
-
-## Design decisions
-
-**WireGuard, not 6in4.** The obvious free broker is Hurricane Electric, but
-its tunnel is 6in4 (IP protocol&nbsp;41) — no UDP/TCP ports for a carrier's
-NAT44 to track, so it is dropped behind CGNAT (transmits fine, nothing ever
-returns; confirmed on the live line). Route64's WireGuard is stateful
-outbound UDP: the RB5009 always initiates, the responder replies to whatever
-source sent a valid key-authenticated handshake, and the registered portal
-IPv4 is hygiene, not a dependency.
-
-**A real /64 per VLAN.** The routed /56 is 256 /64s; each VLAN gets its own
-native global prefix straight from it. Clients SLAAC a genuine Route64
-address and the broker routes it straight back — no translation, no helper
-daemon, nothing for a client to choose between.
-
-**Fail to IPv4, not blackhole.** A single uplink means a Route64 outage is a
-total IPv6 outage. The cleanest behavior then is for the router to stop being
-an IPv6 default router so hosts immediately Happy-Eyeballs to IPv4, instead
-of holding a dead default and stalling every new connection.
 
 ## 1. Topology and what you need first
 ```ascii
@@ -119,12 +99,17 @@ address is `advertise=no` — it is point-to-point, no SLAAC.
 ```
 
 <Rationale>
-`persistent-keepalive=15s` keeps the carrier's NAT mapping fresh and keeps
-Route64's learned endpoint under 15&nbsp;s old, so the tunnel roams across a
-changing CGNAT egress without re-registration. A deliberately wrong portal
-pin was tested on both an established tunnel and a fully cold handshake; both
-worked, because a WireGuard responder answers the source of any valid
-initiation regardless of the registered address.
+WireGuard, not 6in4: the obvious free broker is Hurricane Electric, but its
+6in4 tunnel (IP protocol&nbsp;41) has no UDP/TCP ports for a carrier's NAT44
+to track and is dropped behind CGNAT — it transmits fine, nothing ever
+returns, confirmed on the live line. Route64's WireGuard is stateful outbound
+UDP: the RB5009 always initiates and the responder replies to whatever source
+sent a valid key-authenticated handshake, so the registered portal IPv4 is
+hygiene, not a dependency. `persistent-keepalive=15s` then keeps the carrier's
+NAT mapping fresh and Route64's learned endpoint under 15&nbsp;s old, so the
+tunnel roams across a changing CGNAT egress without re-registration; a
+deliberately wrong portal pin was tested on both an established and a fully
+cold handshake and both worked.
 </Rationale>
 
 ## 5. Native per-VLAN IPv6 from the /56

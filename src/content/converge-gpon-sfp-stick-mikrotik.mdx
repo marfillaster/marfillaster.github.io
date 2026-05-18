@@ -1,4 +1,4 @@
-## Abstract
+## Overview
 This is the write-up of replacing my Converge-issued Skyworth GN630V ONT
 with an ODI `DFP-34X-2C2` GPON ONU SFP stick plugged directly into the
 MikroTik RB5009 SFP+ cage.
@@ -52,14 +52,9 @@ something to verify on your own service before applying it.
 | WAN handoff | VLAN 10, DHCP |
 | Fiber connector issue | Converge drop is SC/APC; my ODI stick is SC/UPC |
 
-The connector row matters. My ODI `DFP-34X-2C2` has a blue **SC/UPC** port,
-while Converge's indoor fiber uses a green **SC/APC** connector. Those are
-not the same polish. Plugging APC into UPC is a bad optical match and can
-add enough loss and reflection to keep the ONU stuck around registration.
-
-The fix I used was an **SC/APC to SC/UPC single-mode patch fiber**. Another
-cleaner option is buying the APC variant of the ODI stick, commonly listed
-as `DFP-34X-2C3`.
+The connector row matters more than anything else here — it is the trap that
+kept the stick unused for six months. Full detail, symptoms, and the fix are
+in the **Connector Mismatch** section below.
 
 ## What Actually Mattered
 The minimum working stick configuration was:
@@ -111,9 +106,10 @@ I did not observe other registration states or intermittent internet with the
 mismatched connector, so treat those as separate clues rather than symptoms
 proven by this test.
 
-Use a proper SC/APC to SC/UPC patch cord if your SFP stick is UPC. That is
-the adapter path I tested. Another possible adapter path is an SC/UPC male to
-SC/APC female adapter, but I did not test that one.
+Use a proper SC/APC to SC/UPC patch cord if your SFP stick is UPC — that is
+the adapter path I tested. A cleaner option is buying the APC variant of the
+ODI stick, commonly listed as `DFP-34X-2C3`. Another possible path is an
+SC/UPC male to SC/APC female adapter, but I did not test that one.
 
 ## Gather Values
 Log in to the original ONT first and write down only what you need. Do not
@@ -236,19 +232,10 @@ firmware, so the more useful check is the presence of `fix_speed.sh` and
 `/etc/config`, but I did not need to enable those toggles for this working
 configuration.
 
-Then apply the minimum settings:
-
-```bash title="ODI stick"
-ssh odi-sfp
-
-flash set GPON_SN <YOUR_GPON_SN>
-flash set VLAN_CFG_TYPE 0
-flash set VLAN_MANU_MODE 0
-reboot
-```
-
-The same wait applies to this reboot. Keep the ping running until
-`192.168.1.1` responds again.
+Then apply the minimum settings over SSH (`ssh odi-sfp`) — the same three
+`flash set` commands from **What Actually Mattered** above (`GPON_SN`,
+`VLAN_CFG_TYPE 0`, `VLAN_MANU_MODE 0`, then `reboot`). The same wait applies
+to this reboot. Keep the ping running until `192.168.1.1` responds again.
 
 Verify after reboot:
 

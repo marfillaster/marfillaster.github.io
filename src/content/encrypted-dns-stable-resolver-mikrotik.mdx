@@ -1,6 +1,6 @@
 <SeriesNav current="dns" />
 
-## Abstract
+## Overview
 This is a small, self-contained companion to the
 [CGNAT build log](/mikrotik-home-network/). It does one thing: make a
 RouterOS&nbsp;v7 box resolve **upstream over encrypted DNS** while handing
@@ -18,38 +18,6 @@ real IPv6 shows up.
 
 Every numbered section is paste-ready against a defconf RouterOS&nbsp;v7 box.
 The italic notes are the rationale — the trade-off being made and why.
-
-## Design decisions
-
-**DoH, not DoT or plain 53.** DNS-over-HTTPS is indistinguishable from any
-other HTTPS flow on port&nbsp;443: no dedicated port for a carrier's NAT44 or
-a captive middlebox to single out, and it traverses residential CGNAT with no
-special handling. DoT (853) and plain 53 are both trivially blockable and
-observable; the point here is that resolution leaves the house sealed.
-
-**Bootstrap pins are A-only.** DoH cannot resolve its own resolver hostname,
-so `cloudflare-dns.com` is pinned statically. Those pins are IPv4-only on
-purpose: the path that is reliably up at boot is IPv4 (the IPv6 path, if any,
-comes up later and may not exist at all). Pinning AAAA would push the very
-first query onto a path that is half-warm or absent. Once DoH is up, ordinary
-client queries still resolve and use AAAA normally.
-
-**Resolver identity lives on a ULA.** The address clients memorize as "my DNS
-server" must not move. A GUA derived from an ISP delegation churns on every
-prefix change; a ULA is locally assigned and stable for the life of the
-network. Putting the resolver on `fd00::/8` means SLAAC prefix churn — or the
-complete absence of global IPv6 — never changes the server the OS has cached.
-
-**`advertise-dns=self`, not a literal address.** The router advertises
-whatever address it currently holds on the interface rather than a hardcoded
-one. The RDNSS can then never point at a stale or wrong address, and it
-survives a renumber with nothing to keep in sync.
-
-**No DHCPv4 resolver anywhere.** Every scope is set `dns-none=yes` so DNS is
-uniformly the ND RDNSS. The trade-off is explicit: a client with no
-RFC&nbsp;8106 RDNSS support gets no DNS at all. That is acceptable when the
-LAN carries a ULA and the device population supports it, but it makes IPv6 a
-hard dependency for name resolution — so this is a choice, not a default.
 
 ## 1. What you need first
 A RouterOS&nbsp;v7 box with a working WAN and a LAN interface clients sit on.
@@ -84,8 +52,12 @@ Cloudflare DoH. The static records pin `cloudflare-dns.com` so the very first
 query has somewhere to go before DoH itself can resolve anything.
 
 <Rationale>
-Endpoints stay simple — they keep using a local resolver and never speak DoH
-themselves. All the encryption is one hop upstream, on the router.
+DoH, not DoT or plain 53: DNS-over-HTTPS is indistinguishable from any other
+port-443 HTTPS flow, so no carrier NAT44 or captive middlebox can single it
+out and it traverses residential CGNAT with no special handling — DoT (853)
+and plain 53 are both trivially blockable and observable. Endpoints stay
+simple: they keep a local resolver and never speak DoH themselves; all the
+encryption is one hop upstream, on the router.
 </Rationale>
 
 ```bash title="DoH resolver + bootstrap pins"

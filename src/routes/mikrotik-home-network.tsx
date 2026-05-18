@@ -80,7 +80,7 @@ export const meta: MetaFunction = () => [
 ];
 
 const navItems = [
-  ["#abstract", "Abstract"],
+  ["#overview", "Overview"],
   ["#design-decisions", "Design"],
   ["#1-topology-and-address-plan", "Topology"],
   ["#2-conventions-and-placeholders", "Conventions"],

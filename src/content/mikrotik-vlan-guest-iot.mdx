@@ -1,6 +1,6 @@
 <SeriesNav current="vlan" />
 
-## Abstract
+## Overview
 This is the first-layer companion to the
 [CGNAT build log](/mikrotik-home-network/): split a flat home LAN into a
 trusted main network, an IoT VLAN, and a Guest VLAN on a single MikroTik
@@ -15,26 +15,6 @@ looks like.
 
 Every numbered section is paste-ready against a defconf RouterOS&nbsp;v7
 box. The italic notes are the rationale — the trade-off being made and why.
-
-## Design decisions
-
-**Hybrid trunks, not a tagged management VLAN.** The AP uplink ports carry
-the main LAN *untagged* and only the client SSIDs tagged. APs boot and adopt
-on the main LAN with zero VLAN config on the AP side; only client traffic is
-tagged. The cost is that the trunk ports are genuinely hybrid (untagged +
-tagged on the same wire) and have to be documented as such — which the bridge
-VLAN table does.
-
-**Isolation in `forward`, services in `input`.** East-west isolation is one
-job (the `forward` chain dropping new flows back into trusted networks) and
-"let this VLAN reach the router's DHCP/DNS" is a different job (`input`
-accepts). Keeping them in separate chains is what keeps the ruleset
-reviewable a year later; starving a VLAN of DHCP to "isolate" it is the
-anti-pattern.
-
-**A separate L3 boundary per VLAN.** Each VLAN terminates on its own gateway
-address on the router, so inter-VLAN traffic is routed and filterable rather
-than bridged. This is what makes the Guest-can't-reach-IoT rule a one-liner.
 
 ## 1. Topology and address plan
 ```ascii
@@ -116,9 +96,13 @@ add bridge=bridge vlan-ids=20 tagged=bridge,ether2,ether3                comment
 
 <Rationale>
 Main LAN stays VLAN&nbsp;1 untagged so AP adoption and existing wired devices
-stay boring. Only IoT and Guest are tagged, and they share the same uplinks
-to the APs — the hybrid-trunk trade-off from the design notes, made concrete
-in the bridge VLAN table above.
+stay boring; only IoT and Guest are tagged, sharing the same uplinks to the
+APs. That makes the trunk ports genuinely hybrid (untagged + tagged on one
+wire) — the cost being that they must be documented as such, which the bridge
+VLAN table above does. APs boot and adopt on the main LAN with zero AP-side
+VLAN config. Each VLAN also terminates on its own gateway, so inter-VLAN
+traffic is routed and filterable rather than bridged — that is what makes the
+Guest-can't-reach-IoT rule a one-liner.
 </Rationale>
 
 ## 4. DHCP scopes

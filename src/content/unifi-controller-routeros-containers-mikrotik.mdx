@@ -1,6 +1,6 @@
 <SeriesNav current="unifi" />
 
-## Abstract
+## Overview
 This is a companion to the [CGNAT build log](/mikrotik-home-network/). That
 post builds a segmented home LAN on a single MikroTik RB5009. This one runs
 the **UniFi Network Application and its MongoDB on the router itself**, as two
@@ -17,24 +17,6 @@ line below: the RB5009 has **1&nbsp;GB of RAM**, and its Cortex-A72 is
 Every numbered section is paste-ready against a RouterOS&nbsp;v7 box that
 already has the LAN segmentation from the companion post. The italic notes are
 the rationale — the trade-off being made and why.
-
-## Design decisions
-
-**On the router, not a Pi or the cloud.** One always-on device is enough.
-Running the controller on the edge router avoids a second box and a second
-attack surface; the cost is paid in memory pressure and is bounded by the
-caps in section&nbsp;6.
-
-**External Mongo, pinned to 4.4.18.** UniFi's LinuxServer image expects an
-external MongoDB. Newer ARM64 Mongo builds require ARMv8.2-A atomics that the
-RB5009 Cortex-A72 (ARMv8.0-A) does not have; they exit immediately with
-`SIGILL`. `arm64v8/mongo:4.4.18` is the last build that runs. It is EOL, so
-it stays LAN-only and never gets a WAN forward.
-
-**Swap and explicit memory caps.** With 1&nbsp;GB of RAM, an uncapped Mongo
-WiredTiger cache or UniFi Java heap plus a backup-restore burst can knock
-routing off the air. A USB swap file and explicit limits make the controller
-a bounded tenant rather than a noisy neighbour.
 
 ## 1. What you need first
 This post starts where the segmentation post ends. You should already have:
