@@ -301,6 +301,158 @@ If the stick says O5 but RouterOS DHCP stays `searching`, look at VLAN
 handling first. In my testing, O5 with no DHCP was caused by the stick not
 passing VLAN 10 transparently.
 
+## Telemetry & Health Monitoring
+The thing that surprised me most after the swap: this stick exposes no
+telemetry to RouterOS at all.
+
+- **No SNMP on the stick.** Stock `V1.0-220923` ships no `snmpd`, no SNMP
+  binary, nothing on UDP 161. The `SNMP_SYS_NAME` flash key is dead Realtek-SDK
+  vestige — there is no daemon to enable.
+- **No SFP DDM via RouterOS.** SFF-8472 byte 92 (diagnostic monitoring type)
+  reads `0x00`: the module declares no diagnostics. `/interface ethernet
+  monitor sfp-sfpplus1` returns only the static EEPROM ID (vendor, part,
+  wavelength) and reports Tx power as `-inf`, which is false. Do not trust
+  that path for anything.
+
+So there is no router-side way to see Rx/Tx power, temperature, or — more
+importantly — GPON ONU state. RouterOS only knows the SFP link is up.
+
+The data is all there, though. It is just on the stick, reachable read-only
+over SSH with no firmware change:
+
+```bash title="ODI stick - DDM-equivalent telemetry, read-only"
+diag pon get transceiver temperature    # module °C
+diag pon get transceiver rx-power       # downstream Rx dBm
+diag pon get transceiver tx-power       # upstream Tx dBm
+diag pon get transceiver voltage        # supply V
+diag pon get transceiver bias-current   # laser bias mA
+diag gpon get onu-state                 # O1-O7 — the signal RouterOS can't see
+```
+
+These return clean human-readable floats — no SFF decode needed — and include
+temperature, voltage, and bias, which OMCI does not carry. `omcicli mib get
+263` (ANI-G `OpticalSignalLevel`/`TranOpticLevel`, signed int16, `dBm =
+value/500`) is a useful secondary cross-check but nothing more.
+
+Live sample from my line, 2026-05-19:
+
+```text
+temperature  54.9 C
+Rx Power     -21.49 dBm
+Tx Power     ~2.0 dBm
+Voltage      3.22 V
+Bias Current ~20.6 mA
+ONU state    Operation State(O5)
+```
+
+The OMCI ANI-G decode (`0xd609` → −21.5 dBm) matched the `diag` Rx within
+dither, which is what confirmed the SFP-DDM `-inf` Tx reading is an artifact,
+not reality.
+
+### The RB5009 is the poller
+The stick runs Dropbear 0.48 in inetd mode, advertising only the `password`
+auth method. Server pubkey auth is not compiled in — `~/.ssh/authorized_keys`
+is silently ignored, so key-based schemes are a dead end here. But RouterOS's
+`/system ssh-exec` accepts a `password=` parameter and negotiates the stick's
+legacy crypto fine, so the RB5009 polls the stick itself. No extra host, no
+sidecar, no metrics stack.
+
+The requirement was alerting plus a recent on-disk trail, not trend graphs, so
+the implementation is a `/system scheduler` running every 60s. One chained
+`ssh-exec` opens a single SSH session, runs `onu-state` plus all five
+transceiver metrics, and the script parses the output into exactly one log
+line per poll:
+
+```text
+GPON OK | state=Operation State(O5) temp=54.9 rx=-21.49 tx=2.16 v=3.21 bias=20.5
+```
+
+`:log info` while healthy (O5), `:log error` while not O5 / empty response /
+stick unreachable. Both carry the metric snapshot, so the Rx-degradation trail
+that precedes an APC/UPC outage is in the log either way.
+
+Logging goes to the USB disk, not router NAND — one rotating file capped at
+1440 lines (≈24h of polls). RouterOS logging rules filter by message regex
+(not just topic), so `regex="GPON"` keeps the file GPON-only even though other
+scripts log under the same `topics=script`.
+
+The full watcher, verified on-device 2026-05-19:
+
+```bash title="gpon-health-check.rsc"
+/system logging action
+add name=gponusb target=disk disk-file-name="usb1-part2/gpon" \
+  disk-lines-per-file=1440 disk-file-count=1 disk-stop-on-full=no
+
+/system logging
+add topics=script regex="GPON" action=gponusb
+
+/system script
+add name=gpon-health-check policy=read,write,test,password,sensitive source={
+  :local host "192.168.1.1"
+  :local usr "admin"
+  :local pwd "<STICK_ADMIN_PASSWORD>"
+  :local cmd "diag gpon get onu-state; diag pon get transceiver temperature; diag pon get transceiver rx-power; diag pon get transceiver tx-power; diag pon get transceiver voltage; diag pon get transceiver bias-current"
+  :local getv do={
+    :local s $1
+    :local k $2
+    :local e $3
+    :local p [:find $s $k]
+    :if ([:typeof $p] = "nil") do={ :return "?" }
+    :local r [:pick $s ($p + [:len $k]) [:len $s]]
+    :local q [:find $r $e]
+    :if ([:typeof $q] = "nil") do={ :return $r }
+    :return [:pick $r 0 $q]
+  }
+  :do {
+    :local res [/system ssh-exec address=$host user=$usr password=$pwd \
+      command=$cmd as-value]
+    :local out ($res->"output")
+    :if ([:len $out] = 0) do={
+      :log error ("GPON UNHEALTHY | empty response from stick " . $host)
+    } else={
+      :local state ([$getv $out "ONU state: " ")"] . ")")
+      :local temp  [$getv $out "Temperature: " " C"]
+      :local rx    [$getv $out "Rx Power: " "  dBm"]
+      :local tx    [$getv $out "Tx Power: " "  dBm"]
+      :local volt  [$getv $out "Voltage: " " V"]
+      :local bias  [$getv $out "Bias Current: " " mA"]
+      :local line ("state=" . $state . " temp=" . $temp . " rx=" . $rx . \
+        " tx=" . $tx . " v=" . $volt . " bias=" . $bias)
+      :if ([:typeof [:find $out "(O5)"]] = "nil") do={
+        :log error ("GPON UNHEALTHY | " . $line)
+      } else={
+        :log info ("GPON OK | " . $line)
+      }
+    }
+  } on-error={
+    :log error ("GPON UNHEALTHY | SSH poll failed, stick " . $host . " unreachable")
+  }
+}
+
+/system scheduler
+add name=gpon-health-check interval=60s start-time=startup \
+  on-event=gpon-health-check \
+  policy=read,write,test,password,sensitive \
+  comment="Poll ODI GPON stick; 1-line onu-state+metrics to USB every 60s"
+```
+
+Caveats worth stating plainly:
+
+- The stick's admin password sits in clear text in the script. RouterOS has no
+  secret store for `ssh-exec`; the mitigation is that router config is
+  admin-only.
+- A multi-line `source={}` block cannot be pasted over a non-interactive SSH
+  session — the console parses it line-by-line and mangles the braces. SCP the
+  `.rsc` and `/import` it.
+- Temperature, Vcc, and bias have no other safe path. The only lower-level
+  source is the BOSA I²C, and probing that on a live PON is exactly the kind of
+  thing the TX-calibration safety rule warns against. Don't.
+- If trend graphs are ever wanted instead, the same `diag pon get transceiver`
+  data feeds a turnkey Prometheus exporter
+  ([Strykar/GPON](https://github.com/Strykar/GPON): exporter + systemd +
+  Grafana) on a Linux host with `sshpass`. RouterOS SNMP cannot republish
+  these — fixed MIBs only, no custom OID or `extend`.
+
 ## Command Reference
 Useful stick commands:
 

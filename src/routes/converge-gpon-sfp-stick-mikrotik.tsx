@@ -15,7 +15,7 @@ const url =
 const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
-const dateModified = "2026-05-17";
+const dateModified = "2026-05-19";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -91,6 +91,7 @@ const navItems = [
   ["#routeros", "RouterOS"],
   ["#swap-the-ont", "Swap"],
   ["#verify", "Verify"],
+  ["#telemetry--health-monitoring", "Telemetry"],
   ["#command-reference", "Commands"],
   ["#references", "References"],
 ] as const;
