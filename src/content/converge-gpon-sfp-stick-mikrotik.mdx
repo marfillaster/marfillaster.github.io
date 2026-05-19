@@ -138,15 +138,12 @@ password. On RouterOS, prepare the SFP+ port and give the SFP interface a
 static address in the same `192.168.1.0/24` network first:
 
 ```bash title="RouterOS - reach the SFP stick"
-/interface ethernet set [ find default-name=sfp-sfpplus1 ] \
-    auto-negotiation=no sfp-ignore-rx-los=yes speed=2.5G-baseX
 /ip address add address=192.168.1.2/24 interface=sfp-sfpplus1
 ```
 
-In my setup, forcing 2.5G base-X and ignoring Rx LOS mattered for clean
-management and link behavior. The stick is reachable at `192.168.1.1`.
-RouterOS automatically adds the connected route for `192.168.1.0/24`, so no
-manual route is needed just to reach the management page or SSH service.
+The stick is reachable at `192.168.1.1`. RouterOS automatically adds the
+connected route for `192.168.1.0/24`, so no manual route is needed just to
+reach the management page or SSH service.
 
 The SSH server may require legacy algorithms. My local SSH config entry looks
 like this:
@@ -302,8 +299,7 @@ handling first. In my testing, O5 with no DHCP was caused by the stick not
 passing VLAN 10 transparently.
 
 ## Telemetry & Health Monitoring
-The thing that surprised me most after the swap: this stick exposes no
-telemetry to RouterOS at all.
+After the swap, this stick exposes no telemetry to RouterOS at all.
 
 - **No SNMP on the stick.** Stock `V1.0-220923` ships no `snmpd`, no SNMP
   binary, nothing on UDP 161. The `SNMP_SYS_NAME` flash key is dead Realtek-SDK
@@ -351,14 +347,13 @@ not reality.
 
 ### The RB5009 is the poller
 The stick runs Dropbear 0.48 in inetd mode, advertising only the `password`
-auth method. Server pubkey auth is not compiled in — `~/.ssh/authorized_keys`
-is silently ignored, so key-based schemes are a dead end here. But RouterOS's
-`/system ssh-exec` accepts a `password=` parameter and negotiates the stick's
-legacy crypto fine, so the RB5009 polls the stick itself. No extra host, no
+auth method. RouterOS's `/system ssh-exec` accepts a `password=` parameter and
+negotiates the stick's legacy crypto fine, so the RB5009 polls the stick
+itself. No extra host, no
 sidecar, no metrics stack.
 
 The requirement was alerting plus a recent on-disk trail, not trend graphs, so
-the implementation is a `/system scheduler` running every 60s. One chained
+the implementation is a `/system scheduler` running every 2 minutes. One chained
 `ssh-exec` opens a single SSH session, runs `onu-state` plus all five
 transceiver metrics, and the script parses the output into exactly one log
 line per poll:
@@ -372,7 +367,7 @@ stick unreachable. Both carry the metric snapshot, so the Rx-degradation trail
 that precedes an APC/UPC outage is in the log either way.
 
 Logging goes to the USB disk, not router NAND — one rotating file capped at
-1440 lines (≈24h of polls). RouterOS logging rules filter by message regex
+1440 lines (≈48h at 2-minute polls). RouterOS logging rules filter by message regex
 (not just topic), so `regex="GPON"` keeps the file GPON-only even though other
 scripts log under the same `topics=script`.
 
@@ -380,7 +375,7 @@ The full watcher, verified on-device 2026-05-19:
 
 ```bash title="gpon-health-check.rsc"
 /system logging action
-add name=gponusb target=disk disk-file-name="usb1-part2/gpon" \
+add name=gponusb target=disk disk-file-name="usb1-part2/gponweb/gpon" \
   disk-lines-per-file=1440 disk-file-count=1 disk-stop-on-full=no
 
 /system logging
@@ -430,10 +425,10 @@ add name=gpon-health-check policy=read,write,test,password,sensitive source={
 }
 
 /system scheduler
-add name=gpon-health-check interval=60s start-time=startup \
+add name=gpon-health-check interval=2m start-time=startup \
   on-event=gpon-health-check \
   policy=read,write,test,password,sensitive \
-  comment="Poll ODI GPON stick; 1-line onu-state+metrics to USB every 60s"
+  comment="Poll ODI GPON stick; 1-line onu-state+metrics to USB every 2m"
 ```
 
 Caveats worth stating plainly:
@@ -447,11 +442,125 @@ Caveats worth stating plainly:
 - Temperature, Vcc, and bias have no other safe path. The only lower-level
   source is the BOSA I²C, and probing that on a live PON is exactly the kind of
   thing the TX-calibration safety rule warns against. Don't.
-- If trend graphs are ever wanted instead, the same `diag pon get transceiver`
-  data feeds a turnkey Prometheus exporter
+- If full historical trend graphs are ever wanted, the same `diag pon get
+  transceiver` data feeds a turnkey Prometheus exporter
   ([Strykar/GPON](https://github.com/Strykar/GPON): exporter + systemd +
   Grafana) on a Linux host with `sshpass`. RouterOS SNMP cannot republish
-  these — fixed MIBs only, no custom OID or `extend`.
+  these — fixed MIBs only, no custom OID or `extend`. The next section is the
+  no-extra-host middle ground: a rolling 48h dashboard, not a metrics stack.
+
+### A dashboard on the router itself
+The log answers two questions — "is the line healthy now" and "what did Rx
+do in the hours before it died" — but `tail`-ing a 1440-line file over SSH is
+not how you want to glance at either. So the same data gets served as one page,
+from the router, with no second host: exactly the poller's philosophy applied
+to the read side.
+
+The watcher already drops one parseable line per poll to the USB disk. Mount
+that file plus a single static `index.html` read-only into a RouterOS
+container; the page fetches the `.txt` every poll and draws the Rx / Tx /
+temperature sparklines client-side. No Prometheus, no Grafana, no agent —
+~260 lines of dependency-free HTML over a file the watcher was already
+writing.
+
+The container, veth, and `mountlists` mechanics are exactly those in the
+[UniFi-controller-on-the-router post](/unifi-controller-routeros-containers-mikrotik/)
+and are not repeated here. Three things are specific to this dashboard:
+
+- **A custom dual-stack server, by design.** The public-v6 goal rules out the
+  obvious base image up front: `lipanski/docker-static-website` is busybox
+  `httpd` compiled without IPv6, so binding it only ever yields
+  `httpd: bad address '[::]:3000'` and LAN v4 at best — never the Route64 v6
+  WAN. The dashboard ships its own ~90-line stdlib-only Go static server
+  instead: dual-stack `:3000` (Linux `bindv6only=0`,
+  one socket serves both the LAN v4 and the GUA), GET/HEAD only, an
+  `.html`/`.txt` extension whitelist, explicit `open`+`io.Copy` rather than
+  `http.FileServer` (whose `/index.html` → `/` canonical redirect loops), and
+  `Cache-Control: no-store` so the per-poll log is never cached.
+- **A mounted binary can't be made executable on RouterOS** — there is no
+  `chmod`, and a bind mount carries the host's mode bits, not `0755`. The
+  server therefore has to ship *inside an image layer* (which preserves mode),
+  not via the mount. The Dockerfile is `FROM lipanski/docker-static-website`
+  (a layout RouterOS already imports cleanly) with the Go binary `COPY`-ed in
+  and the entrypoint swapped to it — the busybox base is kept only as a
+  known-good layer wrapper, none of its httpd is used.
+- **`/container/add file=` only accepts the legacy uncompressed docker-save
+  layout.** A modern Docker/OCI gzip archive is rejected at import
+  (`failed to load next entry` / `layer missing, need repull`). The artifact
+  that imported came from `docker save` run under colima with the *classic*
+  image store (`containerd-snapshotter: false`, overlay2 driver) →
+  uncompressed POSIX-tar layers plus `manifest.json`. The UniFi post sidesteps
+  this entirely with `remote-image=`; a custom image has no registry, so
+  `file=` — and this build-host quirk — is unavoidable.
+
+The on-device config — the veth carries both the LAN v4
+and the Route64 GUA, the mount is read-only, and the image is the docker-save
+tarball on the USB disk:
+
+```bash title="RB5009 - GPON dashboard container"
+/interface/veth/set [find name=veth3-gpon] \
+  address=192.168.88.4/24,2a11:6c7:3001:7601::4/64 \
+  gateway=192.168.88.1 gateway6=2a11:6c7:3001:7601::1
+
+/container/mounts/add list=gpon-mounts \
+  src=/usb1-part2/gponweb dst=/home/static read-only=yes
+
+/container/add file=usb1-part2/gponserve-image.tar interface=veth3-gpon \
+  mountlists=gpon-mounts hostname=gponv6 workdir=/home/static \
+  start-on-boot=yes logging=yes
+```
+
+The mount source `usb1-part2/gponweb` is the *same directory the watcher logs
+into*: the dashboard's `index.html` sits next to `gpon.0.txt`, and the page
+just fetches its own neighbour. Read-only, so a compromised page process
+cannot touch the trail it is displaying.
+
+#### Reaching it over public IPv6
+**Route64 delivers unsolicited inbound** — a free tunnel broker is not
+outbound-only here. One `forward` accept does it, and exactly one thing about
+it matters: it has to sit **before** the `defconf: drop everything else not
+coming from LAN` rule.
+`wg-route64` is not in the `LAN` interface-list — by design, it is a WAN — so
+that defconf drop will discard the inbound SYN unless an explicit accept for
+this one destination and port is reached first. Placed ahead of it, the
+path just works. (How the Route64 /56 itself gets onto the router is the
+[no-VPS IPv6 post](/route64-ipv6-cgnat-mikrotik/); this is just one port
+opened on it.)
+
+```bash title="RB5009 - the public-v6 accept, placed before the !LAN drop"
+/ipv6/firewall/filter/add chain=forward action=accept \
+  connection-state=new protocol=tcp \
+  in-interface=wg-route64 \
+  dst-address=2a11:6c7:3001:7601::4 dst-port=3000 \
+  comment="GPON dashboard: public v6 in" \
+  place-before=[find chain=forward \
+    comment="defconf: drop everything else not coming from LAN"]
+```
+
+From a VPS on neither this LAN nor any Route64 infrastructure, `ping6` to the
+GUA returned 3/3 and `curl -6 http://[2a11:6c7:3001:7601::4]:3000/` returned
+`HTTP 200` with the full page, and the rule's own packet counter ticked from
+zero in step with the requests. That counter stays *low* by design — a `connection-state=new`
+accept behind the conntrack established/related accept only ever counts the
+opening SYN of each flow while the 9.6 KB response rides the fast path. An
+ICMP "it pings" test never touches this rule (it hits the default ICMP
+accept); a real TCP fetch is the only thing that proves reachability, which
+is why the proof above is a `curl`, not a `ping`.
+
+Caveats, stated as plainly as the poller's:
+
+- **Plain HTTP, no auth, `<meta name="robots" content="noindex">`.** This is a
+  read-only personal dashboard on a routable address; treat the URL itself as
+  the only thing you don't publish. The hardening that *is* there is the
+  server, not transport: GET/HEAD only, extension-whitelisted, `path.Clean`
+  traversal-stripped, and living in the same read-only mount it serves so no
+  stray file is downloadable. If it needs to be private, reach it over the
+  WireGuard side or front it with an authenticating reverse proxy — do not
+  bolt TLS onto a 90-line server.
+- **The `file=` tarball is build-host-specific.** It is not the image you
+  `docker build` locally with a modern toolchain; it is the colima/classic-
+  store `docker save` output. The rebuild/deploy recipe lives in the
+  Dockerfile header comment for exactly this reason.
 
 ## Command Reference
 Useful stick commands:
