@@ -499,8 +499,8 @@ tarball on the USB disk:
 
 ```bash title="RB5009 - GPON dashboard container"
 /interface/veth/set [find name=veth3-gpon] \
-  address=192.168.88.4/24,2a11:6c7:3001:7601::4/64 \
-  gateway=192.168.88.1 gateway6=2a11:6c7:3001:7601::1
+  address=192.168.88.4/24,2001:db8:1234:1::4/64 \
+  gateway=192.168.88.1 gateway6=2001:db8:1234:1::1
 
 /container/mounts/add list=gpon-mounts \
   src=/usb1-part2/gponweb dst=/home/static read-only=yes
@@ -531,14 +531,14 @@ opened on it.)
 /ipv6/firewall/filter/add chain=forward action=accept \
   connection-state=new protocol=tcp \
   in-interface=wg-route64 \
-  dst-address=2a11:6c7:3001:7601::4 dst-port=3000 \
+  dst-address=2001:db8:1234:1::4 dst-port=3000 \
   comment="GPON dashboard: public v6 in" \
   place-before=[find chain=forward \
     comment="defconf: drop everything else not coming from LAN"]
 ```
 
 From a VPS on neither this LAN nor any Route64 infrastructure, `ping6` to the
-GUA returned 3/3 and `curl -6 http://[2a11:6c7:3001:7601::4]:3000/` returned
+GUA returned 3/3 and `curl -6 http://[2001:db8:1234:1::4]:3000/` returned
 `HTTP 200` with the full page, and the rule's own packet counter ticked from
 zero in step with the requests. That counter stays *low* by design — a `connection-state=new`
 accept behind the conntrack established/related accept only ever counts the
