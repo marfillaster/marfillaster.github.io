@@ -131,7 +131,7 @@ const SERIES: ReadonlyArray<{
     slug: "vps",
     href: "/vps-ipv6-cgnat-mikrotik/",
     title: "Routed IPv6 over CGNAT via a VPS",
-    note: "Equal path A — self-operated /48, BGP, $3/mo",
+    note: "Equal path A — self-operated /48, BGP, Ubuntu/BIRD or VyOS",
   },
   {
     slug: "route64",
@@ -149,7 +149,7 @@ const SERIES: ReadonlyArray<{
     slug: "failover",
     href: "/mikrotik-ipv6-failover-bgp-bfd/",
     title: "Fast IPv6 failover",
-    note: "Optional — VPS path only",
+    note: "Optional — VPS path only, Ubuntu/BIRD or VyOS",
   },
   {
     slug: "unifi",
@@ -366,3 +366,16 @@ export const mdxComponents = {
   Rationale,
   SeriesNav,
 };
+
+export function mdxComponentsWithHeadingPrefix(prefix: string) {
+  const prefixId = (id?: string) => (id ? `${prefix}${id}` : id);
+  return {
+    ...mdxComponents,
+    h2: ({ id, children }: { id?: string; children?: ReactNode }) => (
+      <H2 id={prefixId(id)}>{children}</H2>
+    ),
+    h3: ({ id, children }: { id?: string; children?: ReactNode }) => (
+      <H3 id={prefixId(id)}>{children}</H3>
+    ),
+  };
+}

@@ -16,7 +16,8 @@ that, and the choice between them is the load-bearing decision in this build:
 
 - **[Routed IPv6 over CGNAT via a VPS](/vps-ipv6-cgnat-mikrotik/)** — a
   $3/month VPS that routes a /48 to its instance, a WireGuard tunnel from
-  the RB5009, and eBGP between them. You operate the endpoint.
+  the RB5009, and eBGP between them. You operate the endpoint; the post
+  includes Ubuntu/BIRD and VyOS relay tabs.
 - **[Routed IPv6 over CGNAT via Route64](/route64-ipv6-cgnat-mikrotik/)** —
   the free [Route64](https://route64.org/) broker routes a /56 over
   WireGuard. Nothing to operate; a single broker-managed uplink.
@@ -162,12 +163,13 @@ peers, not primary and fallback. Pick on the trade-offs that matter to you:
 | **Recurring cost**      | $3 / mo          | Free                    |
 | **Transport**           | WireGuard / UDP  | WireGuard / UDP         |
 | **Routing primitive**   | eBGP (you control the AS) | Static default     |
+| **Relay implementation** | Ubuntu + bird2, or VyOS | Route64 PoP |
 | **SLA**                 | Yours to define  | None — best-effort (ToS §10) |
 | **Throughput**          | Your VPS plan (typically ≥1 Gbps) | "Up to 200M often more" (ToS §14) |
 | **Allowed traffic**     | Anything your firewall allows | No bittorrent/filesharing (ToS §6) |
 | **Datacenter ASN egress** | Yes — flagged by streaming apps | Yes — same flag |
 | **Inbound services on the GUA** | Practical (your firewall, your prefix) | Works, best-effort (broker PoP, no SLA) |
-| **Failover companion**  | [BGP+BFD post](/mikrotik-ipv6-failover-bgp-bfd/) layers on the BGP session | n/a — single uplink, fast fail-to-IPv4 inside the post |
+| **Failover companion**  | [BGP+BFD post](/mikrotik-ipv6-failover-bgp-bfd/) layers on the BGP session, with Ubuntu/BIRD and VyOS tabs | n/a — single uplink, fast fail-to-IPv4 inside the post |
 | **Single uplink risk**  | Mitigated by failover post | By design — fails fast to IPv4 |
 
 Everything else in this series — VLANs, DNS, per-VLAN address plan, the

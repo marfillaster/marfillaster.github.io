@@ -54,7 +54,7 @@ const sections = [
         eyebrow: "Series 4/8 · Build log · 2026-05",
         title: "Routed IPv6 over CGNAT via a VPS-routed /48",
         description:
-          "Equal path A: a $3/mo VPS that routes a /48 to its instance, WireGuard from the RB5009, eBGP between them. You operate the endpoint — prefix, return routing, and failover are yours to define.",
+          "Equal path A: a $3/mo VPS that routes a /48 to its instance, WireGuard from the RB5009, eBGP between them. Includes Ubuntu/BIRD and VyOS relay tabs.",
       },
       {
         href: "/route64-ipv6-cgnat-mikrotik/",
@@ -75,7 +75,7 @@ const sections = [
         eyebrow: "Series 7/8 · Build log · 2026-05",
         title: "Fast IPv6 failover on RouterOS",
         description:
-          "Add BFD to the existing BGP session over WireGuard — BFD down in ~700 ms, default route withdrawn in ~1.5 s. bird2 on the VPS, RouterOS v7 BGP/BFD, measured numbers. VPS path only.",
+          "Add BFD to the existing BGP session over WireGuard — fast default-route withdrawal with Ubuntu/BIRD or VyOS relay tabs. VPS path only.",
       },
       {
         href: "/unifi-controller-routeros-containers-mikrotik/",

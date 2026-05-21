@@ -1,0 +1,165 @@
+<SeriesNav current="failover" />
+
+## Overview
+This is the VyOS variant of the
+[BGP+BFD failover companion](/mikrotik-ipv6-failover-bgp-bfd/) for the
+[VPS path](/vps-ipv6-cgnat-mikrotik/). It assumes the relay VPS is already
+running VyOS with WireGuard `wg0` and an eBGP session to the RB5009.
+
+BFD does not replace BGP. It gives the existing BGP session a fast liveness
+signal, so the MikroTik withdraws the learned IPv6 default route when the
+WireGuard path is dead instead of waiting for the BGP hold timer.
+
+On the measured VyOS path, `200ms` transmit/receive with multiplier `3`
+settled at a `600ms` hold time. If no other IPv6 default route is active,
+that failure mode is what you want: IPv6 disappears quickly and clients'
+Happy Eyeballs logic can move to IPv4.
+
+## Design decisions
+
+**Use one BFD profile on VyOS and bind it to the BGP neighbor.** VyOS exposes
+BFD separately under `protocols bfd`, then references that profile under the
+BGP neighbor. This keeps timing policy reusable while still making the BGP
+session depend on BFD.
+
+**Permit BFD explicitly on both input firewalls.** BGP can appear healthy
+while BFD stays down if UDP/3784 is blocked. On the live build, VyOS needed a
+`wg0` input permit and RouterOS needed an input permit before the default
+drop rule.
+
+**Keep the IPv6 default route honest.** In the base VPS path, the MikroTik's
+IPv6 default comes from the BGP session. When BFD withdraws that route, IPv6
+should fail quickly so clients can try IPv4. Do not add a second IPv6
+default route unless you intentionally want another IPv6 uplink to catch the
+failure.
+
+## 1. Conventions and placeholders
+Use the same values from the VyOS tab of the
+[VPS post](/vps-ipv6-cgnat-mikrotik/#vyos):
+
+| Placeholder            | Meaning                                      |
+| ---------------------- | -------------------------------------------- |
+| `<LAN_PREFIX>`         | Routed `/48`, written without trailing `::`. |
+| `<MT_AS>` / `<VPS_AS>` | MikroTik and VyOS private ASNs.              |
+| `wg0`                  | VyOS WireGuard interface.                    |
+| `wg-vps`               | MikroTik WireGuard interface to the VPS.     |
+| `vyos-vps`             | MikroTik BGP connection to VyOS.             |
+
+The examples use `<LAN_PREFIX>:0::1` on VyOS and `<LAN_PREFIX>:0::2` on the
+MikroTik.
+
+## 2. VyOS — add BFD to BGP
+Create a BFD profile, bind it to the existing BGP neighbor, and permit BFD
+on `wg0`.
+
+```bash title="VyOS — BFD profile, BGP binding, and firewall"
+configure
+
+set protocols bfd profile wg-fast interval transmit 200
+set protocols bfd profile wg-fast interval receive 200
+set protocols bfd profile wg-fast interval multiplier 3
+
+set protocols bgp neighbor <LAN_PREFIX>:0::2 bfd profile wg-fast
+
+set firewall ipv6 input filter rule 30 action accept
+set firewall ipv6 input filter rule 30 inbound-interface name wg0
+set firewall ipv6 input filter rule 30 protocol udp
+set firewall ipv6 input filter rule 30 destination port 3784-3785
+set firewall ipv6 input filter rule 30 description 'BFD from RB5009'
+
+commit
+save
+```
+
+Use an unused firewall rule number if `30` is already taken. The important
+part is that UDP/3784 reaches the VyOS control plane only from `wg0`.
+
+## 3. MikroTik — enable BFD on the VyOS BGP session
+Add a BFD configuration for `wg-vps`, enable BFD on the BGP connection, and
+permit BFD before the default input drop.
+
+```bash title="RouterOS — BFD on the VyOS BGP connection"
+/routing/bfd/configuration/add interfaces=wg-vps \
+    min-rx=200ms min-tx=200ms multiplier=3 \
+    comment="VyOS VPS BFD"
+
+/routing/bgp/connection/set [find name=vyos-vps] use-bfd=yes
+
+/ipv6/firewall/filter/add chain=input action=accept protocol=udp \
+    in-interface=wg-vps dst-port=3784,3785 comment="BFD from vyos-vps"
+
+:local bfdRule [/ipv6/firewall/filter/find where comment="BFD from vyos-vps"]
+:local dropRule [/ipv6/firewall/filter/find where chain=input and comment="defconf: drop everything else not coming from LAN"]
+/ipv6/firewall/filter/move $bfdRule destination=$dropRule
+```
+
+If the BFD rule already exists, enable or edit that rule instead of adding a
+duplicate. After moving, verify it appears before the input drop:
+
+```bash title="RouterOS — confirm rule order"
+/ipv6/firewall/filter/print show-ids where chain=input
+```
+
+If your RouterOS build does not accept the scripted `move`, use the printed
+IDs to move `BFD from vyos-vps` above `defconf: drop everything else not
+coming from LAN`. If the rule lands after that drop, BFD will remain down
+with `packets-rx=0` on the MikroTik.
+
+## 4. Verification
+Both sides should report BFD up, BGP established, and the learned `::/0`
+installed from VyOS.
+
+```bash title="VyOS — BFD and BGP"
+show bfd peers
+show bgp ipv6 summary
+show bgp ipv6 <LAN_PREFIX>::/48
+```
+
+```bash title="RouterOS — BFD, BGP, and default route"
+/routing/bfd/session/print detail
+/routing/bgp/session/print detail
+/ipv6/route/print detail where dst-address="::/0"
+/ping 2606:4700:4700::1111 count=3
+```
+
+Healthy RouterOS BFD looks like this:
+
+```text
+state=up
+actual-tx-interval=200ms
+required-min-rx=200ms
+remote-min-rx=200ms
+remote-min-tx=200ms
+multiplier=3
+hold-time=600ms
+```
+
+Healthy VyOS BFD shows `Status: up`, matching `200ms` local and remote
+timers.
+
+## 5. Failure test
+To prove Happy Eyeballs gets a clean signal, temporarily block or stop the
+VyOS BFD path and watch the MikroTik lose its BGP default.
+
+```bash title="RouterOS — watch while testing"
+/routing/bfd/session/print detail
+/routing/bgp/session/print detail
+/ipv6/route/print detail where dst-address="::/0"
+```
+
+Expected result:
+
+| Failure condition     | Router behavior                                  |
+| --------------------- | ------------------------------------------------ |
+| BFD down              | BGP session drops quickly                        |
+| BGP default withdrawn | `::/0` via `wg-vps` disappears                   |
+| No IPv6 default left  | Clients fail IPv6 quickly and try IPv4           |
+| BFD restored          | BGP re-establishes and `::/0` returns via `wg-vps` |
+
+## References
+- [VPS path post — VyOS relay tab](/vps-ipv6-cgnat-mikrotik/#vyos)
+- [Ubuntu/BIRD BFD variant](/mikrotik-ipv6-failover-bgp-bfd/)
+- [VyOS BGP documentation](https://docs.vyos.io/en/latest/configuration/protocols/bgp.html)
+- [VyOS BFD documentation](https://docs.vyos.io/en/latest/configuration/protocols/bfd.html)
+- [RouterOS `/routing/bgp` reference](https://help.mikrotik.com/docs/spaces/ROS/pages/331612228/routing%20bgp)
+- [RFC&nbsp;5880 — Bidirectional Forwarding Detection (BFD)](https://datatracker.ietf.org/doc/html/rfc5880)

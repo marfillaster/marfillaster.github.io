@@ -19,6 +19,14 @@ WireGuard with eBGP. Lives in its own post at `/vps-ipv6-cgnat-mikrotik/`.
 _Avoid_: "primary path", "the /48 path" (the prefix size is a property, not
 the name).
 
+**VyOS VPS variant**:
+A variant of the **VPS path** where the self-operated relay runs VyOS
+instead of Ubuntu + bird2 + nftables. Lives as a tab inside
+`/vps-ipv6-cgnat-mikrotik/`. It is not a third equal path; it is an
+implementation choice inside the self-operated VPS path.
+_Avoid_: "third path", "VyOS path" unless the context is explicitly relay
+implementation.
+
 **Route64 path**:
 The IPv6-uplink recipe that uses the free Route64 broker to route a /56
 over WireGuard. Lives at `/route64-ipv6-cgnat-mikrotik/`.
@@ -66,8 +74,11 @@ _Avoid_: "the IPv6 firewall step", "the GUA section", "LAN-side IPv6",
 - A **path post** points back to the **index post** for **shared scaffolding** and to **companion posts** for layers the build assumes.
 - A **path post** ends by pointing at **Per-VLAN IPv6** as the next step — the routable-IPv6 default route it produces is not user-visible until that step runs.
 - The two **path posts** are peers under the **equal paths** framing; they do not link to each other as primary/fallback, only as alternatives.
+- The **VPS path** can present implementation tabs for Ubuntu/BIRD and the
+  **VyOS VPS variant**, while preserving the same MikroTik-side
+  BGP/WireGuard contract.
 - **Per-VLAN IPv6** is path-agnostic — it sits after either **path post** and consumes the routed prefix using local per-VLAN /64 placeholders, with a substitution table mapping back to each path's prefix notation.
-- The failover **companion post** extends the **VPS path** only (its BFD adds to the VPS path's BGP session); it is not relevant to the **Route64 path**.
+- The failover **companion post** extends the **VPS path** only (its BFD adds to the VPS path's BGP session). It can present Ubuntu/BIRD and VyOS implementation tabs, but it is not relevant to the **Route64 path**.
 
 ## Flagged ambiguities
 

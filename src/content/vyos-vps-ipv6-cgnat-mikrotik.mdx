@@ -1,0 +1,300 @@
+## Overview
+This is the VyOS variant of the
+[VPS path](/vps-ipv6-cgnat-mikrotik/) in the
+[RB5009 CGNAT series](/mikrotik-home-network/): a self-operated VPS still
+routes a provider-delegated `/48` over WireGuard and eBGP, but the relay is
+VyOS instead of Ubuntu + `bird2` + `nftables`.
+
+The MikroTik side is intentionally the same shape as the Linux VPS recipe:
+WireGuard is transport, BGP is routing intent, and the RB5009 advertises the
+home aggregate while learning only `::/0` from the VPS. The VyOS side replaces
+systemd services and hand-written config files with `configure`, `commit`,
+and `save`.
+
+Use this when the VPS itself is becoming a router appliance. If the VPS is a
+general-purpose Linux host that merely relays IPv6, the
+[Ubuntu/BIRD recipe](/vps-ipv6-cgnat-mikrotik/) is simpler to inspect with
+ordinary Linux tools.
+
+## Design decisions
+
+**Do not put the routed prefix on the VyOS WAN as `/48`.** Some providers
+configure one address from the routed prefix on the public NIC with a `/48`
+mask. On a relay, that creates a connected route for the entire home
+aggregate on the WAN. The route you actually want is the BGP-learned route
+to the RB5009 over WireGuard. In this VyOS variant, any address from the
+routed prefix on the VPS uses `/128`; the aggregate itself is learned from
+the MikroTik.
+
+**Use VyOS BGP policy instead of BIRD filters.** The import side permits only
+`<LAN_PREFIX>::/48` from the RB5009. The export side uses BGP
+`default-originate`, so the MikroTik sees a default route and not the VPS's
+provider-connected prefixes.
+
+**Keep the VPS firewall interface-based.** The relay is still pure transit:
+SSH and WireGuard are allowed on the WAN, BGP is allowed only on `wg0`, and
+forwarded IPv6 can enter or leave `wg0`. Application policy remains on the
+RB5009.
+
+## 1. Topology recap
+
+```ascii
+                       Internet (IPv4 + IPv6)
+                              │
+                ┌─────────────┴─────────────┐
+                │  VPS — VyOS, routed /48   │
+                │  <VPS_IP> on <WAN_IF>     │
+                │  wg0: <LAN_PREFIX>:0::1   │
+                │  FRR: eBGP to RB5009      │
+                └─────────────┬─────────────┘
+                              │ WireGuard / UDP 51820
+                              │ (IPv6 transit + eBGP)
+                              │
+                          RB5009 wg-vps
+                          <LAN_PREFIX>:0::2
+```
+
+## 2. Conventions and placeholders
+
+Series-wide placeholders (`<ULA_PREFIX>`) live in the
+[index §2](/mikrotik-home-network/#2-shared-conventions). This variant adds:
+
+| Placeholder                    | Meaning                                                                                 |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `<WAN_IF>`                     | VyOS public interface. On this VPS it is `eth0`; cloud-init may call the same MAC `ens3`.|
+| `<VPS_IP>` / `<VPS_PREFIXLEN>` | Provider IPv4 address and prefix length, e.g. `160.187.141.53/24`.                      |
+| `<VPS_GW4>`                    | Provider IPv4 gateway.                                                                  |
+| `<VPS_LINK_GUA>`               | Provider IPv6 link address, if supplied as a `/128`.                                    |
+| `<VPS_GW6>`                    | Provider IPv6 gateway.                                                                  |
+| `<LAN_PREFIX>`                 | Routed IPv6 /48. Drop trailing zeros, e.g. `2001:db8` for `2001:db8::/48`.              |
+| `<VPS_PUBKEY>` / `<MT_PUBKEY>` | WireGuard public keys, one per side.                                                    |
+| `<VPS_AS>` / `<MT_AS>`         | Private ASNs (RFC&nbsp;6996, `64512–65534`) for the eBGP session.                       |
+| `<VPS_ROUTER_ID>`              | Any unique 32-bit router ID written like an IPv4 address.                               |
+
+If your provider metadata says the routed prefix address is
+`<LAN_PREFIX>::a/48`, configure it as `<LAN_PREFIX>::a/128` on VyOS. The
+provider still routes the `/48` to the VPS; VyOS does not need a connected
+WAN route for the whole aggregate.
+
+## 3. Baseline VyOS networking
+
+These commands assume you are on the provider console or already have a
+working SSH session. Keep console access open while applying firewall rules.
+
+```bash title="VyOS — provider addressing and SSH"
+configure
+
+set interfaces ethernet <WAN_IF> address <VPS_IP>/<VPS_PREFIXLEN>
+set interfaces ethernet <WAN_IF> address <VPS_LINK_GUA>/128
+set interfaces ethernet <WAN_IF> address <LAN_PREFIX>::a/128
+
+# Add the host routes only if your provider metadata declares the gateways
+# as on-link routes. They are harmless when the IPv4 gateway is already
+# inside the interface prefix.
+set protocols static route <VPS_GW4>/32 interface <WAN_IF>
+set protocols static route 0.0.0.0/0 next-hop <VPS_GW4>
+set protocols static route6 <VPS_GW6>/128 interface <WAN_IF>
+set protocols static route6 ::/0 next-hop <VPS_GW6>
+
+set service ssh port 22
+commit
+save
+exit
+```
+
+Verification before touching WireGuard:
+
+```bash title="VyOS — baseline checks"
+show interfaces ethernet
+show ip route
+show ipv6 route
+ping 1.1.1.1
+ping 2606:4700:4700::1111
+```
+
+## 4. VyOS — WireGuard and BGP
+
+Create `wg0`, commit it once, then let VyOS generate and install the private
+key. The public key printed by `show interfaces wireguard wg0 public-key`
+becomes `<VPS_PUBKEY>` on the MikroTik.
+
+```bash title="VyOS — WireGuard relay"
+configure
+set interfaces wireguard wg0 address <LAN_PREFIX>:0::1/64
+set interfaces wireguard wg0 address fe80::1/64
+set interfaces wireguard wg0 mtu 1420
+set interfaces wireguard wg0 port 51820
+commit
+
+run generate pki wireguard key-pair install interface wg0
+run show interfaces wireguard wg0 public-key
+
+set interfaces wireguard wg0 peer rb5009 public-key <MT_PUBKEY>
+set interfaces wireguard wg0 peer rb5009 allowed-ips <LAN_PREFIX>:0::2/128
+set interfaces wireguard wg0 peer rb5009 allowed-ips <LAN_PREFIX>::/48
+commit
+save
+```
+
+The BGP policy accepts only the home aggregate from the RB5009 and sends only
+a default route back.
+
+```bash title="VyOS — BGP route exchange"
+configure
+
+set policy prefix-list6 MT-HOME-V6 rule 10 action permit
+set policy prefix-list6 MT-HOME-V6 rule 10 prefix <LAN_PREFIX>::/48
+
+set policy route-map MT-IN rule 10 action permit
+set policy route-map MT-IN rule 10 match ipv6 address prefix-list MT-HOME-V6
+set policy route-map MT-IN rule 100 action deny
+
+set protocols bgp system-as <VPS_AS>
+set protocols bgp parameters router-id <VPS_ROUTER_ID>
+set protocols bgp neighbor <LAN_PREFIX>:0::2 remote-as <MT_AS>
+set protocols bgp neighbor <LAN_PREFIX>:0::2 update-source wg0
+set protocols bgp neighbor <LAN_PREFIX>:0::2 address-family ipv6-unicast route-map import MT-IN
+set protocols bgp neighbor <LAN_PREFIX>:0::2 address-family ipv6-unicast default-originate
+set protocols bgp neighbor <LAN_PREFIX>:0::2 address-family ipv6-unicast nexthop-self
+
+commit
+save
+```
+
+## 5. VyOS — relay firewall
+
+This is the equivalent of the Ubuntu recipe's `nftables` block. It keeps the
+public input surface small while letting the VPS route through `wg0`.
+
+```bash title="VyOS — minimal relay firewall"
+configure
+
+set firewall global-options state-policy established action accept
+set firewall global-options state-policy related action accept
+set firewall global-options state-policy invalid action drop
+
+set firewall ipv4 input filter default-action drop
+set firewall ipv4 input filter rule 10 action accept
+set firewall ipv4 input filter rule 10 protocol tcp
+set firewall ipv4 input filter rule 10 destination port 22
+set firewall ipv4 input filter rule 10 description SSH
+set firewall ipv4 input filter rule 20 action accept
+set firewall ipv4 input filter rule 20 protocol udp
+set firewall ipv4 input filter rule 20 destination port 51820
+set firewall ipv4 input filter rule 20 description WireGuard
+set firewall ipv4 input filter rule 30 action accept
+set firewall ipv4 input filter rule 30 protocol icmp
+set firewall ipv4 input filter rule 30 description ICMP
+
+set firewall ipv6 input filter default-action drop
+set firewall ipv6 input filter rule 10 action accept
+set firewall ipv6 input filter rule 10 protocol icmpv6
+set firewall ipv6 input filter rule 10 description ICMPv6
+set firewall ipv6 input filter rule 20 action accept
+set firewall ipv6 input filter rule 20 inbound-interface name wg0
+set firewall ipv6 input filter rule 20 protocol tcp
+set firewall ipv6 input filter rule 20 destination port 179
+set firewall ipv6 input filter rule 20 description 'BGP from RB5009'
+
+set firewall ipv6 forward filter default-action drop
+set firewall ipv6 forward filter rule 10 action accept
+set firewall ipv6 forward filter rule 10 inbound-interface name wg0
+set firewall ipv6 forward filter rule 10 description 'LAN to internet'
+set firewall ipv6 forward filter rule 20 action accept
+set firewall ipv6 forward filter rule 20 outbound-interface name wg0
+set firewall ipv6 forward filter rule 20 description 'internet return to LAN'
+
+commit
+save
+```
+
+If you also want the WireGuard listener reachable over IPv6 on the VPS public
+address, add a matching UDP/51820 rule under `firewall ipv6 input filter`.
+The CGNAT home line only needs outbound IPv4 UDP to the VPS, so the IPv4 rule
+is enough for the base build.
+
+## 6. MikroTik — WireGuard client and BGP
+
+This is the same RouterOS shape as the Ubuntu VPS post. The interface names
+below use `wg-vps` and `vyos-vps` so the VyOS relay stays easy to distinguish
+from the Ubuntu/BIRD variant in exports, logs, and follow-up BFD snippets.
+The home router initiates to the VPS, so the local listen port is not part of
+the provider-facing contract.
+
+```bash title="MikroTik — WireGuard + BGP to VyOS VPS"
+/interface/wireguard add name=wg-vps listen-port=51820 mtu=1420
+/interface/wireguard/peers add interface=wg-vps name=vyos-vps \
+    public-key="<VPS_PUBKEY>" \
+    endpoint-address=<VPS_IP> endpoint-port=51820 \
+    allowed-address=::/0 \
+    persistent-keepalive=25s
+
+/ipv6/address add address=<LAN_PREFIX>:0::2/64 interface=wg-vps advertise=no
+
+/ipv6/route add dst-address=<LAN_PREFIX>::/48 blackhole distance=254 \
+    comment="aggregate-for-bgp"
+
+/ipv6/firewall/address-list add list=bgp-networks-vyos-vps \
+    address=<LAN_PREFIX>::/48 comment="aggregate to VPS"
+
+/routing/filter/rule add chain=bgp-in-vyos-vps \
+    rule="if (dst == ::/0) { accept } reject"
+/routing/filter/rule add chain=bgp-out-vyos-vps \
+    rule="if (dst == <LAN_PREFIX>::/48) { accept } reject"
+
+/routing/bgp/instance add name=default-bgp as=<MT_AS> router-id=<MT_ROUTER_ID>
+/routing/bgp/template add name=tpl-vps as=<MT_AS>
+/routing/bgp/connection add name=vyos-vps instance=default-bgp \
+    remote.address=<LAN_PREFIX>:0::1 remote.as=<VPS_AS> \
+    local.address=<LAN_PREFIX>:0::2 local.role=ebgp \
+    templates=tpl-vps afi=ipv6 \
+    input.filter=bgp-in-vyos-vps \
+    output.network=bgp-networks-vyos-vps output.filter-chain=bgp-out-vyos-vps
+```
+
+At this point the RB5009 should learn a BGP `::/0` over `wg-vps`, but LAN
+clients still need the
+[Per-VLAN IPv6](/mikrotik-per-vlan-ipv6/) post to receive GUAs. Use the same
+substitution as the Ubuntu VPS path:
+`<GUA_LAN>=<LAN_PREFIX>:1`, `<GUA_IOT>=<LAN_PREFIX>:10`,
+`<GUA_GUEST>=<LAN_PREFIX>:20`.
+
+## 7. Verification
+
+```bash title="VyOS and MikroTik smoke tests"
+# VyOS:
+show interfaces wireguard
+show bgp ipv6 summary
+show bgp ipv6 <LAN_PREFIX>::/48
+show ipv6 route <LAN_PREFIX>::/48
+ping <LAN_PREFIX>:0::2
+
+# MikroTik:
+/interface/wireguard/peers/print detail where name=vyos-vps
+/routing/bgp/session/print
+/ipv6/route/print where dst-address=::/0
+/ping 2606:4700:4700::1111 count=3
+```
+
+The important return-routing check is on VyOS:
+
+```bash title="VyOS — return route should use wg0"
+run ip -6 route get <client-IPv6-addr>
+```
+
+Expect `dev wg0`, not `dev <WAN_IF>`. If the route points to the WAN, check
+that the VPS address from the routed prefix is configured as `/128`, not
+`/48`, and that the BGP session is importing `<LAN_PREFIX>::/48` from the
+MikroTik.
+
+## References
+
+- [Ubuntu/BIRD VPS path](/vps-ipv6-cgnat-mikrotik/) — same design with a Linux relay
+- [RB5009 CGNAT series index](/mikrotik-home-network/)
+- [Per-VLAN IPv6 on the RB5009](/mikrotik-per-vlan-ipv6/)
+- [Fast IPv6 failover](/mikrotik-ipv6-failover-bgp-bfd/#vyos) — BFD on the same VyOS BGP session
+- [VyOS installation guide](https://docs.vyos.io/en/rolling/installation/install.html)
+- [VyOS WireGuard documentation](https://docs.vyos.io/en/latest/configuration/interfaces/wireguard.html)
+- [VyOS BGP documentation](https://docs.vyos.io/en/latest/configuration/protocols/bgp.html)
+- [RFC&nbsp;4271 — Border Gateway Protocol 4](https://datatracker.ietf.org/doc/html/rfc4271)
+- [RFC&nbsp;6996 — Private-use ASNs](https://datatracker.ietf.org/doc/html/rfc6996)
