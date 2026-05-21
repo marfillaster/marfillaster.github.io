@@ -7,9 +7,9 @@ import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
 const title =
-  "Running the UniFi controller on the router itself — MongoDB + UniFi in RouterOS containers (RB5009)";
+  "Running the UniFi controller on the RB5009 — MongoDB + UniFi in RouterOS containers";
 const description =
-  "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 itself as RouterOS containers — no second always-on box. USB swap + ext4 storage, the ARMv8.0-A Mongo 4.4.18 pin, veths on the main LAN, memory caps, and verification. Paste-ready RouterOS v7.";
+  "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap + ext4 storage, the ARMv8.0-A Mongo 4.4.18 pin, veths on the main LAN, memory caps, and verification. Paste-ready RouterOS v7.";
 const url =
   "https://marfillaster.github.io/unifi-controller-routeros-containers-mikrotik/";
 const ogImage = "https://marfillaster.github.io/og.png";
@@ -101,7 +101,7 @@ export default function UnifiControllerRouterOSContainers() {
             Build log · MikroTik RB5009 · RouterOS containers
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Running the UniFi controller on the router itself
+            Running the UniFi controller on the RB5009
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             UniFi Network Application + MongoDB as RouterOS containers on the

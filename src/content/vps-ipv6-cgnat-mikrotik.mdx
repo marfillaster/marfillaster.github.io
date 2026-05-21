@@ -1,5 +1,5 @@
 ## Overview
-The VPS path in the [RB5009 CGNAT series](/mikrotik-home-network/): recover
+The VPS path in the [MikroTik RB5009 home-network series](/mikrotik-home-network/): recover
 real, routable IPv6 over a CGNAT'd line by paying a $3/month VPS to route a
 /48 to its instance, terminating a WireGuard tunnel from the RB5009 on it,
 and exchanging routing intent over eBGP. You operate the endpoint, so the
@@ -310,7 +310,7 @@ anything if you ever stand up a second peer on the same router.
 
 At this point the router has a working IPv6 default route over WireGuard,
 but no LAN client has a GUA yet. Continue to
-[**Per-VLAN IPv6 on the RB5009**](/mikrotik-per-vlan-ipv6/) to plumb the /48
+[**Per-VLAN IPv6 on RouterOS**](/mikrotik-per-vlan-ipv6/) to plumb the /48
 through to every VLAN — per-VLAN GUA + ULA + RA RDNSS, IPv6 forward-chain
 isolation, and SLAAC anti-spoof, using the substitution `<GUA_LAN>=<LAN_PREFIX>:1`,
 `<GUA_IOT>=<LAN_PREFIX>:10`, `<GUA_GUEST>=<LAN_PREFIX>:20`.

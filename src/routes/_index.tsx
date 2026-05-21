@@ -38,7 +38,7 @@ const sections = [
       {
         href: "/mikrotik-vlan-guest-iot/",
         eyebrow: "Series 2/8 · Build log · 2026-05",
-        title: "Trusted, IoT, and Guest VLANs on a MikroTik RB5009",
+        title: "Trusted, IoT, and Guest VLANs on RouterOS",
         description:
           "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. The foundation the rest of the series sits on.",
       },
@@ -66,7 +66,7 @@ const sections = [
       {
         href: "/mikrotik-per-vlan-ipv6/",
         eyebrow: "Series 6/8 · Build log · 2026-05",
-        title: "Per-VLAN IPv6 on the RB5009",
+        title: "Per-VLAN IPv6 on RouterOS",
         description:
           "Plumb the routable IPv6 you just stood up through to every VLAN: GUA + ULA + RA RDNSS per VLAN, IPv6 forward-chain isolation, and SLAAC anti-spoof. Path-agnostic — three per-VLAN /64 placeholders fold the /48-vs-/56 difference into one substitution table.",
       },
@@ -80,14 +80,14 @@ const sections = [
       {
         href: "/unifi-controller-routeros-containers-mikrotik/",
         eyebrow: "Series 8/8 · Build log · 2026-05",
-        title: "Running the UniFi controller on the router itself",
+        title: "Running the UniFi controller on the RB5009",
         description:
           "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap, the ARMv8.0-A Mongo 4.4.18 pin, veths, memory caps, verification.",
       },
       {
         href: "/converge-gpon-sfp-stick-mikrotik/",
         eyebrow: "Build log · 2026-05",
-        title: "Replacing a Converge ONT with a GPON SFP stick",
+        title: "Replacing a Converge ONT with a GPON SFP stick on the RB5009",
         description:
           "Skyworth GN630V to ODI DFP-34X-2C2 in a MikroTik RB5009: the SC/APC to SC/UPC connector gotcha, VLAN 10 DHCP handoff, and the minimum stick config that worked. Standalone — not part of the series above.",
       },

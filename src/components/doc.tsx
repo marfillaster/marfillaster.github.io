@@ -142,7 +142,7 @@ const SERIES: ReadonlyArray<{
   {
     slug: "per-vlan-ipv6",
     href: "/mikrotik-per-vlan-ipv6/",
-    title: "Per-VLAN IPv6 on the RB5009",
+    title: "Per-VLAN IPv6 on RouterOS",
     note: "GUA + ULA + RDNSS per VLAN, isolation, anti-spoof — after either path",
   },
   {

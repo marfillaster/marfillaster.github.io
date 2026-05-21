@@ -7,7 +7,7 @@ import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
 const title =
-  "Replacing a Converge Skyworth ONT with an ODI GPON SFP stick on MikroTik";
+  "Replacing a Converge Skyworth ONT with an ODI GPON SFP stick on the RB5009";
 const description =
   "A tested Converge FiberX GPON ONT replacement build log: Skyworth GN630V to ODI DFP-34X-2C2 GPON SFP stick in a MikroTik RB5009, VLAN 10 DHCP, SC/APC to SC/UPC connector caveat, and the minimum working configuration.";
 const url =
@@ -105,7 +105,7 @@ export default function ConvergeGponSfpStickMikrotik() {
             Build log · Converge GPON · MikroTik RB5009
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Replacing a Converge ONT with a GPON SFP stick
+            Replacing a Converge ONT with a GPON SFP stick on the RB5009
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Skyworth GN630V to ODI DFP-34X-2C2 in the RB5009 SFP+ cage: the

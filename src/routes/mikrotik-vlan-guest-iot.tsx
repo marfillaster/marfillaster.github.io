@@ -7,7 +7,7 @@ import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
 const title =
-  "Trusted, IoT, and Guest VLANs on a MikroTik RB5009 — hybrid trunks, east-west isolation";
+  "Trusted, IoT, and Guest VLANs on RouterOS — hybrid trunks, east-west isolation";
 const description =
   "Split a flat home LAN into trusted, IoT, and Guest VLANs on a single MikroTik RB5009 with two UniFi APs on hybrid-trunk ports — bridge VLAN table, per-VLAN DHCP, and a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. Paste-ready RouterOS v7.";
 const url =
@@ -102,7 +102,7 @@ export default function LanSegmentationVlansMikrotik() {
             Build log · MikroTik RB5009 · VLAN segmentation
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Trusted, IoT, and Guest VLANs on a MikroTik RB5009
+            Trusted, IoT, and Guest VLANs on RouterOS
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Split a flat LAN with two UniFi APs on hybrid trunks and a

@@ -6,7 +6,7 @@ import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
-const title = "Per-VLAN IPv6 on the MikroTik RB5009";
+const title = "Per-VLAN IPv6 on RouterOS";
 const description =
   "Plumb a routable-IPv6 default route through to every VLAN on a MikroTik RB5009: per-VLAN GUA + ULA + RA RDNSS, IPv6 forward-chain isolation, and SLAAC anti-spoof. Path-agnostic — works after either the VPS-routed /48 or the Route64 /56 path.";
 const url = "https://marfillaster.github.io/mikrotik-per-vlan-ipv6/";
@@ -95,7 +95,7 @@ export default function MikrotikPerVlanIpv6() {
             Build log · MikroTik RB5009 · per-VLAN IPv6
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Per-VLAN IPv6 on the RB5009
+            Per-VLAN IPv6 on RouterOS
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             GUA + ULA + RA RDNSS per VLAN, IPv6 forward-chain isolation, and

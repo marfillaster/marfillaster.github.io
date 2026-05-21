@@ -9,7 +9,7 @@ network stays useful as the rest of the internet finishes the v6 migration.
 
 The build is two layers, in install order. **Layer&nbsp;1** splits the LAN
 into VLANs — its own paste-ready companion post,
-[Trusted, IoT, and Guest VLANs on a MikroTik RB5009](/mikrotik-vlan-guest-iot/);
+[Trusted, IoT, and Guest VLANs on RouterOS](/mikrotik-vlan-guest-iot/);
 the rest of the series assumes it has been applied. **Layer&nbsp;2** recovers
 real, routable IPv6 over the CGNAT'd line. There are two equal ways to do
 that, and the choice between them is the load-bearing decision in this build:
@@ -178,7 +178,7 @@ Layer 1 — main LAN on VLAN&nbsp;1 untagged, IoT and Guest on tagged VLANs 10
 and 20 sharing the AP uplinks, each its own L3 boundary with per-VLAN DHCP and
 east-west isolation in the `forward` chain — is paste-ready in full in its own
 post:
-[Trusted, IoT, and Guest VLANs on a MikroTik RB5009](/mikrotik-vlan-guest-iot/)
+[Trusted, IoT, and Guest VLANs on RouterOS](/mikrotik-vlan-guest-iot/)
 (bridge VLAN table, L3 gateways, DHCP scopes, input/forward firewall, and the
 hybrid-trunk rationale).
 
@@ -384,13 +384,13 @@ the path post's verification block to see which layer is failing.
 
 ## References
 
-- [Trusted, IoT, and Guest VLANs on a MikroTik RB5009 — companion post](/mikrotik-vlan-guest-iot/)
+- [Trusted, IoT, and Guest VLANs on RouterOS — companion post](/mikrotik-vlan-guest-iot/)
 - [Routed IPv6 over CGNAT via a VPS — path post](/vps-ipv6-cgnat-mikrotik/)
 - [Routed IPv6 over CGNAT via Route64 — path post](/route64-ipv6-cgnat-mikrotik/)
-- [Per-VLAN IPv6 on the RB5009 — the LAN-side step after either path](/mikrotik-per-vlan-ipv6/)
+- [Per-VLAN IPv6 on RouterOS — the LAN-side step after either path](/mikrotik-per-vlan-ipv6/)
 - [Encrypted DNS with a stable resolver address — companion post](/encrypted-dns-stable-resolver-mikrotik/)
 - [Fast IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post, VPS path only](/mikrotik-ipv6-failover-bgp-bfd/)
-- [UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
+- [Running the UniFi controller on the RB5009 — companion post](/unifi-controller-routeros-containers-mikrotik/)
 - [RFC&nbsp;3849 — IPv6 address prefix reserved for documentation](https://datatracker.ietf.org/doc/html/rfc3849) (`2001:db8::/32`)
 - [RFC&nbsp;4193 — Unique Local IPv6 unicast addresses](https://datatracker.ietf.org/doc/html/rfc4193) (`fd00::/8`)
 - [RFC&nbsp;8305 — Happy Eyeballs v2](https://datatracker.ietf.org/doc/html/rfc8305) (why a flagged IPv6 path is tried before native IPv4, §5)

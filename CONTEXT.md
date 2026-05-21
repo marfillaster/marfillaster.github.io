@@ -80,6 +80,88 @@ _Avoid_: "the IPv6 firewall step", "the GUA section", "LAN-side IPv6",
 - **Per-VLAN IPv6** is path-agnostic — it sits after either **path post** and consumes the routed prefix using local per-VLAN /64 placeholders, with a substitution table mapping back to each path's prefix notation.
 - The failover **companion post** extends the **VPS path** only (its BFD adds to the VPS path's BGP session). It can present Ubuntu/BIRD and VyOS implementation tabs, but it is not relevant to the **Route64 path**.
 
+## Device, OS, vendor
+
+Three terms, three meanings — pick the one whose property the sentence
+actually depends on. Don't substitute them for variety. Rationale and
+the slug/title mismatch are captured in
+[ADR-0003](docs/adr/0003-naming-device-os-vendor.md).
+
+**MikroTik**:
+The vendor / brand / ecosystem. Use when the point is vendor-specific
+(MikroTik docs, MikroTik forum, MikroTik's product family) or when
+introducing the build to a reader who hasn't met the device yet.
+_Avoid_: using "MikroTik" alone to mean the device in this build, or as
+a synonym for RouterOS.
+
+**RB5009**:
+The specific hardware in this build — Cortex-A72 (ARMv8.0-A), 4× 2.5 GbE,
+1× 10 GbE, SFP+ cage. Use when the sentence depends on a hardware
+property: SFP+ port, CPU arch (ARMv8.0-A → which container images run),
+PoE-in, the 10G uplink. Use also when the post is hardware-bound by
+intent (per-VLAN IPv6 layered on this device's config).
+_Avoid_: using "RB5009" when the recipe would work unchanged on any
+RouterOS device (a hAP ax², a CCR2004…).
+
+**RouterOS**:
+The operating system / config language. Use when the recipe is
+RouterOS-portable: `/interface bridge`, `/ip firewall filter`,
+`/container`, scripts, the CLI grammar. Use for posts whose value is the
+RouterOS configuration itself, not the box it runs on.
+_Avoid_: "RouterOS" when the point is hardware (SFP+, CPU arch); avoid
+abbreviating to "ROS" in our prose — that token only appears inside
+upstream `help.mikrotik.com/docs/spaces/ROS/...` URLs.
+
+**MikroTik RB5009**:
+The full identifier. Use sparingly — on first introduction in a post
+that needs the brand for SEO/clarity, or when the title's audience is
+searching for "MikroTik RB5009" as a phrase.
+_Avoid_: repeating the full phrase after first reference; pick RB5009
+or RouterOS as the body settles into the recipe.
+
+**Title anchor rule**: pick the title's device/OS noun by what the
+recipe is bound to, not by the slug.
+- RouterOS-portable recipe (works on any RouterOS box) → title anchors
+  on **RouterOS**. Applies to: VLANs, Per-VLAN IPv6, Encrypted DNS,
+  Fast IPv6 failover.
+- RB5009-bound by hardware (SFP+, CPU arch, port count) → title
+  anchors on **RB5009**. Applies to: UniFi-on-router (ARMv8.0-A
+  constraint), GPON SFP stick (SFP+ cage).
+- Concept-first posts (index, VPS path, Route64 path) — no device
+  anchor in the title; don't force one in.
+- **MikroTik RB5009** (full phrase) is reserved for the series landing
+  context, not individual post titles.
+
+Slug/title mismatch is accepted: URL slugs are locked for SEO and were
+written brand-forward (`-mikrotik`); titles follow the rule above.
+
+**Series-anchor rule** (body first-mention):
+- Hardware-bound posts and standalone entry points open with a
+  one-sentence series anchor that includes the phrase "MikroTik RB5009"
+  and links back to the index post — e.g., _"This is step N of a
+  [MikroTik RB5009 home-network series](/mikrotik-home-network/)."_
+  Applies to: UniFi-on-router, GPON SFP, VPS path, Route64 path.
+- Other posts (VLANs, Per-VLAN IPv6, Encrypted DNS, Fast IPv6 failover)
+  do not need an anchor sentence — they sit deeper in the series and
+  the index post + slug carry the brand. Their lede leads with the
+  recipe noun (RouterOS or RB5009) per the title-anchor rule.
+- The index post is the anchor; it never anchors to itself.
+
+**Link-text rule**:
+- On navigation surfaces — the index post's TOC, path-choice matrix,
+  related-posts block, and any "next/previous" footer — link text is
+  the destination H1 verbatim. When an H1 changes, those links change
+  with it.
+- In inline prose — "see the VLAN companion post", "the BFD failover
+  post explains…" — a free shortening is fine; don't re-state the full
+  title mid-sentence.
+
+**Casing**: `MikroTik` (brand caps), `RouterOS` (camelcase), `RB5009`
+(uppercase). Lowercase forms appear only as URL slugs (locked for SEO)
+and as identifier tokens in code (BGP peer-names like `protocol bgp
+mikrotik`, WireGuard peer `rb5009`). Never use lowercase in prose or
+headings.
+
 ## Flagged ambiguities
 
 - "CGNAT post" used to mean the old `post.mdx` (which was both index and
