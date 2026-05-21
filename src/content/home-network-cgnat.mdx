@@ -311,17 +311,27 @@ converges).
 
 Each path post carries its own end-to-end checks (BGP session state and
 relay-side route tables for the VPS path; tunnel handshake and netwatch
-state for Route64). The path-agnostic check is one line — run it from a LAN
-client after building either path:
+state for Route64). The path-agnostic check takes one browser tab from a
+LAN client: load [test-ipv6.run](https://test-ipv6.run/) and confirm a
+10/10 on both stacks.
 
-```bash
-curl -6 -s https://test-ipv6.run/ | head
-```
+<figure className="not-prose my-6">
+  <img
+    src="/mikrotik-home-network/test-ipv6-run.png"
+    alt="test-ipv6.run from a LAN client showing IPv6 Score 10/10 and IPv4 Score 10/10, with seven green-check connectivity rows on the right (reaches IPv4-only, IPv6-only and dual-stack websites, large data transfers, browser uses IPv6 by default, resolves IPv6-only domain names)."
+    className="rounded-md border"
+    loading="lazy"
+  />
+  <figcaption className="mt-2 text-xs text-muted-foreground">
+    test-ipv6.run from a LAN client on this build. Addresses redacted to
+    RFC&nbsp;5737 (<code>203.0.113.0/24</code>) and RFC&nbsp;3849
+    (<code>2001:db8::/32</code>) documentation prefixes.
+  </figcaption>
+</figure>
 
-A clean score (or a returned page over v6 at all) means the address plan,
-the WireGuard tunnel, and the per-VLAN GUA all work together. Anything less
-than that, drop into the path post's verification block to see which layer
-is failing.
+A clean score on both rows means the address plan, the WireGuard tunnel,
+and the per-VLAN GUA all work together. Anything less than that, drop into
+the path post's verification block to see which layer is failing.
 
 ## Glossary
 
