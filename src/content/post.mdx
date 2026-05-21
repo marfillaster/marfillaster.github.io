@@ -42,8 +42,8 @@ OpenVPN would all work; each adds operational surface this build does not
 need to pay for.
 
 **The VPS is configured once and never touched for new home services.** All
-gating lives on the MikroTik; the VPS is pure transit. Three specifics keep
-it that way:
+gating lives on the MikroTik; the VPS is pure transit. The relay transports
+prefixes, not applications. Three specifics keep it that way:
 
 - BGP advertises the `/48` aggregate, not per-`/64`, so adding or removing
   subnets under it never triggers reconvergence or VPS re-config.
