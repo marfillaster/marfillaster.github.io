@@ -79,6 +79,20 @@ on-link presence is also what makes RA RDNSS resilient: the router
 advertises whichever address is up.
 </Rationale>
 
+**If you came from the [Route64 path](/route64-ipv6-cgnat-mikrotik/):**
+tune the RA interval on each GUA-bearing VLAN so the
+[fast fail-to-IPv4 netwatch](/route64-ipv6-cgnat-mikrotik/#6-fast-fail-to-ipv4)
+reaches clients within 30&nbsp;s instead of the default 200–600&nbsp;s
+window. This is the only knob bounding how fast a Router-Lifetime-0
+change propagates. VPS-path readers don't need this — BGP withdraws the
+default route in seconds, and the RA only carries the prefix.
+
+```bash title="RA interval tuning — Route64 path only"
+/ipv6/nd set [find interface=bridge]     ra-interval=10s-30s
+/ipv6/nd set [find interface=vlan-iot]   ra-interval=10s-30s
+/ipv6/nd set [find interface=vlan-guest] ra-interval=10s-30s
+```
+
 The [index §5 ULA-only update](/mikrotik-home-network/#5-keeping-streaming-off-the-routable-ipv6-path)
 adds a ULA-only VLAN 30 on top of this base — same `/ipv6/nd` posture,
 but no GUA, so its clients use native ISP IPv4 for anything

@@ -144,33 +144,23 @@ the route and a normal `ra-lifetime`. Comments are single tokens.
 ```
 
 The `set [find interface=...]` lines are no-ops until the per-VLAN ND
-entries exist; they start working as soon as the next step is applied.
-**Once you have applied
-[Per-VLAN IPv6](/mikrotik-per-vlan-ipv6/) (substitution:
-`<GUA_LAN>=<R64_56>01`, `<GUA_IOT>=<R64_56>10`, `<GUA_GUEST>=<R64_56>20`),
-come back here for one Route64-specific tuning** that makes the fail
-visible to clients within 30&nbsp;s instead of the default 200–600&nbsp;s
-RA window:
-
-```bash title="MikroTik — RA interval tuning (Route64-only)"
-/ipv6/nd set [find interface=bridge]     ra-interval=10s-30s
-/ipv6/nd set [find interface=vlan-iot]   ra-interval=10s-30s
-/ipv6/nd set [find interface=vlan-guest] ra-interval=10s-30s
-```
+entries exist; they start working as soon as the
+[Per-VLAN IPv6](/mikrotik-per-vlan-ipv6/) post is applied (substitution:
+`<GUA_LAN>=<R64_56>01`, `<GUA_IOT>=<R64_56>10`, `<GUA_GUEST>=<R64_56>20`).
+That post also carries the matching
+[`ra-interval=10s-30s` tuning](/mikrotik-per-vlan-ipv6/#2-per-vlan-addresses-and-ra-rdnss)
+this netwatch depends on for the 30-second visibility window.
 
 <Rationale>
 Verified on a live build: both netwatch transitions fire and
 `ra-lifetime=0s` is accepted (RouterOS renders it as `none`). With
-`ra-interval=10s-30s` end-to-end failover is ≈&nbsp;netwatch detection
-(~8&nbsp;s at `interval=5s timeout=2s`) plus one RA (≤&nbsp;30&nbsp;s)
-≈&nbsp;~38&nbsp;s to clean IPv4, symmetric on recovery. This withdraws
-the router as a default router for *all* IPv6, so router-forwarded
-inter-VLAN IPv6 also pauses during the outage — by design, it falls to
-IPv4 with everything else. Same-VLAN IPv6 and the ULA resolver are
-on-link and keep working throughout. The short RA interval is the only
-knob bounding how fast clients see the Router-Lifetime-0 change; the
-default 200–600&nbsp;s window is fine for a VPS path with BGP-driven
-withdraw, not for Route64's RA-driven failover.
+`ra-interval=10s-30s` (set in the Per-VLAN IPv6 post) end-to-end failover
+is ≈&nbsp;netwatch detection (~8&nbsp;s at `interval=5s timeout=2s`)
+plus one RA (≤&nbsp;30&nbsp;s) ≈&nbsp;~38&nbsp;s to clean IPv4, symmetric
+on recovery. This withdraws the router as a default router for *all*
+IPv6, so router-forwarded inter-VLAN IPv6 also pauses during the outage
+— by design, it falls to IPv4 with everything else. Same-VLAN IPv6 and
+the ULA resolver are on-link and keep working throughout.
 </Rationale>
 
 ## 7. DynDNS hygiene (optional)
