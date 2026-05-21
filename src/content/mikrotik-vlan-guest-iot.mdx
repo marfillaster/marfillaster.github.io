@@ -1,15 +1,15 @@
 <SeriesNav current="vlan" />
 
 ## Overview
-This is the first-layer companion to the
-[CGNAT build log](/mikrotik-home-network/): split a flat home LAN into a
-trusted main network, an IoT VLAN, and a Guest VLAN on a single MikroTik
+This is the foundation companion in the
+[RB5009 CGNAT series](/mikrotik-home-network/): split a flat home LAN into
+a trusted main network, an IoT VLAN, and a Guest VLAN on a single MikroTik
 RB5009, with two UniFi 6 APs hanging off hybrid-trunk ports.
 
 It depends on nothing further up the stack. There is **no IPv6, no VPS, and
 no WireGuard** here — this is plain IPv4 plus 802.1Q VLANs and a reviewable
-firewall. The CGNAT build's IPv6, DoH, and failover layers all sit *on top*
-of exactly this segmentation; none of them are needed to stand it up, and
+firewall. The series' IPv6, DoH, and failover layers all sit *on top* of
+exactly this segmentation; none of them are needed to stand it up, and
 this post is the part you can apply on day one regardless of what your WAN
 looks like.
 
@@ -61,11 +61,13 @@ companion post:
 | VLAN 10 | tagged   | IoT SSID          | `192.168.89.0/24` |
 | VLAN 20 | tagged   | Guest SSID        | `192.168.90.0/24` |
 
-Each VLAN is a separate L3 boundary at the router. When the IPv6 layer of the
-[CGNAT build log](/mikrotik-home-network/) is added later, each VLAN simply
-gains a matching `:1::/64` / `:10::/64` / `:20::/64` prefix on the same
-interfaces created here — the IoT and Guest VLAN IDs deliberately reuse their
-numbers as the IPv6 slice IDs so the mapping stays obvious in tcpdump.
+Each VLAN is a separate L3 boundary at the router. When the IPv6 layer from
+the [series](/mikrotik-home-network/) is added later — either the
+[VPS path](/vps-ipv6-cgnat-mikrotik/) or the
+[Route64 path](/route64-ipv6-cgnat-mikrotik/) — each VLAN simply gains a
+matching `:1::/64` / `:10::/64` / `:20::/64` prefix on the same interfaces
+created here. The IoT and Guest VLAN IDs deliberately reuse their numbers
+as the IPv6 slice IDs so the mapping stays obvious in tcpdump.
 
 ## 2. Conventions and placeholders
 The snippets assume the defconf bridge name `bridge` and ports
@@ -203,7 +205,7 @@ everything else on the IoT VLAN stays isolated.
 </Rationale>
 
 ## References
-- [CGNAT build log — the IPv6 / DoH / failover layers on top of this](/mikrotik-home-network/)
+- [RB5009 CGNAT series index — the IPv6 / DoH / failover layers on top of this](/mikrotik-home-network/)
 - [Guest SSID on a VLAN via a MikroTik hybrid port — source gist](https://gist.github.com/marfillaster/bb95bce7959d150b264e54de9c496c65)
 - [Running the UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
 - [Encrypted DNS with a stable resolver address — companion post](/encrypted-dns-stable-resolver-mikrotik/)

@@ -8,6 +8,7 @@ export default [
     "routes/converge-gpon-sfp-stick-mikrotik.tsx",
   ),
   route("route64-ipv6-cgnat-mikrotik", "routes/route64-ipv6-cgnat-mikrotik.tsx"),
+  route("vps-ipv6-cgnat-mikrotik", "routes/vps-ipv6-cgnat-mikrotik.tsx"),
   route(
     "unifi-controller-routeros-containers-mikrotik",
     "routes/unifi-controller-routeros-containers-mikrotik.tsx",

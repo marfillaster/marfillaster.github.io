@@ -1,18 +1,19 @@
 import { MDXProvider } from "@mdx-js/react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/home-network-cgnat.mdx";
+import Post from "../content/vps-ipv6-cgnat-mikrotik.mdx";
 import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
-const title = "Home network on residential CGNAT — RB5009 series index";
+const title =
+  "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT — VPS, routed /48";
 const description =
-  "Series index for a small, opinionated home network on a MikroTik RB5009 behind residential CGNAT. Two equal paths to routable IPv6 — a self-operated VPS routing a /48, or the free Route64 broker routing a /56 — with shared VLAN, DNS, and ULA-only-trusted-VLAN scaffolding.";
-const url = "https://marfillaster.github.io/mikrotik-home-network/";
-const ogImage = "https://marfillaster.github.io/mikrotik-home-network/og.png";
+  "Add real routed IPv6 to an already-segmented IPv4-only LAN behind residential CGNAT using a $3/mo VPS that routes a /48, WireGuard from the RB5009, and eBGP between them. Paste-ready RouterOS v7 and Ubuntu snippets for the MikroTik RB5009.";
+const url = "https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/";
+const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
-const datePublished = "2026-05-15";
+const datePublished = "2026-05-21";
 const dateModified = "2026-05-21";
 
 const structuredData = {
@@ -37,14 +38,14 @@ const structuredData = {
   },
   keywords: [
     "MikroTik RB5009",
-    "UniFi 6",
-    "Converge ICT",
     "CGNAT",
     "WireGuard",
     "IPv6",
-    "DNS over HTTPS",
+    "routed /48",
     "BGP",
-    "BFD",
+    "BIRD",
+    "RouterOS v7",
+    "VPS",
     "home network",
   ],
 };
@@ -62,8 +63,7 @@ export const meta: MetaFunction = () => [
   { property: "og:image:height", content: "630" },
   {
     property: "og:image:alt",
-    content:
-      "RB5009 home network build log — diagram showing VPS, WireGuard tunnel, RB5009, APs, and VLANs",
+    content: "marfillaster · notes — Home · Network · Solar · EV",
   },
   { property: "og:site_name", content: "marfillaster · notes" },
   { property: "article:published_time", content: datePublished },
@@ -82,35 +82,35 @@ export const meta: MetaFunction = () => [
 const navItems = [
   ["#overview", "Overview"],
   ["#design-decisions", "Design"],
-  ["#1-topology", "Topology"],
-  ["#2-shared-conventions", "Conventions"],
-  ["#3-pick-a-path-vps-routed-48-or-route64-56", "Pick a path"],
-  ["#4-lan-segmentation-comes-first", "VLANs"],
-  ["#5-keeping-streaming-off-the-routable-ipv6-path", "ULA-only"],
-  ["#6-encrypted-dns-with-stable-resolver-addresses", "DNS"],
-  ["#7-verification-path-agnostic", "Verify"],
+  ["#1-topology-recap", "Topology"],
+  ["#2-conventions-and-placeholders", "Conventions"],
+  ["#3-return-routing-wireguard-authorizes-bgp-routes", "Return routing"],
+  ["#4-vps--wireguard-relay-and-bgp", "VPS"],
+  ["#5-mikrotik--wireguard-client-bgp-and-main-lan-ipv6", "MikroTik"],
+  ["#6-per-vlan-addresses-and-ra-rdnss", "Per-VLAN v6"],
+  ["#7-ipv6-firewall-and-anti-spoofing", "Firewall"],
+  ["#8-end-to-end-verification", "Verify"],
+  ["#a-appendix--cost-and-provider-notes", "Cost"],
   ["#glossary", "Glossary"],
 ] as const;
 
-export default function MikrotikHomeNetwork() {
+export default function VpsIpv6Cgnat() {
   return (
     <SiteShell>
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Series index · MikroTik RB5009 · Converge fiber, PH
+            Build log · MikroTik RB5009 · VPS-routed /48
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            A small home network behind CGNAT
+            Routed IPv6 for a segmented IPv4-only LAN behind CGNAT
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Two equal paths to routable IPv6 — a self-operated VPS routing a
-            /48, or the free Route64 broker routing a /56 — over shared VLAN,
-            DNS, and per-VLAN address scaffolding. Pick a path; the rest of
-            the build is identical either way.
+            $3/mo VPS that routes a /48, WireGuard from the RB5009, eBGP
+            between them. The VPS path of the CGNAT series.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            <time dateTime={datePublished}>Published 15 May 2026</time>
+            <time dateTime={datePublished}>Published 21 May 2026</time>
           </p>
         </article>
 

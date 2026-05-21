@@ -98,7 +98,8 @@ export function TableOfContents({
 // -----------------------------------------------------------------------------
 // Series navigation. Single source of truth for the RB5009 home-network
 // series order; each series post renders <SeriesNav current="..." /> as its
-// first MDX block. Steps 3 and 4 are alternative IPv6 layers, not sequential.
+// first MDX block. Steps 4 (VPS) and 5 (Route64) are equal paths to a
+// routable IPv6 prefix — peers, not primary/fallback. Pick one.
 // (The GPON SFP-stick post is deliberately not part of this series.)
 // -----------------------------------------------------------------------------
 
@@ -108,6 +109,12 @@ const SERIES: ReadonlyArray<{
   title: string;
   note: string;
 }> = [
+  {
+    slug: "start",
+    href: "/mikrotik-home-network/",
+    title: "A small home network behind CGNAT",
+    note: "Start here — overview, address plan, path-choice matrix",
+  },
   {
     slug: "vlan",
     href: "/mikrotik-vlan-guest-iot/",
@@ -121,16 +128,16 @@ const SERIES: ReadonlyArray<{
     note: "Independent layer — needs no IPv6 uplink",
   },
   {
-    slug: "cgnat",
-    href: "/mikrotik-home-network/",
-    title: "Routed IPv6 over CGNAT",
-    note: "Overview + the VPS-routed /48 path",
+    slug: "vps",
+    href: "/vps-ipv6-cgnat-mikrotik/",
+    title: "Routed IPv6 over CGNAT via a VPS",
+    note: "Equal path A — self-operated /48, BGP, $3/mo",
   },
   {
     slug: "route64",
     href: "/route64-ipv6-cgnat-mikrotik/",
-    title: "Routed IPv6 without a VPS",
-    note: "The free Route64 /56 path — an alternative to step 3’s IPv6 layer",
+    title: "Routed IPv6 over CGNAT via Route64",
+    note: "Equal path B — broker-operated /56, free, single uplink",
   },
   {
     slug: "failover",

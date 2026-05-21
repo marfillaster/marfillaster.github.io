@@ -1,20 +1,26 @@
 <SeriesNav current="route64" />
 
 ## Overview
-This is the no-VPS companion to the [CGNAT build log](/mikrotik-home-network/).
-That build recovers IPv6 by paying a $3/month VPS to route a /48 over
-WireGuard. This one assumes you already have a working, segmented IPv4 LAN
-behind carrier-grade NAT — VLANs, inter-VLAN firewall, DHCP — and you want
-real routed IPv6 without a recurring bill and without an endpoint to operate.
+The Route64 path in the [RB5009 CGNAT series](/mikrotik-home-network/): recover
+real, routable IPv6 over a CGNAT'd line using the free [Route64](https://route64.org/)
+broker's WireGuard tunnel and a routed /56. Nothing recurring, no endpoint
+to operate. The sibling — a self-operated VPS routing a /48 — is its own
+post: [Routed IPv6 over CGNAT via a VPS](/vps-ipv6-cgnat-mikrotik/). Read
+the index's [path-choice matrix](/mikrotik-home-network/#3-pick-a-path-vps-routed-48-or-route64-56)
+first if you have not decided between them.
 
-[Route64](https://route64.org/) is a free tunnel broker that hands out a
-routed **/56** over **WireGuard**. Because the transport is plain outbound
-UDP, it traverses residential CGNAT — verified on a live Converge line, not
-inferred. A /56 is 256 /64s: enough to give every VLAN its own native global
-prefix straight from the delegation, with no helper daemon and no second
-prefix for clients to choose between. The single trade-off is honest and
-designed-for: Route64 is the *only* IPv6 uplink, so when it is down the LAN
-fails fast and cleanly back to IPv4 rather than blackholing.
+This post assumes you already have a working, segmented IPv4 LAN behind
+carrier-grade NAT — VLANs, inter-VLAN firewall, DHCP — from the
+[VLAN companion post](/mikrotik-vlan-guest-iot/).
+
+Route64 hands out a routed **/56** over **WireGuard**. Because the
+transport is plain outbound UDP, it traverses residential CGNAT — verified
+on a live Converge line, not inferred. A /56 is 256 /64s: enough to give
+every VLAN its own native global prefix straight from the delegation, with
+no helper daemon and no second prefix for clients to choose between. The
+single trade-off is honest and designed-for: Route64 is the *only* IPv6
+uplink, so when it is down the LAN fails fast and cleanly back to IPv4
+rather than blackholing.
 
 Every numbered section is paste-ready against a RouterOS&nbsp;v7 box that
 already has the VLAN segmentation from the companion post. The italic notes
@@ -47,8 +53,8 @@ are the rationale — the trade-off being made and why.
 This post starts where the segmentation post ends. You should already have:
 the bridge/`vlan-iot`/`vlan-guest` interfaces, the IPv4 inter-VLAN firewall,
 per-VLAN DHCPv4, and a working DoH resolver advertised on a ULA. If you do
-not, build [sections&nbsp;3, 4 and 6 of the CGNAT
-post](/mikrotik-home-network/#3-lan-segmentation-comes-first) first; only
+not, build the [VLAN companion post](/mikrotik-vlan-guest-iot/) and the
+[DNS companion post](/encrypted-dns-stable-resolver-mikrotik/) first; only
 the IPv6 layer differs here.
 
 ## 2. Conventions and placeholders
@@ -263,6 +269,8 @@ within ~40&nbsp;s with no manual action.
 
 ## References
 - [Route64 tunnel broker](https://route64.org/) · [terms of service](https://route64.org/en/tos)
-- [CGNAT build log — VLANs, controller, VPS-routed /48, DoH](/mikrotik-home-network/)
+- [RB5009 CGNAT series index](/mikrotik-home-network/)
+- [Sibling path — VPS-routed /48](/vps-ipv6-cgnat-mikrotik/)
+- [VLAN companion post](/mikrotik-vlan-guest-iot/) · [DNS companion post](/encrypted-dns-stable-resolver-mikrotik/)
 - [RFC&nbsp;8305 — Happy Eyeballs v2](https://datatracker.ietf.org/doc/html/rfc8305) (why a host drops to IPv4 once the v6 default is gone)
 - [RFC&nbsp;4861&nbsp;§6.2.5 — Router Lifetime 0](https://datatracker.ietf.org/doc/html/rfc4861#section-6.2.5) (a router advertising itself as non-default)

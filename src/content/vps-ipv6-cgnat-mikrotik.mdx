@@ -1,0 +1,442 @@
+<SeriesNav current="vps" />
+
+## Overview
+The VPS path in the [RB5009 CGNAT series](/mikrotik-home-network/): recover
+real, routable IPv6 over a CGNAT'd line by paying a $3/month VPS to route a
+/48 to its instance, terminating a WireGuard tunnel from the RB5009 on it,
+and exchanging routing intent over eBGP. You operate the endpoint, so the
+prefix, the return routing, and the failure mode are yours to define.
+
+This post assumes you already have a working, segmented IPv4 LAN from the
+[VLAN companion post](/mikrotik-vlan-guest-iot/) — `vlan-iot`, `vlan-guest`,
+the inter-VLAN firewall, per-VLAN DHCPv4 — and that you have read the
+index's [path-choice matrix](/mikrotik-home-network/#3-pick-a-path-vps-routed-48-or-route64-56)
+and decided the VPS path's trade-offs are the right ones for you. The
+sibling — Route64's free /56, no server to run — is its own post:
+[Routed IPv6 over CGNAT via Route64](/route64-ipv6-cgnat-mikrotik/).
+
+Every numbered section below is paste-ready against a defconf RouterOS&nbsp;v7
+setup with the VLAN layer already in place; italicized notes are the
+rationale.
+
+## Design decisions
+
+Two choices in this path are load-bearing enough that a reader substituting
+parts will want a sentence of justification. The series-wide WireGuard
+rationale is in the
+[index](/mikrotik-home-network/#design-decisions); the ones below are
+specific to running your own relay.
+
+**eBGP rather than static routes between the RB5009 and the VPS.** The
+provider routes the /48 to the VPS and configures one address from it on the
+public NIC at /48 mask, which installs a connected route for the entire /48
+on the public interface. If WireGuard also installs the same `/48` from
+`AllowedIPs`, the two routes compete and return traffic falls out the public
+NIC. The fix splits the responsibilities: WireGuard's `AllowedIPs` stays
+broad enough for its cryptokey checks while `Table=off` keeps that from
+turning into a Linux route; BGP then carries the home aggregate one way and
+`::/0` the other. This is the one detail that silently breaks the setup —
+egress works, ping works, then the first packet to a SLAAC client falls off
+the public NIC and the network looks broken in a way no log line explains.
+
+**The VPS is configured once and never touched for new home services.** All
+gating lives on the MikroTik; the VPS is pure transit. The relay transports
+prefixes, not applications. Three specifics keep it that way:
+
+- BGP advertises the `/48` aggregate, not per-`/64`, so adding or removing
+  subnets under it never triggers reconvergence or VPS re-config.
+- The VPS nftables forward chain is interface-based
+  (`iifname "wg0" accept` / `oifname "wg0" accept`), not address- or
+  port-based, so a new host, port, or VLAN inside the `/48` transits
+  without a VPS change. Per-service policy belongs on the MikroTik forward
+  chain, where it is colocated with the device it protects.
+- Persistence is service-enable (`wg-quick@wg0`, `bird`, `nftables`) plus
+  `persistent-keepalive=25s` on the MikroTik peer, so a VPS reboot
+  re-establishes the tunnel and BGP without operator intervention.
+
+The narrow exceptions — a service running on the VPS itself, adding BFD
+(see the [failover companion](/mikrotik-ipv6-failover-bgp-bfd/)), a second
+WG peer, a public-NIC rename, or the provider re-allocating the prefix —
+all touch named config that the snippets below call out by line.
+
+## 1. Topology recap
+
+The series-wide topology lives in the
+[index §1](/mikrotik-home-network/#1-topology). The VPS-specific piece:
+
+```ascii
+                       Internet (IPv4 + IPv6)
+                              │
+                ┌─────────────┴─────────────┐
+                │  VPS — Ubuntu, routed /48 │
+                │  <VPS_IP>                 │
+                │  enp3s0: provider GUA     │
+                │  wg0:    <LAN_PREFIX>:0::1│
+                │  bird2:  eBGP to RB5009   │
+                └─────────────┬─────────────┘
+                              │ WireGuard / UDP 51820
+                              │ (IPv6 transit + eBGP)
+                              │
+                          RB5009 wg-host
+                          <LAN_PREFIX>:0::2
+```
+
+## 2. Conventions and placeholders
+
+Series-wide placeholders (`<ULA_PREFIX>`) are in the
+[index §2](/mikrotik-home-network/#2-shared-conventions). The VPS path adds:
+
+| Placeholder                          | Meaning                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `<LAN_PREFIX>`                       | Routed IPv6 /48 the VPS hands you. Drop the trailing zeros, e.g. `2001:db8`.                     |
+| `<VPS_IP>`                           | VPS public IPv4 from the provider panel.                                                         |
+| `<VPS_NIC>`                          | VPS public interface. `ip -o link` shows it (typical: `enp3s0`, `ens3`).                         |
+| `<VPS_PUBKEY>` / `<MT_PUBKEY>`       | WireGuard public keys, one per side. Each is printed during §4.                                  |
+| `<VPS_AS>` / `<MT_AS>`               | Private 2-byte ASNs (RFC&nbsp;6996, `64512–65534`) for the BGP session.                          |
+| `<VPS_ROUTER_ID>` / `<MT_ROUTER_ID>` | Any unique 32-bit router IDs written like IPv4 addresses.                                        |
+
+The `<LAN_PREFIX>` convention lets `<LAN_PREFIX>:1::/64` expand to
+`2001:db8:0:1::/64` and so on, mirroring VLAN numbers in the slice ID.
+
+## 3. Return routing: WireGuard authorizes, BGP routes
+
+The provider routes the /48 to the VPS, then configures one address from it
+on the public NIC at /48 mask. That installs a connected route for the
+entire /48 on the public interface. If WireGuard also installs the same
+`/48` from `AllowedIPs`, the two routes compete and return traffic can fall
+out the public NIC.
+
+The fix is to split the responsibilities:
+
+```text
+WireGuard AllowedIPs = peer authorization for the tunnel and LAN prefix
+Table = off          = do not turn AllowedIPs into Linux routes
+BGP                  = exchange <LAN_PREFIX>::/48 and ::/0
+```
+
+MikroTik advertises the home aggregate to the VPS over plain BGP. The VPS
+advertises only `::/0` back. Without BFD, liveness is normal BGP liveness:
+clean and dynamic, but not sub-second. The
+[BGP+BFD companion](/mikrotik-ipv6-failover-bgp-bfd/) adds fast failure
+detection to this same session.
+
+<Rationale>
+BGP gives the VPS one explicit route for the whole home prefix and gives
+the MikroTik one explicit default route, while `AllowedIPs` stays broad
+enough for WireGuard's cryptokey checks.
+</Rationale>
+
+## 4. VPS — WireGuard relay and BGP
+
+Assumes a minimal Ubuntu install — nothing layered on top, no host firewall
+yet. `bird` listens on TCP/179 wildcard (one listener per address family,
+shared across all `bgp` protocol blocks; `local <addr>` only constrains
+source dispatch, not the listener bind), so leaving the box unfirewalled
+puts a BGP parser on the public internet. The nftables ruleset below
+restricts TCP/179 to `wg0` while keeping SSH, WireGuard, and ICMP reachable.
+
+```bash title="VPS wg0 + bird2 BGP + nftables"
+set -e
+apt-get update -qq
+apt-get install -y -qq wireguard bird2 nftables
+
+cat >/etc/sysctl.d/99-wg-relay.conf <<'EOF'
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.default.forwarding = 1
+net.ipv6.conf.<VPS_NIC>.accept_ra = 2
+EOF
+sysctl --system >/dev/null
+
+umask 077
+mkdir -p /etc/wireguard
+wg genkey | tee /etc/wireguard/server.key | wg pubkey > /etc/wireguard/server.pub
+VPS_PRIVKEY=$(cat /etc/wireguard/server.key)
+
+cat >/etc/wireguard/wg0.conf <<EOF
+[Interface]
+PrivateKey = ${VPS_PRIVKEY}
+Address    = <LAN_PREFIX>:0::1/64, fe80::1/64
+ListenPort = 51820
+MTU        = 1420
+Table      = off
+
+[Peer]
+PublicKey  = <MT_PUBKEY>
+# Authorize the tunnel peer and LAN prefix. Table=off keeps this from
+# becoming a Linux route; bird installs the kernel route learned by BGP.
+AllowedIPs = <LAN_PREFIX>:0::2/128, <LAN_PREFIX>::/48
+PersistentKeepalive = 25
+EOF
+
+systemctl enable --now wg-quick@wg0
+echo "VPS public key: $(cat /etc/wireguard/server.pub)"
+
+cat >/etc/nftables.conf <<'EOF'
+#!/usr/sbin/nft -f
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter; policy drop;
+
+    ct state established,related accept
+    ct state invalid drop
+    iif lo accept
+    meta l4proto { icmp, icmpv6 } accept
+
+    tcp dport 22 accept                       # SSH
+    udp dport 51820 accept                    # WireGuard
+    iifname "wg0" tcp dport 179 accept        # BGP from MikroTik, wg0 only
+  }
+
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+
+    ct state established,related accept
+    iifname "wg0" accept                      # LAN -> internet via VPS
+    oifname "wg0" accept                      # internet -> LAN return
+  }
+
+  chain output {
+    type filter hook output priority filter; policy accept;
+  }
+}
+EOF
+systemctl enable --now nftables
+
+mkdir -p /etc/bird
+cat >/etc/bird/bird.conf <<'EOF'
+log syslog all;
+router id <VPS_ROUTER_ID>;
+
+protocol device { }
+
+protocol direct {
+  ipv6;
+  interface "wg0";
+}
+
+protocol kernel kernel6 {
+  metric 32;
+  ipv6 {
+    # Learn only the VPS default route from Linux. Do not import the
+    # provider's connected <LAN_PREFIX>::/48 from the public NIC; the
+    # MikroTik will advertise the home aggregate over BGP.
+    import filter {
+      if net = ::/0 then accept;
+      reject;
+    };
+
+    # Install the BGP-learned home aggregate into the VPS kernel table.
+    export filter {
+      if net = <LAN_PREFIX>::/48 then accept;
+      reject;
+    };
+  };
+  learn yes;
+}
+
+protocol bgp mikrotik {
+  local <LAN_PREFIX>:0::1 as <VPS_AS>;
+  neighbor <LAN_PREFIX>:0::2 as <MT_AS>;
+
+  ipv6 {
+    import filter {
+      if net = <LAN_PREFIX>::/48 then accept;
+      reject;
+    };
+
+    export filter {
+      if net = ::/0 then accept;
+      reject;
+    };
+
+    next hop self;
+  };
+}
+EOF
+chown -R bird:bird /etc/bird
+systemctl enable --now bird
+```
+
+## 5. MikroTik — WireGuard client, BGP, and main-LAN IPv6
+
+The MikroTik side has two jobs: advertise the home aggregate back to the VPS,
+and learn the IPv6 default route from the VPS. This keeps WireGuard as
+transport and BGP as routing intent. The companion post
+[Fast IPv6 failover on RouterOS](/mikrotik-ipv6-failover-bgp-bfd/)
+adds BFD for faster failure detection if normal BGP liveness is not fast enough.
+
+```bash title="MikroTik WireGuard + main LAN IPv6"
+/interface/wireguard add name=wg-host listen-port=51820 mtu=1420
+/interface/wireguard/peers add interface=wg-host name=vps \
+    public-key="<VPS_PUBKEY>" \
+    endpoint-address=<VPS_IP> endpoint-port=51820 \
+    allowed-address=::/0 \
+    persistent-keepalive=25s
+
+/ipv6/address add address=<LAN_PREFIX>:0::2/64 interface=wg-host advertise=no
+/ipv6/address add address=<LAN_PREFIX>:1::1/64 interface=bridge advertise=yes
+/ipv6/address add address=<ULA_PREFIX>:1::1/64 interface=bridge advertise=yes comment="LAN ULA"
+
+/ipv6/route add dst-address=<LAN_PREFIX>::/48 blackhole distance=254 \
+    comment="aggregate-for-bgp"
+
+/ipv6/firewall/address-list add list=bgp-networks-vps \
+    address=<LAN_PREFIX>::/48 comment="aggregate to VPS"
+
+/routing/filter/rule add chain=bgp-in-vps \
+    rule="if (dst == ::/0) { accept } reject"
+/routing/filter/rule add chain=bgp-out-vps \
+    rule="if (dst == <LAN_PREFIX>::/48) { accept } reject"
+
+/routing/bgp/instance add name=default-bgp as=<MT_AS> router-id=<MT_ROUTER_ID>
+/routing/bgp/template add name=tpl-host as=<MT_AS>
+/routing/bgp/connection add name=host-vps instance=default-bgp \
+    remote.address=<LAN_PREFIX>:0::1 remote.as=<VPS_AS> \
+    local.address=<LAN_PREFIX>:0::2 local.role=ebgp \
+    templates=tpl-host afi=ipv6 \
+    input.filter=bgp-in-vps \
+    output.network=bgp-networks-vps output.filter-chain=bgp-out-vps
+```
+
+No new MikroTik input rule is needed here. The BGP session is initiated
+outbound from the MikroTik on TCP/179, so the return traffic is accepted by
+the defconf `established,related,untracked` rule. ICMPv6 over the tunnel is
+already covered by the defconf accept-ICMPv6 rule.
+
+## 6. Per-VLAN addresses and RA RDNSS
+
+Each VLAN gets a GUA from the /48 and a stable ULA from the locally-generated
+`fd…` prefix. RA RDNSS uses `advertise-dns=self`, so the router advertises the
+address it holds on the interface rather than a hardcoded one — the DNS
+companion post explains why that survives a renumber and how the ULA stays
+the memorized resolver.
+
+```bash title="GUA + ULA + RDNSS per VLAN"
+/ipv6/address
+add interface=vlan-iot   address=<LAN_PREFIX>:10::1/64 advertise=yes comment="IOT GUA"
+add interface=vlan-iot   address=<ULA_PREFIX>:10::1/64 advertise=yes comment="IOT ULA"
+add interface=vlan-guest address=<LAN_PREFIX>:20::1/64 advertise=yes comment="GUEST GUA"
+add interface=vlan-guest address=<ULA_PREFIX>:20::1/64 advertise=yes comment="GUEST ULA"
+
+/ipv6/nd
+add interface=bridge     advertise-dns=self managed-address-configuration=no other-configuration=no
+add interface=vlan-iot   advertise-dns=self managed-address-configuration=no other-configuration=no
+add interface=vlan-guest advertise-dns=self managed-address-configuration=no other-configuration=no
+```
+
+The [index §5 ULA-only update](/mikrotik-home-network/#5-keeping-streaming-off-the-routable-ipv6-path)
+adds a ULA-only VLAN&nbsp;30 and strips the Guest GUA. Apply it after this
+section if you want the main client SSID off the metered tunnel.
+
+## 7. IPv6 firewall and anti-spoofing
+
+Mirror the IPv4 isolation in IPv6, then drop traffic whose source prefix does
+not belong on the ingress VLAN. SLAAC makes prefix forgery trivially cheap;
+the address-list filters make it not work.
+
+```bash title="IPv6 isolation + anti-spoof"
+/ipv6/firewall/filter
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=547 comment="IOT: DHCPv6"
+add chain=input action=accept in-interface=vlan-iot   protocol=udp dst-port=53  comment="IOT: DNSv6"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=547 comment="GUEST: DHCPv6"
+add chain=input action=accept in-interface=vlan-guest protocol=udp dst-port=53  comment="GUEST: DNSv6"
+
+add chain=forward action=drop in-interface=vlan-iot   out-interface=bridge   connection-state=new comment="IOT !-> LAN (v6)"
+add chain=forward action=drop in-interface=vlan-guest out-interface=bridge   connection-state=new comment="GUEST !-> LAN (v6)"
+add chain=forward action=drop in-interface=vlan-guest out-interface=vlan-iot connection-state=new comment="GUEST !-> IOT (v6)"
+
+/ipv6/firewall/address-list
+add list=lan-legit   address=<LAN_PREFIX>:1::/64
+add list=lan-legit   address=<ULA_PREFIX>:1::/64
+add list=lan-legit   address=fe80::/10
+add list=iot-legit   address=<LAN_PREFIX>:10::/64
+add list=iot-legit   address=<ULA_PREFIX>:10::/64
+add list=iot-legit   address=fe80::/10
+add list=guest-legit address=<LAN_PREFIX>:20::/64
+add list=guest-legit address=<ULA_PREFIX>:20::/64
+add list=guest-legit address=fe80::/10
+
+/ipv6/firewall/filter
+add chain=forward action=drop in-interface=bridge     src-address-list=!lan-legit   comment="LAN: anti-spoof"
+add chain=forward action=drop in-interface=vlan-iot   src-address-list=!iot-legit   comment="IOT: anti-spoof"
+add chain=forward action=drop in-interface=vlan-guest src-address-list=!guest-legit comment="GUEST: anti-spoof"
+```
+
+## 8. End-to-end verification
+
+The build has enough moving parts that it is worth testing each layer
+independently before declaring victory. The path-agnostic check is at the
+[index §7](/mikrotik-home-network/#7-verification-path-agnostic); below is
+what proves the VPS path specifically.
+
+```bash title="Smoke tests"
+# VLAN clients (wired, on each SSID)
+ip -4 addr show
+ping 1.1.1.1
+ping 192.168.88.1                          # MUST fail from IoT and Guest
+nslookup cloudflare.com 192.168.89.1
+
+# IPv6 path
+wg show                                    # on VPS: handshake < 3 min
+ping6 -c 2 <LAN_PREFIX>:0::2               # VPS -> MikroTik WG endpoint
+birdc show route <LAN_PREFIX>::/48         # VPS: BGP-learned return route
+ip -6 route show <LAN_PREFIX>::/48         # VPS: proto bird, metric 32, dev wg0
+/routing/bgp/session/print                 # MikroTik: established
+ip -6 route get <client-IPv6-addr>         # on VPS: expect "dev wg0"
+curl -6 -s https://test-ipv6.run/          # client: page returns over v6
+
+# DNS
+dig @<ULA_PREFIX>:1::1 cloudflare.com
+scutil --dns | grep -i 'nameserver\['      # macOS: expect the ULA
+```
+
+## A. Appendix — Cost and provider notes
+
+The IPv6 leg is the only recurring cost in this path, and it depends entirely
+on whether the VPS provider routes a prefix to the instance or only hands out
+an on-link /64. Providers known to route prefixes (verify on your specific
+plan): WebHorizon&nbsp;SG (/48), Hetzner Cloud (/64 effectively routed via
+NDP-proxy), Linode/Akamai (/64 default, /56 on request), Oracle Cloud (/56).
+
+| Line item            | On-link /64 (e.g. Vultr) | Routed /48 (this build)     |
+| -------------------- | ------------------------ | --------------------------- |
+| VPS plan             | `$5 / mo`                | `$3 / mo (routed /48, 1 TB)`|
+| Reserved IPv6 fee    | `$3 / mo`                | `$0`                        |
+| Bandwidth overage    | `$0.01 / GB`             | `$0.0025 / GB`              |
+| LAN address space    | `one /64`                | `/48 — 65 k /64s`           |
+| Extra daemon on VPS  | `ndppd`                  | `none`                      |
+| Fixed total          | `$8 / mo`                | `$3 / mo`                   |
+
+The metered 1&nbsp;TB cap is what motivates the
+[index §5 ULA-only update](/mikrotik-home-network/#5-keeping-streaming-off-the-routable-ipv6-path) —
+without it, streaming on the main SSID burns through the cap for no reason.
+
+## Glossary
+
+| Acronym   | Expansion                                  | Reference                                                                         |
+| --------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
+| AS / ASN  | Autonomous system (number)                 | [RFC&nbsp;1930](https://datatracker.ietf.org/doc/html/rfc1930)                    |
+| BFD       | Bidirectional Forwarding Detection         | [RFC&nbsp;5880](https://datatracker.ietf.org/doc/html/rfc5880)                    |
+| BGP       | Border Gateway Protocol                    | [RFC&nbsp;4271](https://datatracker.ietf.org/doc/html/rfc4271)                    |
+| GRE       | Generic Routing Encapsulation              | [RFC&nbsp;2784](https://datatracker.ietf.org/doc/html/rfc2784)                    |
+| IKEv2     | Internet Key Exchange v2                   | [RFC&nbsp;7296](https://datatracker.ietf.org/doc/html/rfc7296)                    |
+| IPsec     | Internet Protocol Security                 | [RFC&nbsp;4301](https://datatracker.ietf.org/doc/html/rfc4301)                    |
+| NDP       | Neighbor Discovery Protocol                | [RFC&nbsp;4861](https://datatracker.ietf.org/doc/html/rfc4861)                    |
+| OpenVPN   | OpenVPN tunnel daemon                      | [Wikipedia](https://en.wikipedia.org/wiki/OpenVPN)                                |
+| SA        | Security association (IPsec)               | [RFC&nbsp;4301](https://datatracker.ietf.org/doc/html/rfc4301)                    |
+| WAN       | Wide area network                          | [Wikipedia](https://en.wikipedia.org/wiki/Wide_area_network)                      |
+
+Series-wide acronyms (CGNAT, DoH, GUA, RA, RDNSS, SLAAC, ULA, VLAN, VPS,
+WireGuard) live in the [index glossary](/mikrotik-home-network/#glossary).
+
+## B. References
+- [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
+- [RB5009 CGNAT series index](/mikrotik-home-network/)
+- [Sibling path — Route64 /56, no VPS](/route64-ipv6-cgnat-mikrotik/)
+- [Fast IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post](/mikrotik-ipv6-failover-bgp-bfd/)
+- [Vultr / on-link /64 variant — when the VPS does not route a prefix](https://gist.github.com/marfillaster/a80d378124db0d879a962ce73d31b345)
+- [WireGuard paper — Cryptokey Routing](https://www.wireguard.com/papers/wireguard.pdf)
+- [BIRD 2.18 User's Guide — Kernel protocol](https://bird.nic.cz/doc/bird-2.18.html)
+- [RouterOS `/routing/bgp` reference](https://help.mikrotik.com/docs/spaces/ROS/pages/331612228/routing%20bgp)

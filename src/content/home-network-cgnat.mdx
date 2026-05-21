@@ -1,0 +1,357 @@
+<SeriesNav current="start" />
+
+## Overview
+A journal of building a small, opinionated home network on a single MikroTik
+RB5009 behind residential fiber that uses carrier-grade NAT — a dynamic IPv4
+address with no inbound reachability and no usable IPv6. The goals are
+pedestrian: keep IoT and guests off the trusted LAN, and have real IPv6 so the
+network stays useful as the rest of the internet finishes the v6 migration.
+
+The build is two layers, in install order. **Layer&nbsp;1** splits the LAN
+into VLANs — its own paste-ready companion post,
+[Trusted, IoT, and Guest VLANs on a MikroTik RB5009](/mikrotik-vlan-guest-iot/);
+the rest of the series assumes it has been applied. **Layer&nbsp;2** recovers
+real, routable IPv6 over the CGNAT'd line. There are two equal ways to do
+that, and the choice between them is the load-bearing decision in this build:
+
+- **[Routed IPv6 over CGNAT via a VPS](/vps-ipv6-cgnat-mikrotik/)** — a
+  $3/month VPS that routes a /48 to its instance, a WireGuard tunnel from
+  the RB5009, and eBGP between them. You operate the endpoint.
+- **[Routed IPv6 over CGNAT via Route64](/route64-ipv6-cgnat-mikrotik/)** —
+  the free [Route64](https://route64.org/) broker routes a /56 over
+  WireGuard. Nothing to operate; a single broker-managed uplink.
+
+Both yield real, routable IPv6 carried over the same WireGuard transport.
+The path-choice matrix in §3 lays out the trade-offs side by side; everything
+else in this series — VLANs, DNS, per-VLAN address plan, the §5 ULA-only
+update — is identical either way. Nothing depends on a specific fiber brand:
+only that outbound UDP works.
+
+This is the index post. The numbered sections that follow are the path-
+agnostic scaffolding both routes share. Companion posts cover what stands
+alone: encrypted DNS with a stable resolver address
+([here](/encrypted-dns-stable-resolver-mikrotik/), needs no IPv6 uplink), the
+UniFi controller running on this same router
+([here](/unifi-controller-routeros-containers-mikrotik/)), and fast IPv6
+failover with BGP&nbsp;+&nbsp;BFD
+([here](/mikrotik-ipv6-failover-bgp-bfd/), VPS path only). References point
+at the original gists.
+
+## Design decisions
+
+Two choices are load-bearing enough that a reader substituting parts will
+want a sentence of justification.
+
+**WireGuard** carries the IPv6 transport because residential CGNAT only
+guarantees outbound UDP, and WireGuard needs nothing more than that. Both
+endpoints (RouterOS&nbsp;v7 and the relay — Linux for the VPS path, the
+Route64 PoP for the broker path) speak it with a single config primitive on
+each side; there is no daemon to babysit, no negotiation, and no MTU
+two-stepping with an underlying IPsec SA. IPsec/IKEv2, GRE+IPsec, or
+OpenVPN would all work; each adds operational surface this build does not
+need to pay for. The same is true of Hurricane Electric's 6in4 — its IP
+protocol&nbsp;41 has no UDP/TCP ports for a carrier's NAT44 to track and is
+dropped behind CGNAT (verified on the live line).
+
+**VPS and Route64 are equal paths, not primary and fallback.** The reader
+picks one based on the trade-offs in §3 and follows that post end-to-end;
+everything else in the series is identical either way. Treating them as
+peers is the structural reason this index exists in the first place — the
+old single-post shape buried Route64 in a footnote and overstated the VPS
+path's defaults.
+
+## 1. Topology
+
+```ascii
+                       Internet (IPv4 + IPv6)
+                              │
+                ┌─────────────┴─────────────┐
+                │   IPv6 relay (one of):    │
+                │   • VPS — routes /48      │
+                │   • Route64 PoP — /56     │
+                └─────────────┬─────────────┘
+                              │ WireGuard / outbound UDP
+                              │ (only IPv6 transits the tunnel)
+                ┌─────────────┴─────────────┐
+                │   Converge fiber + CGNAT  │
+                │   (IPv4 outbound only)    │
+                └─────────────┬─────────────┘
+                              │
+                ┌─────────────┴─────────────┐
+                │  MikroTik RB5009 — edge   │
+                │  • DHCPv4 + RA + RDNSS    │
+                │  • DoH resolver           │
+                │  • WireGuard client       │
+                │  • path-specific routing  │
+                └──┬──────────┬──────────┬──┘
+                   │          │          │
+        ether2/3 (trunks)  ether4/5 (LAN-only access)
+                   │
+        ┌──────────┴──────────┐
+        │  UniFi 6 APs ×2     │
+        │  untagged = mgmt    │
+        │  tag 10 = IoT SSID  │
+        │  tag 20 = Guest SSID│
+        │  tag 30 = trusted   │
+        └──────────┬──────────┘
+                   │
+       LAN 1   IoT 10   Guest 20   Trusted 30 (§5)
+   192.168.88/24  .89/24  .90/24      .91/24
+```
+
+One box does everything the LAN side needs. The RB5009 terminates the WAN,
+runs DHCPv4 and IPv6 RA, runs DoH outbound, hosts the WireGuard client
+toward whichever relay you chose, and exchanges routing intent with it
+(eBGP for the VPS path, static default for Route64). Two UniFi 6 APs hang
+off bridge ports configured as hybrid trunks: untagged frames carry AP
+management on the main LAN, tagged frames carry IoT, Guest, and the §5
+trusted SSID traffic.
+
+<Rationale>
+One always-on device is enough — the UniFi controller runs on this same
+RB5009 as RouterOS containers (no second box, no second attack surface):
+[companion post](/unifi-controller-routeros-containers-mikrotik/).
+</Rationale>
+
+#### Address plan (abstract)
+
+| VLAN    | Tagging      | Role                | IPv4              | IPv6 (per path)         |
+| ------- | ------------ | ------------------- | ----------------- | ----------------------- |
+| VLAN 1  | untagged     | main LAN, AP mgmt   | `192.168.88.0/24` | `<prefix>:1::/64`       |
+| VLAN 10 | tagged       | IoT SSID            | `192.168.89.0/24` | `<prefix>:10::/64`      |
+| VLAN 20 | tagged       | Guest SSID          | `192.168.90.0/24` | `<prefix>:20::/64`      |
+| VLAN 30 | tagged       | Trusted, ULA-only   | `192.168.91.0/24` | `<ULA>:30::/64` *(§5)*  |
+| —       | WG transport | RB5009 ↔ relay      | n/a               | path-specific           |
+
+Each VLAN is a separate L3 boundary at the router. The IoT and Guest VLANs
+reuse their VLAN numbers as the IPv6 slice ID (`:10::/64`, `:20::/64`) so
+the mapping stays obvious in tcpdump. The `<prefix>` placeholder is
+concrete in each path post:
+
+- VPS path uses `<LAN_PREFIX>` — a /48 dropping trailing zeros, e.g.
+  `2001:db8`, so `<LAN_PREFIX>:1::/64` expands to `2001:db8:0:1::/64`.
+- Route64 path uses `<R64_56>` — the part of the /56 before its subnet
+  byte, e.g. `2001:db8:abcd:c0`, so `<R64_56>01::1/64` expands to
+  `2001:db8:abcd:c001::1/64`.
+
+## 2. Shared conventions
+
+Every snippet in this series uses angle-bracketed placeholders. Substitute
+them before pasting; everything else is literal RouterOS or bash. The
+placeholders below are the path-agnostic ones — each path post lists its
+own additions (relay address, public keys, ASN, etc.).
+
+| Placeholder       | Meaning                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `<ULA_PREFIX>`    | Locally-generated ULA. `python3 -c 'import secrets; print(f"fd{secrets.token_hex(5)}")'`.        |
+
+Documentation prefixes from RFC&nbsp;3849 (`2001:db8::/32`) and RFC&nbsp;4193
+(`fd00::/8`) work as stand-ins while testing. Snippets assume the defconf
+bridge name `bridge` and ports `ether2`–`ether5`; rename the interfaces where
+they appear.
+
+## 3. Pick a path: VPS-routed /48 or Route64 /56
+
+Both paths recover routable IPv6 over the same WireGuard transport. They are
+peers, not primary and fallback. Pick on the trade-offs that matter to you:
+
+| | **[VPS path](/vps-ipv6-cgnat-mikrotik/)** | **[Route64 path](/route64-ipv6-cgnat-mikrotik/)** |
+| --- | --- | --- |
+| **Operator**            | You              | Route64 broker          |
+| **Prefix delegated**    | /48 (65 k /64s)  | /56 (256 /64s)          |
+| **Recurring cost**      | $3 / mo          | Free                    |
+| **Transport**           | WireGuard / UDP  | WireGuard / UDP         |
+| **Routing primitive**   | eBGP (you control the AS) | Static default     |
+| **SLA**                 | Yours to define  | None — see Route64 ToS  |
+| **Datacenter ASN egress** | Yes — flagged by streaming apps | Yes — same flag |
+| **Inbound services on the GUA** | Practical (your firewall, your prefix) | Not advised (broker policy) |
+| **Failover companion**  | [BGP+BFD post](/mikrotik-ipv6-failover-bgp-bfd/) layers on the BGP session | n/a — single uplink, fast fail-to-IPv4 inside the post |
+| **Single uplink risk**  | Mitigated by failover post | By design — fails fast to IPv4 |
+
+Everything else in this series — VLANs, DNS, per-VLAN address plan, the
+§5 ULA-only update below — is identical either way.
+
+## 4. LAN segmentation comes first
+
+Layer 1 — main LAN on VLAN&nbsp;1 untagged, IoT and Guest on tagged VLANs 10
+and 20 sharing the AP uplinks, each its own L3 boundary with per-VLAN DHCP and
+east-west isolation in the `forward` chain — is paste-ready in full in its own
+post:
+[Trusted, IoT, and Guest VLANs on a MikroTik RB5009](/mikrotik-vlan-guest-iot/)
+(bridge VLAN table, L3 gateways, DHCP scopes, input/forward firewall, and the
+hybrid-trunk rationale).
+
+**The chosen path post assumes this has been applied** — specifically the
+`vlan-iot` and `vlan-guest` interfaces and the bridge VLAN table it creates.
+The IPv6 layer simply adds a global and ULA prefix to those same interfaces.
+
+## 5. Keeping streaming off the routable-IPv6 path
+
+*Added May 16, 2026. Running the build surfaced a failure mode the original
+design did not anticipate. The mechanism is path-agnostic; the motivation
+applies to both paths, with one extra cost on the VPS path.*
+
+Every routable-IPv6 packet from the house egresses a datacenter ASN — the
+VPS's, or Route64's PoP. That breaks two things:
+
+1. **Streaming apps flag the datacenter range as a VPN.** Happy&nbsp;Eyeballs
+   (RFC&nbsp;8305) reaches for the flagged IPv6 path *before* the perfectly
+   good native IPv4, so video stalls or refuses. *This applies to both
+   paths.*
+2. **VPS path only:** the high-bitrate video burns the VPS's metered 1&nbsp;TB
+   cap (see the VPS post's cost appendix) for no reason. Route64 has no
+   equivalent cap; it has a ToS.
+
+The fix is the same either way: not every trusted device needs global IPv6.
+Give a VLAN a **ULA but no GUA** — with no global address there is no global
+v6 route at all, so the client uses native ISP IPv4 for anything
+internet-facing while the ULA still carries router DNS (RA RDNSS) and
+on-link v6. This is failsafe by construction — the *absence of a route*, not
+a firewall rule something could slip past — and the per-VLAN anti-spoof list
+each path post defines enforces it. Dropping the GUA's forward path in the
+firewall instead would not work: the client would still autoconfigure a GUA,
+still prefer it per Happy&nbsp;Eyeballs, and stall for the fallback timeout
+on every new connection. Removing the GUA means there is nothing to fall
+back from.
+
+### 5.1 A ULA-only trusted VLAN
+
+VLAN&nbsp;30 is a normal trusted VLAN — `LAN` interface-list membership is the
+only thing "trusted" means here — with exactly one difference from
+VLAN&nbsp;1: no GUA is assigned, so there is no global v6 route to leave on.
+
+```bash title="VLAN 30 — trusted, ULA-only"
+/interface/vlan add interface=bridge name=vlan30 vlan-id=30
+/interface/bridge/vlan add bridge=bridge vlan-ids=30 \
+  tagged=bridge,ether2,ether3 comment="VLAN30 trusted, tagged to APs"
+
+/ip/address add address=192.168.91.1/24 interface=vlan30
+/ip/pool add name=vlan30-pool ranges=192.168.91.100-192.168.91.200
+/ip/dhcp-server add name=vlan30-dhcp interface=vlan30 address-pool=vlan30-pool lease-time=1d
+/ip/dhcp-server/network add address=192.168.91.0/24 gateway=192.168.91.1 dns-none=yes
+
+/interface/list/member add list=LAN interface=vlan30
+
+# ULA only — deliberately no GUA from the routed prefix.
+/ipv6/address add interface=vlan30 address=<ULA_PREFIX>:30::1/64 advertise=yes comment="VLAN30 ULA"
+/ipv6/nd add interface=vlan30 advertise-dns=self \
+  managed-address-configuration=no other-configuration=no
+
+/ipv6/firewall/address-list
+add list=vlan30-legit address=<ULA_PREFIX>:30::/64
+add list=vlan30-legit address=fe80::/10
+/ipv6/firewall/filter add chain=forward action=drop in-interface=vlan30 \
+  src-address-list=!vlan30-legit comment="VLAN30: anti-spoof"
+```
+
+*The DNS lines (`dns-none=yes`, `advertise-dns=self`) are the standard
+RDNSS posture from the
+[DNS companion post](/encrypted-dns-stable-resolver-mikrotik/). One detail
+is VLAN&nbsp;30-specific: its RA omits the `mtu=1420` clamp the
+tunnel-bound VLANs carry, because VLAN&nbsp;30's v6 never reaches a tunnel
+and clamping would only shrink local traffic for nothing.*
+
+Move the main client SSID onto VLAN&nbsp;30 in the controller, leaving
+VLAN&nbsp;1 for the few devices that genuinely want global v6. Guest
+(VLAN&nbsp;20) gets the same treatment — it never needed routable
+reachability — so drop its GUA and the matching `guest-legit` entry from
+your path post's anti-spoof list:
+
+```bash title="Strip the Guest GUA too"
+/ipv6/address remove [find comment="GUEST GUA"]
+# also remove the matching guest-legit entry your path post defined
+```
+
+IoT (VLAN&nbsp;10) keeps its GUA: its handful of outbound v6 flows are
+negligible against any cap, and some devices behave better with working v6
+than with a half-deprecated one.
+
+### 5.2 The cutover gotcha
+
+A device associated at the moment its SSID's VLAN changes keeps the *old*
+VLAN's SLAAC addresses until their lifetimes expire — RouterOS defaults to a
+one-week preferred / four-week valid lifetime. For up to a week those devices
+still prefer the old GUA, the new VLAN's anti-spoof rule drops it (its drop
+counter is exactly that retried traffic being contained — nothing leaks), and
+they fall back to IPv4 with a brief Happy-Eyeballs delay. There is no
+router-side fix — a prefix can only be retracted on the link the client has
+already left. The one effective cleanup is a single Wi-Fi reconnect or reboot
+of each moved device: on re-association it rebuilds its address set and the
+stale prefix is never recreated.
+
+*Net effect: streaming and other high-bitrate traffic from the main SSID
+rides native ISP IPv4 — no datacenter ASN, no VPN flag, no metered GB —
+while DNS, on-link IPv6, and the trusted-LAN posture are unchanged. The
+routable-IPv6 path goes back to doing what it is actually for: giving the
+devices that want it real, routable IPv6.*
+
+## 6. Encrypted DNS with stable resolver addresses
+
+Upstream DNS leaves through Cloudflare DoH; downstream, the router is the
+resolver and advertises itself via RA RDNSS at a ULA, so SLAAC prefix churn
+never moves the memorized DNS server. This piece is independent of the IPv6
+uplink (the ULA is local; DoH egresses over IPv4), so it is paste-ready in
+full in its own post:
+[Encrypted DNS with a stable resolver address on RouterOS](/encrypted-dns-stable-resolver-mikrotik/)
+(DoH bootstrap pins, LAN ULA and `router.lan` record, `advertise-dns=self`,
+the uniform `dns-none=yes` posture, verification).
+
+<Rationale>
+One coupling is unique to *this* combined build: the DoH bootstrap must be
+pinned A-only, because a client's first query must not ride the IPv6 path —
+that path only comes up after the WireGuard tunnel handshakes (and, on the
+VPS path with the
+[failover companion](/mikrotik-ipv6-failover-bgp-bfd/), after BFD
+converges).
+</Rationale>
+
+## 7. Verification (path-agnostic)
+
+Each path post carries its own end-to-end checks (BGP session state and
+relay-side route tables for the VPS path; tunnel handshake and netwatch
+state for Route64). The path-agnostic check is one line — run it from a LAN
+client after building either path:
+
+```bash
+curl -6 -s https://test-ipv6.run/ | head
+```
+
+A clean score (or a returned page over v6 at all) means the address plan,
+the WireGuard tunnel, and the per-VLAN GUA all work together. Anything less
+than that, drop into the path post's verification block to see which layer
+is failing.
+
+## Glossary
+
+| Acronym   | Expansion                                  | Reference                                                                         |
+| --------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
+| AP        | Wireless access point                      | [Wikipedia](https://en.wikipedia.org/wiki/Wireless_access_point)                  |
+| CGNAT     | Carrier-grade NAT                          | [Wikipedia](https://en.wikipedia.org/wiki/Carrier-grade_NAT)                      |
+| DHCP      | Dynamic Host Configuration Protocol        | [RFC&nbsp;2131](https://datatracker.ietf.org/doc/html/rfc2131)                    |
+| DoH       | DNS over HTTPS                             | [RFC&nbsp;8484](https://datatracker.ietf.org/doc/html/rfc8484)                    |
+| GUA       | Global unicast address                     | [RFC&nbsp;4291](https://datatracker.ietf.org/doc/html/rfc4291)                    |
+| IoT       | Internet of Things                         | [Wikipedia](https://en.wikipedia.org/wiki/Internet_of_things)                     |
+| ISP       | Internet service provider                  | [Wikipedia](https://en.wikipedia.org/wiki/Internet_service_provider)              |
+| LAN       | Local area network                         | [Wikipedia](https://en.wikipedia.org/wiki/Local_area_network)                     |
+| MTU       | Maximum transmission unit                  | [Wikipedia](https://en.wikipedia.org/wiki/Maximum_transmission_unit)              |
+| NAT       | Network address translation                | [Wikipedia](https://en.wikipedia.org/wiki/Network_address_translation)            |
+| RA        | Router advertisement                       | [RFC&nbsp;4861](https://datatracker.ietf.org/doc/html/rfc4861)                    |
+| RDNSS     | Recursive DNS Server option in RA          | [RFC&nbsp;8106](https://datatracker.ietf.org/doc/html/rfc8106)                    |
+| SLAAC     | Stateless address autoconfiguration        | [RFC&nbsp;4862](https://datatracker.ietf.org/doc/html/rfc4862)                    |
+| SSID      | Service set identifier (Wi-Fi)             | [Wikipedia](<https://en.wikipedia.org/wiki/Service_set_(802.11_network)>)         |
+| ULA       | Unique local address                       | [RFC&nbsp;4193](https://datatracker.ietf.org/doc/html/rfc4193)                    |
+| VLAN      | Virtual LAN                                | [Wikipedia](https://en.wikipedia.org/wiki/VLAN)                                   |
+| VPS       | Virtual private server                     | [Wikipedia](https://en.wikipedia.org/wiki/Virtual_private_server)                 |
+| WireGuard | WireGuard VPN                              | [wireguard.com](https://www.wireguard.com/)                                       |
+
+## References
+
+- [Trusted, IoT, and Guest VLANs on a MikroTik RB5009 — companion post](/mikrotik-vlan-guest-iot/)
+- [Routed IPv6 over CGNAT via a VPS — path post](/vps-ipv6-cgnat-mikrotik/)
+- [Routed IPv6 over CGNAT via Route64 — path post](/route64-ipv6-cgnat-mikrotik/)
+- [Encrypted DNS with a stable resolver address — companion post](/encrypted-dns-stable-resolver-mikrotik/)
+- [Fast IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post, VPS path only](/mikrotik-ipv6-failover-bgp-bfd/)
+- [UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
+- [RFC&nbsp;3849 — IPv6 address prefix reserved for documentation](https://datatracker.ietf.org/doc/html/rfc3849) (`2001:db8::/32`)
+- [RFC&nbsp;4193 — Unique Local IPv6 unicast addresses](https://datatracker.ietf.org/doc/html/rfc4193) (`fd00::/8`)
+- [RFC&nbsp;8305 — Happy Eyeballs v2](https://datatracker.ietf.org/doc/html/rfc8305) (why a flagged IPv6 path is tried before native IPv4, §5)

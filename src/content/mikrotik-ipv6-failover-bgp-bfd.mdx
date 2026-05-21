@@ -2,13 +2,14 @@
 
 ## Overview
 This is an optional enhancement to the
-[CGNAT build log](/mikrotik-home-network/), **which is a prerequisite** —
+[VPS path post](/vps-ipv6-cgnat-mikrotik/), **which is a prerequisite** —
 the WireGuard layer, the BGP session, the `/48` aggregate, and the learned
 `::/0` default route all come from there. Adding BFD to that same BGP session
 collapses dead-tunnel detection to about **700&nbsp;ms** instead of waiting
 for BGP hold-time expiry.
 
-This applies to the **VPS-routed /48 path only**. If you took the
+This applies to the **VPS path only** (one of the two paths in the
+[RB5009 CGNAT series](/mikrotik-home-network/)). If you took the
 [Route64 /56 path](/route64-ipv6-cgnat-mikrotik/) instead, skip this post:
 that path has no VPS to run bird2 on and ships its own netwatch-driven
 fail-to-IPv4 (Route64 post §7).
@@ -43,15 +44,15 @@ RA/SLAAC  = client addressing
 ```
 
 The three layers around it — including the `Table = off` + `AllowedIPs`
-cryptokey-routing rationale this depends on — are covered in the base
-post's [§4.1](/mikrotik-home-network/#41-return-routing-wireguard-authorizes-bgp-routes).
+cryptokey-routing rationale this depends on — are covered in the VPS
+post's [§3 Return routing](/vps-ipv6-cgnat-mikrotik/#3-return-routing-wireguard-authorizes-bgp-routes).
 This post adds only the BFD line and the two edits each side needs to
 turn it on.
 
 ## 1. Conventions and placeholders
-All placeholders are defined in the [CGNAT build's §2](/mikrotik-home-network/#2-conventions-and-placeholders)
+All placeholders are defined in the [VPS post's §2](/vps-ipv6-cgnat-mikrotik/#2-conventions-and-placeholders)
 — `<LAN_PREFIX>`, `<VPS_AS>` / `<MT_AS>`, `<VPS_ROUTER_ID>` / `<MT_ROUTER_ID>`,
-and the `wg-host` interface created in its §4.3. Substitute the same values
+and the `wg-host` interface created in its §5. Substitute the same values
 here before pasting.
 
 ## 2. VPS — add BFD to bird2 and nftables
@@ -156,7 +157,8 @@ A brief IPv6 miss and quick fallback to IPv4 — instead of waiting for BGP
 hold-time expiry — is the whole point of this change.
 
 ## References
-- [CGNAT build log — the WireGuard/VPS IPv6 layer this enhances](/mikrotik-home-network/)
+- [VPS path post — the WireGuard + BGP layer this enhances](/vps-ipv6-cgnat-mikrotik/)
+- [RB5009 CGNAT series index](/mikrotik-home-network/)
 - [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
 - [WireGuard paper — Cryptokey Routing](https://www.wireguard.com/papers/wireguard.pdf)
 - [BIRD 2.18 User's Guide — Kernel protocol](https://bird.nic.cz/doc/bird-2.18.html)

@@ -1,11 +1,12 @@
 <SeriesNav current="unifi" />
 
 ## Overview
-This is a companion to the [CGNAT build log](/mikrotik-home-network/). That
-post builds a segmented home LAN on a single MikroTik RB5009. This one runs
-the **UniFi Network Application and its MongoDB on the router itself**, as two
-RouterOS containers — so there is no second always-on box and no second attack
-surface to manage two UniFi 6 APs.
+This is a companion to the
+[RB5009 CGNAT series](/mikrotik-home-network/). That series builds a
+segmented home LAN on a single MikroTik RB5009. This post runs the
+**UniFi Network Application and its MongoDB on the router itself**, as two
+RouterOS containers — so there is no second always-on box and no second
+attack surface to manage two UniFi 6 APs.
 
 The controller runs as two containers — MongoDB and the UniFi Network
 Application — bridged onto the main LAN through veth interfaces. From the LAN
@@ -22,9 +23,8 @@ the rationale — the trade-off being made and why.
 This post starts where the segmentation post ends. You should already have:
 the `bridge` with VLAN filtering enabled, the main LAN on VLAN&nbsp;1
 (`192.168.88.0/24`, router at `192.168.88.1`), and the two UniFi 6 APs cabled
-to trunk ports. If you do not, build
-[section&nbsp;3 of the CGNAT post](/mikrotik-home-network/#3-lan-segmentation-comes-first)
-first. You also need a dedicated **64&nbsp;GB USB stick** for container
+to trunk ports. If you do not, build the
+[VLAN companion post](/mikrotik-vlan-guest-iot/) first. You also need a dedicated **64&nbsp;GB USB stick** for container
 storage and swap — its contents will be destroyed.
 
 ## 2. Conventions and placeholders
@@ -191,5 +191,5 @@ controller hostname via DHCP option&nbsp;43 / a DNS `unifi` record).
 
 ## References
 - [UniFi + MongoDB as RouterOS containers on the RB5009 — source gist](https://gist.github.com/marfillaster/9fa1a9571d4d93b2992977d33d99b1a9)
-- [CGNAT build log — VLANs, routed IPv6 over WireGuard, DoH](/mikrotik-home-network/)
+- [RB5009 CGNAT series index — VLANs, routable IPv6, DoH](/mikrotik-home-network/)
 - [linuxserver/unifi-network-application image](https://docs.linuxserver.io/images/docker-unifi-network-application/)
