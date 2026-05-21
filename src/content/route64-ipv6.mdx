@@ -254,18 +254,25 @@ within ~40&nbsp;s with no manual action.
 ## 11. Caveats
 - **Single uplink.** A Route64 outage is a full IPv6 outage; the network
   fails fast to IPv4 by design.
-- **No inbound services on the GUA.** Reachability depends on Route64's PoP
-  and ToS; treat the prefix as egress-grade. Anything you must reach from
-  outside belongs behind something you operate.
+- **No inbound services on the GUA.** Treat the prefix as egress-grade
+  because reachability is best-effort through a broker PoP — anything you
+  must reach from outside belongs behind something you operate. Route64's
+  ToS does not explicitly forbid running listeners, but it explicitly
+  disclaims service levels (§10), which is reason enough.
+- **Throughput cap.** Route64's [ToS §14](https://route64.org/en/tos)
+  documents "up to 200M throughput often more," extendable via donations.
+  Fine for general home egress; sized below modern fiber peak.
+- **No filesharing.** Route64's ToS §6 explicitly forbids "bittorent or
+  similar" filesharing over the tunnel. Run those over native IPv4.
 - **ULA addressing survives an outage; routed IPv6 does not.** Hosts keep
   their `<ULA_PREFIX>` addresses and same-VLAN/​on-link IPv6 (including the
   ULA DNS resolver) through a Route64 outage.
 - **/56, not /48.** 256 /64s — ample for a home's VLANs. A /48's 65k only
   matters if you sub-delegate at scale, which a home LAN does not.
-- **Free broker.** No SLA, no portal 2FA at time of writing, and use is
-  governed by Route64's [terms of service](https://route64.org/en/tos).
-  Acceptable for a home LAN's egress IPv6; weigh it for anything you care
-  about.
+- **Free broker.** No SLA (ToS §10), no portal 2FA at time of writing,
+  and use is governed by Route64's
+  [terms of service](https://route64.org/en/tos). Acceptable for a home
+  LAN's egress IPv6; weigh it for anything you care about.
 
 ## References
 - [Route64 tunnel broker](https://route64.org/) · [terms of service](https://route64.org/en/tos)
