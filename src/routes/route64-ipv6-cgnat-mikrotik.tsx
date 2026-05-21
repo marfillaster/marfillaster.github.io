@@ -80,18 +80,15 @@ export const meta: MetaFunction = () => [
 
 const navItems = [
   ["#overview", "Overview"],
-  ["#design-decisions", "Design"],
   ["#1-topology-and-what-you-need-first", "Topology"],
   ["#2-conventions-and-placeholders", "Conventions"],
   ["#3-route64-dashboard", "Dashboard"],
   ["#4-wireguard-client", "WireGuard"],
-  ["#5-native-per-vlan-ipv6-from-the-56", "Per-VLAN v6"],
-  ["#6-default-route--single-uplink", "Default route"],
-  ["#7-fast-fail-to-ipv4", "Fail to IPv4"],
-  ["#8-ipv6-firewall-and-anti-spoofing", "Firewall"],
-  ["#9-dyndns-hygiene-optional", "DynDNS"],
-  ["#10-verification", "Verify"],
-  ["#11-caveats", "Caveats"],
+  ["#5-default-route--single-uplink", "Default route"],
+  ["#6-fast-fail-to-ipv4", "Fail to IPv4"],
+  ["#7-dyndns-hygiene-optional", "DynDNS"],
+  ["#8-tunnel-side-verification", "Verify"],
+  ["#9-caveats", "Caveats"],
 ] as const;
 
 export default function Route64Ipv6() {

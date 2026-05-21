@@ -51,11 +51,22 @@ segmentation (Layer 1 foundation), encrypted DNS, UniFi controller on the
 router, fast IPv6 failover (BGP+BFD).
 _Avoid_: "sub-post", "appendix".
 
+**Per-VLAN IPv6**:
+The LAN-side configuration that gives each VLAN a GUA carved from the
+routed prefix, a stable ULA, and RA RDNSS, with anti-spoof enforcement
+on the IPv6 forward chain. Path-agnostic; lives in its own post at
+`/mikrotik-per-vlan-ipv6/`. Plumbs a working routable-IPv6 default route
+through to LAN clients.
+_Avoid_: "the IPv6 firewall step", "the GUA section", "LAN-side IPv6",
+"the per-VLAN GUA block".
+
 ## Relationships
 
 - The **index post** points to every **path post** and every **companion post**.
 - A **path post** points back to the **index post** for **shared scaffolding** and to **companion posts** for layers the build assumes.
+- A **path post** ends by pointing at **Per-VLAN IPv6** as the next step — the routable-IPv6 default route it produces is not user-visible until that step runs.
 - The two **path posts** are peers under the **equal paths** framing; they do not link to each other as primary/fallback, only as alternatives.
+- **Per-VLAN IPv6** is path-agnostic — it sits after either **path post** and consumes the routed prefix using local per-VLAN /64 placeholders, with a substitution table mapping back to each path's prefix notation.
 - The failover **companion post** extends the **VPS path** only (its BFD adds to the VPS path's BGP session); it is not relevant to the **Route64 path**.
 
 ## Flagged ambiguities

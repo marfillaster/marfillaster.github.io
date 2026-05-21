@@ -140,6 +140,12 @@ const SERIES: ReadonlyArray<{
     note: "Equal path B — broker-operated /56, free, single uplink",
   },
   {
+    slug: "per-vlan-ipv6",
+    href: "/mikrotik-per-vlan-ipv6/",
+    title: "Per-VLAN IPv6 on the RB5009",
+    note: "GUA + ULA + RDNSS per VLAN, isolation, anti-spoof — after either path",
+  },
+  {
     slug: "failover",
     href: "/mikrotik-ipv6-failover-bgp-bfd/",
     title: "Fast IPv6 failover",

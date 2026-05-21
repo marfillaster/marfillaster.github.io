@@ -9,6 +9,7 @@ export default [
   ),
   route("route64-ipv6-cgnat-mikrotik", "routes/route64-ipv6-cgnat-mikrotik.tsx"),
   route("vps-ipv6-cgnat-mikrotik", "routes/vps-ipv6-cgnat-mikrotik.tsx"),
+  route("mikrotik-per-vlan-ipv6", "routes/mikrotik-per-vlan-ipv6.tsx"),
   route(
     "unifi-controller-routeros-containers-mikrotik",
     "routes/unifi-controller-routeros-containers-mikrotik.tsx",

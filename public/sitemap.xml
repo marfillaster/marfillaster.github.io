@@ -17,7 +17,19 @@
   </url>
   <url>
     <loc>https://marfillaster.github.io/route64-ipv6-cgnat-mikrotik/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-05-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/</loc>
+    <lastmod>2026-05-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://marfillaster.github.io/mikrotik-per-vlan-ipv6/</loc>
+    <lastmod>2026-05-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -53,12 +65,12 @@
   </url>
   <url>
     <loc>https://marfillaster.github.io/mikrotik-home-network/</loc>
-    <lastmod>2026-05-15</lastmod>
+    <lastmod>2026-05-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://marfillaster.github.io/mikrotik-home-network/og.png</image:loc>
-      <image:title>Home network on residential CGNAT — RB5009 build log</image:title>
+      <image:title>A small home network behind CGNAT — RB5009 series index</image:title>
     </image:image>
   </url>
   <url>

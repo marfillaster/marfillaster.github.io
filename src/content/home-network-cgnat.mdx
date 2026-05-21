@@ -248,20 +248,26 @@ add list=vlan30-legit address=fe80::/10
 
 *The DNS lines (`dns-none=yes`, `advertise-dns=self`) are the standard
 RDNSS posture from the
-[DNS companion post](/encrypted-dns-stable-resolver-mikrotik/). One detail
-is VLAN&nbsp;30-specific: its RA omits the `mtu=1420` clamp the
-tunnel-bound VLANs carry, because VLAN&nbsp;30's v6 never reaches a tunnel
-and clamping would only shrink local traffic for nothing.*
+[DNS companion post](/encrypted-dns-stable-resolver-mikrotik/). VLAN&nbsp;30
+is on-link only: nothing here advertises an MTU clamp because the v6 never
+reaches a tunnel — PMTUD handles any oversized packet on the WireGuard
+interfaces transparently for the tunnel-bound VLANs.*
+
+The VLAN&nbsp;30 anti-spoof block above follows the same pattern as the
+[Per-VLAN IPv6 post](/mikrotik-per-vlan-ipv6/#4-anti-spoof) — one
+`*-legit` list per VLAN, listing the legitimate prefixes (here just the
+ULA and link-local since there is no GUA), then a forward-chain drop on
+anything outside the list.
 
 Move the main client SSID onto VLAN&nbsp;30 in the controller, leaving
 VLAN&nbsp;1 for the few devices that genuinely want global v6. Guest
 (VLAN&nbsp;20) gets the same treatment — it never needed routable
 reachability — so drop its GUA and the matching `guest-legit` entry from
-your path post's anti-spoof list:
+the Per-VLAN IPv6 post's anti-spoof list:
 
 ```bash title="Strip the Guest GUA too"
 /ipv6/address remove [find comment="GUEST GUA"]
-# also remove the matching guest-legit entry your path post defined
+/ipv6/firewall/address-list remove [find list=guest-legit address=<GUA_GUEST>::/64]
 ```
 
 IoT (VLAN&nbsp;10) keeps its GUA: its handful of outbound v6 flows are
@@ -361,6 +367,7 @@ the path post's verification block to see which layer is failing.
 - [Trusted, IoT, and Guest VLANs on a MikroTik RB5009 — companion post](/mikrotik-vlan-guest-iot/)
 - [Routed IPv6 over CGNAT via a VPS — path post](/vps-ipv6-cgnat-mikrotik/)
 - [Routed IPv6 over CGNAT via Route64 — path post](/route64-ipv6-cgnat-mikrotik/)
+- [Per-VLAN IPv6 on the RB5009 — the LAN-side step after either path](/mikrotik-per-vlan-ipv6/)
 - [Encrypted DNS with a stable resolver address — companion post](/encrypted-dns-stable-resolver-mikrotik/)
 - [Fast IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post, VPS path only](/mikrotik-ipv6-failover-bgp-bfd/)
 - [UniFi controller on the router itself — companion post](/unifi-controller-routeros-containers-mikrotik/)
