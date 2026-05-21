@@ -47,7 +47,7 @@ const sections = [
         eyebrow: "Series 3/6 · Build log · 2026-05",
         title: "Building a usable home network behind residential CGNAT",
         description:
-          "The overview, plus the VPS-routed /48 path to real IPv6 over WireGuard. Ties the VLAN, IPv6, and DNS layers together with a reproducible, paste-ready RB5009 build.",
+          "The overview, plus the VPS-routed /48 path to real IPv6 over WireGuard with BGP route exchange. Ties the VLAN, IPv6, and DNS layers together with a reproducible, paste-ready RB5009 build.",
       },
       {
         href: "/route64-ipv6-cgnat-mikrotik/",
@@ -59,9 +59,9 @@ const sections = [
       {
         href: "/mikrotik-ipv6-failover-bgp-bfd/",
         eyebrow: "Series 5/6 · Build log · 2026-05",
-        title: "Sub-second IPv6 failover on RouterOS",
+        title: "Fast IPv6 failover on RouterOS",
         description:
-          "Replace the static IPv6 default with a BGP route on a BFD-monitored WireGuard session — dead-tunnel detection from ~30 s down to ~600 ms. bird2 on the VPS, RouterOS v7 BGP/BFD, measured numbers. VPS path only.",
+          "Add BFD to the existing BGP session over WireGuard — BFD down in ~700 ms, default route withdrawn in ~1.5 s. bird2 on the VPS, RouterOS v7 BGP/BFD, measured numbers. VPS path only.",
       },
       {
         href: "/unifi-controller-routeros-containers-mikrotik/",

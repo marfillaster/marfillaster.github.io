@@ -135,7 +135,7 @@ const SERIES: ReadonlyArray<{
   {
     slug: "failover",
     href: "/mikrotik-ipv6-failover-bgp-bfd/",
-    title: "Sub-second IPv6 failover",
+    title: "Fast IPv6 failover",
     note: "Optional — VPS path only",
   },
   {

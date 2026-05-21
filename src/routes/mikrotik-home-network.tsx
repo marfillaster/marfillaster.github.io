@@ -8,12 +8,12 @@ import { ShareLinks } from "../components/share";
 
 const title = "Home network on residential CGNAT — RB5009 build log";
 const description =
-  "Build log for a usable home network behind residential CGNAT: VLAN segmentation, routed IPv6 over WireGuard with a $3/mo VPS, and DNS-over-HTTPS with ULA RDNSS. Reproducible, paste-ready snippets for MikroTik RB5009.";
+  "Build log for a usable home network behind residential CGNAT: VLAN segmentation, routed IPv6 over WireGuard with a $3/mo VPS, BGP route exchange, and DNS-over-HTTPS with ULA RDNSS. Reproducible, paste-ready snippets for MikroTik RB5009.";
 const url = "https://marfillaster.github.io/mikrotik-home-network/";
 const ogImage = "https://marfillaster.github.io/mikrotik-home-network/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-15";
-const dateModified = "2026-05-15";
+const dateModified = "2026-05-21";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -104,8 +104,9 @@ export default function MikrotikHomeNetwork() {
             Building a usable home network behind residential CGNAT
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            VLANs, routed IPv6 over WireGuard, and encrypted DNS. Each section
-            stands alone; pick the parts that match your situation.
+            VLANs, routed IPv6 over WireGuard with BGP route exchange, and
+            encrypted DNS. Each section stands alone; pick the parts that
+            match your situation.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 15 May 2026</time>

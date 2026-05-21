@@ -7,15 +7,15 @@ import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
 const title =
-  "Sub-second IPv6 failover on RouterOS — BGP + BFD over WireGuard";
+  "Fast IPv6 failover on RouterOS — BGP + BFD over WireGuard";
 const description =
-  "Replace the static IPv6 default route on a MikroTik RB5009 with a BGP-advertised one on a BFD-monitored WireGuard session, cutting dead-tunnel detection from ~30 s to ~600 ms. bird2 on the VPS, RouterOS v7 BGP/BFD, measured failover numbers. Companion to the CGNAT build log.";
+  "Add BFD to the existing MikroTik/VPS BGP session over WireGuard, cutting dead-tunnel detection from BGP hold-time expiry to ~700 ms and route withdrawal to ~1.5 s. bird2 on the VPS, RouterOS v7 BGP/BFD, measured failover numbers. Companion to the CGNAT build log.";
 const url =
   "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/";
 const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
-const dateModified = "2026-05-17";
+const dateModified = "2026-05-21";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -46,7 +46,7 @@ const structuredData = {
     "MikroTik RB5009",
     "RouterOS v7",
     "CGNAT",
-    "sub-second failover",
+    "fast IPv6 failover",
     "RFC 6996",
   ],
 };
@@ -84,8 +84,8 @@ const navItems = [
   ["#overview", "Overview"],
   ["#design-decisions", "Design"],
   ["#1-conventions-and-placeholders", "Conventions"],
-  ["#2-vps--bird2-with-bfd", "VPS bird2"],
-  ["#3-mikrotik--bgp-bfd-and-remove-the-static-route", "MikroTik"],
+  ["#2-vps--add-bfd-to-bird2", "VPS bird2"],
+  ["#3-mikrotik--enable-bfd-on-the-existing-bgp-session", "MikroTik"],
   ["#4-verification", "Verify"],
   ["#references", "References"],
 ] as const;
@@ -99,12 +99,12 @@ export default function MikrotikIpv6FailoverBgpBfd() {
             Build log · MikroTik RB5009 · BGP + BFD failover
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Sub-second IPv6 failover on RouterOS
+            Fast IPv6 failover on RouterOS
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Replace a static IPv6 default with a BGP route on a BFD-monitored
-            WireGuard session — ~30&nbsp;s dead-tunnel detection down to
-            ~600&nbsp;ms. An optional enhancement to the CGNAT build log.
+            Add BFD to the existing BGP session over WireGuard — BFD down in
+            ~700&nbsp;ms, route withdrawn in ~1.5&nbsp;s. An optional
+            enhancement to the CGNAT build log.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 17 May 2026</time>
