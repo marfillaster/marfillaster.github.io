@@ -207,11 +207,12 @@ place — see that post's verification block.
 ## 9. Caveats
 - **Single uplink.** A Route64 outage is a full IPv6 outage; the network
   fails fast to IPv4 by design.
-- **No inbound services on the GUA.** Treat the prefix as egress-grade
-  because reachability is best-effort through a broker PoP — anything you
-  must reach from outside belongs behind something you operate. Route64's
-  ToS does not explicitly forbid running listeners, but it explicitly
-  disclaims service levels (§10), which is reason enough.
+- **Inbound reachability is best-effort.** Inbound v6 to the GUA does
+  work — verified end-to-end on this build — and Route64's ToS does not
+  forbid running listeners. What it does not promise is service levels
+  (§10): the path runs through a broker PoP, so reachability is only as
+  good as the broker's. Fine for personal-grade services; for anything
+  you would page on, put a self-operated relay in front.
 - **Throughput cap.** Route64's [ToS §14](https://route64.org/en/tos)
   documents "up to 200M throughput often more," extendable via donations.
   Fine for general home egress; sized below modern fiber peak.

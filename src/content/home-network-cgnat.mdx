@@ -166,7 +166,7 @@ peers, not primary and fallback. Pick on the trade-offs that matter to you:
 | **Throughput**          | Your VPS plan (typically ≥1 Gbps) | "Up to 200M often more" (ToS §14) |
 | **Allowed traffic**     | Anything your firewall allows | No bittorrent/filesharing (ToS §6) |
 | **Datacenter ASN egress** | Yes — flagged by streaming apps | Yes — same flag |
-| **Inbound services on the GUA** | Practical (your firewall, your prefix) | Not advised (best-effort, no SLA) |
+| **Inbound services on the GUA** | Practical (your firewall, your prefix) | Works, best-effort (broker PoP, no SLA) |
 | **Failover companion**  | [BGP+BFD post](/mikrotik-ipv6-failover-bgp-bfd/) layers on the BGP session | n/a — single uplink, fast fail-to-IPv4 inside the post |
 | **Single uplink risk**  | Mitigated by failover post | By design — fails fast to IPv4 |
 
