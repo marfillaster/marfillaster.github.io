@@ -303,6 +303,11 @@ outbound from the MikroTik on TCP/179, so the return traffic is accepted by
 the defconf `established,related,untracked` rule. ICMPv6 over the tunnel is
 already covered by the defconf accept-ICMPv6 rule.
 
+The MikroTik `listen-port=51820` above is the WireGuard source port — the
+router always initiates from behind CGNAT and never receives an unsolicited
+WG packet, so the value is cosmetic and need not match the VPS's port. Pick
+anything if you ever stand up a second peer on the same router.
+
 At this point the router has a working IPv6 default route over WireGuard,
 but no LAN client has a GUA yet. Continue to
 [**Per-VLAN IPv6 on the RB5009**](/mikrotik-per-vlan-ipv6/) to plumb the /48

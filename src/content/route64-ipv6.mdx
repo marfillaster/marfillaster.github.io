@@ -151,6 +151,10 @@ That post also carries the matching
 [`ra-interval=10s-30s` tuning](/mikrotik-per-vlan-ipv6/#2-per-vlan-addresses-and-ra-rdnss)
 this netwatch depends on for the 30-second visibility window.
 
+After the [index §5 ULA-only update](/mikrotik-home-network/#5-keeping-streaming-off-the-routable-ipv6-path)
+strips Guest's GUA, the `vlan-guest` line above becomes a no-op (the VLAN
+has no global default to withdraw); leave it in for symmetry or drop it.
+
 <Rationale>
 Verified on a live build: both netwatch transitions fire and
 `ra-lifetime=0s` is accepted (RouterOS renders it as `none`). With

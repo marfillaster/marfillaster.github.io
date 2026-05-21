@@ -21,7 +21,8 @@ Prerequisites:
 - One of the two paths complete:
   [VPS-routed /48](/vps-ipv6-cgnat-mikrotik/) or
   [Route64 /56](/route64-ipv6-cgnat-mikrotik/) — you have a default IPv6
-  route over WireGuard and (VPS path) the bridge holds no GUA yet.
+  route over WireGuard, and no per-VLAN GUA is plumbed on any LAN
+  interface yet (only the tunnel link carries a GUA at this point).
 - [DNS companion post](/encrypted-dns-stable-resolver-mikrotik/) applied
   if you want RA RDNSS to advertise the router as the resolver — the
   `advertise-dns=self` posture below assumes that piece is in place.

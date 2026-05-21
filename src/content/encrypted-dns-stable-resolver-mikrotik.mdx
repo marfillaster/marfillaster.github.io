@@ -61,6 +61,10 @@ encryption is one hop upstream, on the router.
 </Rationale>
 
 ```bash title="DoH resolver + bootstrap pins"
+# Apply this AFTER NTP has set the clock — `/tool/fetch` validates TLS
+# against the CA bundle below, which fails on a fresh defconf box with a
+# bad RTC. `/system/ntp/client set enabled=yes servers=time.cloudflare.com`
+# is enough; verify with `/system/clock/print` before continuing.
 /tool/fetch url=https://curl.se/ca/cacert.pem dst-path=cacert.pem
 /certificate/import file-name=cacert.pem passphrase=""
 

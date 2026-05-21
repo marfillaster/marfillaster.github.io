@@ -138,13 +138,10 @@ concrete in each path post:
 ## 2. Shared conventions
 
 Every snippet in this series uses angle-bracketed placeholders. Substitute
-them before pasting; everything else is literal RouterOS or bash. The
-placeholders below are the path-agnostic ones — each path post lists its
-own additions (relay address, public keys, ASN, etc.).
-
-| Placeholder       | Meaning                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------ |
-| `<ULA_PREFIX>`    | Locally-generated ULA. `python3 -c 'import secrets; print(f"fd{secrets.token_hex(5)}")'`.        |
+them before pasting; everything else is literal RouterOS or bash. One
+placeholder is series-wide: **`<ULA_PREFIX>`**, your locally-generated ULA
+— `python3 -c 'import secrets; print(f"fd{secrets.token_hex(5)}")'`. Each
+path post lists its own additions (relay address, public keys, ASN, etc.).
 
 Documentation prefixes from RFC&nbsp;3849 (`2001:db8::/32`) and RFC&nbsp;4193
 (`fd00::/8`) work as stand-ins while testing. Snippets assume the defconf
@@ -246,7 +243,28 @@ add list=vlan30-legit address=<ULA_PREFIX>:30::/64
 add list=vlan30-legit address=fe80::/10
 /ipv6/firewall/filter add chain=forward action=drop in-interface=vlan30 \
   src-address-list=!vlan30-legit comment="VLAN30: anti-spoof"
+
+# Mirror the IoT/Guest !-> LAN isolation onto vlan30. Without these, moving
+# the trusted SSID onto vlan30 would silently make it reachable from the
+# untrusted VLANs — vlan30 joins the LAN interface-list above, so the
+# defconf "drop !LAN" does not cover this direction either.
+/ip/firewall/filter
+add chain=forward action=drop in-interface=vlan-iot   out-interface=vlan30 connection-state=new \
+  comment="IOT !-> VLAN30"  place-before=[find where comment="IOT !-> LAN"]
+add chain=forward action=drop in-interface=vlan-guest out-interface=vlan30 connection-state=new \
+  comment="GUEST !-> VLAN30" place-before=[find where comment="GUEST !-> LAN"]
+
+/ipv6/firewall/filter
+add chain=forward action=drop in-interface=vlan-iot   out-interface=vlan30 connection-state=new comment="IOT !-> VLAN30 (v6)"
+add chain=forward action=drop in-interface=vlan-guest out-interface=vlan30 connection-state=new comment="GUEST !-> VLAN30 (v6)"
 ```
+
+Wired hosts that want the trusted VLAN need a tagged access port; the
+bridge VLAN table above keeps `vlan30` tagged on `bridge,ether2,ether3`
+only, so ether4/5 stay untagged-VLAN-1 by design. A wired trusted machine
+either lives on VLAN&nbsp;1 (the few-devices-that-want-global-v6 case
+this section keeps it for) or wants its access port reworked to
+`untagged=vlan30` — out of scope here.
 
 *The DNS lines (`dns-none=yes`, `advertise-dns=self`) are the standard
 RDNSS posture from the
