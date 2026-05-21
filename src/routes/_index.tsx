@@ -26,46 +26,53 @@ const sections = [
   {
     name: "Infrastructure",
     blurb:
-      "A six-part series building one MikroTik RB5009 from a flat LAN into a segmented, IPv6-capable, self-hosted home network behind residential CGNAT. Read in order, or jump to a layer — each post stands alone. Steps 3 and 4 are two equal ways to get routed IPv6; pick one.",
+      "A seven-part series building one MikroTik RB5009 from a flat LAN into a segmented, IPv6-capable, self-hosted home network behind residential CGNAT. Start at the index, or jump to a layer — each post stands alone. Steps 4 and 5 are two equal paths to routable IPv6; pick one.",
     posts: [
       {
+        href: "/mikrotik-home-network/",
+        eyebrow: "Series 1/7 · Series index · 2026-05",
+        title: "A small home network behind CGNAT",
+        description:
+          "Series index: overview, topology, address plan, the VPS-vs-Route64 path-choice matrix, and the ULA-only-trusted-VLAN update that keeps streaming off the routable-IPv6 path. Start here.",
+      },
+      {
         href: "/mikrotik-vlan-guest-iot/",
-        eyebrow: "Series 1/6 · Build log · 2026-05",
+        eyebrow: "Series 2/7 · Build log · 2026-05",
         title: "Trusted, IoT, and Guest VLANs on a MikroTik RB5009",
         description:
           "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. The foundation the rest of the series sits on.",
       },
       {
         href: "/encrypted-dns-stable-resolver-mikrotik/",
-        eyebrow: "Series 2/6 · Build log · 2026-05",
+        eyebrow: "Series 3/7 · Build log · 2026-05",
         title: "Encrypted DNS with a stable resolver address on RouterOS",
         description:
           "Resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA over RA RDNSS. No VLANs, no IPv6 uplink; works on a flat IPv4-only LAN.",
       },
       {
-        href: "/mikrotik-home-network/",
-        eyebrow: "Series 3/6 · Build log · 2026-05",
-        title: "Building a usable home network behind residential CGNAT",
+        href: "/vps-ipv6-cgnat-mikrotik/",
+        eyebrow: "Series 4/7 · Build log · 2026-05",
+        title: "Routed IPv6 over CGNAT via a VPS-routed /48",
         description:
-          "The overview, plus the VPS-routed /48 path to real IPv6 over WireGuard with BGP route exchange. Ties the VLAN, IPv6, and DNS layers together with a reproducible, paste-ready RB5009 build.",
+          "Equal path A: a $3/mo VPS that routes a /48 to its instance, WireGuard from the RB5009, eBGP between them. You operate the endpoint — prefix, return routing, and failover are yours to define.",
       },
       {
         href: "/route64-ipv6-cgnat-mikrotik/",
-        eyebrow: "Series 4/6 · Build log · 2026-05",
-        title: "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT",
+        eyebrow: "Series 5/7 · Build log · 2026-05",
+        title: "Routed IPv6 over CGNAT via Route64",
         description:
-          "The no-VPS IPv6 path: Route64's free WireGuard /56 — a native global /64 per VLAN, nothing to operate, fast fail-to-IPv4 on outage. An equal alternative to step 3's IPv6 layer.",
+          "Equal path B: Route64's free WireGuard /56 — a native global /64 per VLAN, nothing to operate, fast fail-to-IPv4 on outage. Single broker-managed uplink by design.",
       },
       {
         href: "/mikrotik-ipv6-failover-bgp-bfd/",
-        eyebrow: "Series 5/6 · Build log · 2026-05",
+        eyebrow: "Series 6/7 · Build log · 2026-05",
         title: "Fast IPv6 failover on RouterOS",
         description:
           "Add BFD to the existing BGP session over WireGuard — BFD down in ~700 ms, default route withdrawn in ~1.5 s. bird2 on the VPS, RouterOS v7 BGP/BFD, measured numbers. VPS path only.",
       },
       {
         href: "/unifi-controller-routeros-containers-mikrotik/",
-        eyebrow: "Series 6/6 · Build log · 2026-05",
+        eyebrow: "Series 7/7 · Build log · 2026-05",
         title: "Running the UniFi controller on the router itself",
         description:
           "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap, the ARMv8.0-A Mongo 4.4.18 pin, veths, memory caps, verification.",
