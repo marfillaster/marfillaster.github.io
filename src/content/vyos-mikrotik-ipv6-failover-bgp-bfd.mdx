@@ -34,8 +34,8 @@ default route unless you intentionally want another IPv6 uplink to catch the
 failure.
 
 ## 1. Conventions and placeholders
-Use the same values from the VyOS tab of the
-[VPS post](/vps-ipv6-cgnat-mikrotik/#vyos):
+Use the same values from the VyOS relay variant of the
+[VPS post](/vps-ipv6-cgnat-mikrotik/vyos/):
 
 | Placeholder            | Meaning                                      |
 | ---------------------- | -------------------------------------------- |
@@ -157,7 +157,7 @@ Expected result:
 | BFD restored          | BGP re-establishes and `::/0` returns via `wg-vps` |
 
 ## References
-- [VPS path post — VyOS relay tab](/vps-ipv6-cgnat-mikrotik/#vyos)
+- [VPS path post — VyOS relay](/vps-ipv6-cgnat-mikrotik/vyos/)
 - [Ubuntu/BIRD BFD variant](/mikrotik-ipv6-failover-bgp-bfd/)
 - [VyOS BGP documentation](https://docs.vyos.io/en/latest/configuration/protocols/bgp.html)
 - [VyOS BFD documentation](https://docs.vyos.io/en/latest/configuration/protocols/bfd.html)

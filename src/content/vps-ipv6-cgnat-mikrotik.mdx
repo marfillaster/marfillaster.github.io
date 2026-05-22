@@ -132,8 +132,9 @@ shared across all `bgp` protocol blocks; `local <addr>` only constrains
 source dispatch, not the listener bind), so leaving the box unfirewalled
 puts a BGP parser on the public internet. The nftables ruleset below
 restricts TCP/179 to `wg0` while keeping SSH, WireGuard, and ICMP reachable.
-If the VPS itself is running VyOS instead, switch to the VyOS tab above and
-keep the same MikroTik-side shape.
+If the VPS itself is running VyOS instead, use the
+[VyOS relay variant](/vps-ipv6-cgnat-mikrotik/vyos/) and keep the same
+MikroTik-side shape.
 
 ```bash title="VPS wg0 + bird2 BGP + nftables"
 set -e

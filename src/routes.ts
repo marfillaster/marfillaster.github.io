@@ -9,6 +9,7 @@ export default [
   ),
   route("route64-ipv6-cgnat-mikrotik", "routes/route64-ipv6-cgnat-mikrotik.tsx"),
   route("vps-ipv6-cgnat-mikrotik", "routes/vps-ipv6-cgnat-mikrotik.tsx"),
+  route("vps-ipv6-cgnat-mikrotik/vyos", "routes/vps-ipv6-cgnat-mikrotik-vyos.tsx"),
   route("mikrotik-per-vlan-ipv6", "routes/mikrotik-per-vlan-ipv6.tsx"),
   route(
     "unifi-controller-routeros-containers-mikrotik",
@@ -25,6 +26,10 @@ export default [
   route(
     "mikrotik-ipv6-failover-bgp-bfd",
     "routes/mikrotik-ipv6-failover-bgp-bfd.tsx",
+  ),
+  route(
+    "mikrotik-ipv6-failover-bgp-bfd/vyos",
+    "routes/mikrotik-ipv6-failover-bgp-bfd-vyos.tsx",
   ),
   route("solar-report", "routes/solar-report.tsx"),
   route("solar-report/full-report", "routes/solar-report-full.tsx"),

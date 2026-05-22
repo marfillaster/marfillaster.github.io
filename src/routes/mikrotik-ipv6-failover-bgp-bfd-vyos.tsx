@@ -1,24 +1,20 @@
 import { MDXProvider } from "@mdx-js/react";
-import { useEffect } from "react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/vps-ipv6-cgnat-mikrotik.mdx";
-import {
-  SeriesNav,
-  TableOfContents,
-  mdxComponents,
-} from "../components/doc";
+import VyosPost from "../content/vyos-mikrotik-ipv6-failover-bgp-bfd.mdx";
+import { TableOfContents, mdxComponentsWithHeadingPrefix } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
 const title =
-  "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT — VPS, routed /48";
+  "VyOS BFD failover on RouterOS — BGP + BFD over WireGuard";
 const description =
-  "Add real routed IPv6 to an already-segmented IPv4-only LAN behind residential CGNAT using a $3/mo VPS, WireGuard from the RB5009, and eBGP to an Ubuntu/BIRD relay.";
-const url = "https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/";
+  "Add BFD to the MikroTik/VyOS BGP session over WireGuard so the RB5009 withdraws the IPv6 default route quickly when the VPS relay path fails.";
+const url =
+  "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/vyos/";
 const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
-const datePublished = "2026-05-21";
+const datePublished = "2026-05-17";
 const dateModified = "2026-05-21";
 
 const structuredData = {
@@ -42,16 +38,16 @@ const structuredData = {
     url: "https://github.com/marfillaster",
   },
   keywords: [
-    "MikroTik RB5009",
-    "CGNAT",
-    "WireGuard",
-    "IPv6",
-    "routed /48",
+    "VyOS",
     "BGP",
-    "BIRD",
+    "BFD",
+    "IPv6 failover",
+    "WireGuard",
+    "MikroTik RB5009",
     "RouterOS v7",
-    "VPS",
-    "home network",
+    "CGNAT",
+    "fast IPv6 failover",
+    "RFC 6996",
   ],
 };
 
@@ -84,78 +80,66 @@ export const meta: MetaFunction = () => [
   },
 ];
 
-const ubuntuNavItems = [
-  ["#overview", "Overview"],
-  ["#design-decisions", "Design"],
-  ["#1-topology-recap", "Topology"],
-  ["#2-conventions-and-placeholders", "Conventions"],
-  ["#3-return-routing-wireguard-authorizes-bgp-routes", "Return routing"],
-  ["#4-vps--wireguard-relay-and-bgp", "VPS"],
-  ["#5-mikrotik--wireguard-client-and-bgp", "MikroTik"],
-  ["#6-relay-side-verification", "Verify"],
-  ["#a-appendix--cost-and-provider-notes", "Cost"],
-  ["#glossary", "Glossary"],
+const navItems = [
+  ["#vyos-overview", "Overview"],
+  ["#vyos-design-decisions", "Design"],
+  ["#vyos-1-conventions-and-placeholders", "Conventions"],
+  ["#vyos-2-vyos--add-bfd-to-bgp", "VyOS"],
+  ["#vyos-3-mikrotik--enable-bfd-on-the-vyos-bgp-session", "MikroTik"],
+  ["#vyos-4-verification", "Verify"],
+  ["#vyos-5-failure-test", "Failure test"],
+  ["#vyos-references", "References"],
 ] as const;
 
-export default function VpsIpv6Cgnat() {
-  useEffect(() => {
-    if (window.location.hash === "#vyos" || window.location.hash.startsWith("#vyos-")) {
-      window.location.replace(
-        `/vps-ipv6-cgnat-mikrotik/vyos/${
-          window.location.hash === "#vyos" ? "" : window.location.hash
-        }`,
-      );
-    }
-  }, []);
+const vyosMdxComponents = mdxComponentsWithHeadingPrefix("vyos-");
 
+export default function MikrotikIpv6FailoverBgpBfdVyos() {
   return (
     <SiteShell>
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Build log · MikroTik RB5009 · VPS-routed /48
+            Build log · MikroTik RB5009 · BGP + BFD failover · VyOS relay
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Routed IPv6 for a segmented IPv4-only LAN behind CGNAT
+            VyOS BFD failover on RouterOS
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            $3/mo VPS that routes a /48, WireGuard from the RB5009, eBGP
-            between them. Pick an Ubuntu/BIRD or VyOS relay implementation.
+            Bind BFD to the existing MikroTik/VyOS BGP session over WireGuard
+            so the IPv6 default route withdraws quickly when the relay path dies.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            <time dateTime={datePublished}>Published 21 May 2026</time>
+            <time dateTime={datePublished}>Published 17 May 2026</time>
           </p>
         </article>
 
-        <SeriesNav current="vps" />
-
         <div className="not-prose mt-10 border-b">
-          <div role="tablist" aria-label="VPS relay implementation" className="flex gap-2">
+          <div role="tablist" aria-label="BFD relay implementation" className="flex gap-2">
             <a
-              href="/vps-ipv6-cgnat-mikrotik/"
+              href="/mikrotik-ipv6-failover-bgp-bfd/"
               role="tab"
-              aria-selected="true"
-              aria-current="page"
-              className="border-b-2 border-foreground px-3 py-2 text-sm font-medium text-foreground"
+              aria-selected="false"
+              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Ubuntu + BIRD
             </a>
             <a
-              href="/vps-ipv6-cgnat-mikrotik/vyos/"
+              href="/mikrotik-ipv6-failover-bgp-bfd/vyos/"
               role="tab"
-              aria-selected="false"
-              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              aria-selected="true"
+              aria-current="page"
+              className="border-b-2 border-foreground px-3 py-2 text-sm font-medium text-foreground"
             >
               VyOS
             </a>
           </div>
         </div>
 
-        <TableOfContents items={ubuntuNavItems} />
+        <TableOfContents items={navItems} />
 
-        <div role="tabpanel" id="ubuntu-panel" aria-label="Ubuntu + BIRD">
-          <MDXProvider components={mdxComponents}>
-            <Post />
+        <div role="tabpanel" id="vyos" aria-label="VyOS">
+          <MDXProvider components={vyosMdxComponents}>
+            <VyosPost />
           </MDXProvider>
         </div>
 

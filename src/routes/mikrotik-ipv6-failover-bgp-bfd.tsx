@@ -1,9 +1,8 @@
 import { MDXProvider } from "@mdx-js/react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { MetaFunction } from "react-router";
 import Post from "../content/mikrotik-ipv6-failover-bgp-bfd.mdx";
-import VyosPost from "../content/vyos-mikrotik-ipv6-failover-bgp-bfd.mdx";
-import { TableOfContents, mdxComponents, mdxComponentsWithHeadingPrefix } from "../components/doc";
+import { TableOfContents, mdxComponents } from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
@@ -11,7 +10,7 @@ import { ShareLinks } from "../components/share";
 const title =
   "Fast IPv6 failover on RouterOS — BGP + BFD over WireGuard";
 const description =
-  "Add BFD to the existing MikroTik/VPS BGP session over WireGuard, cutting dead-tunnel detection from BGP hold-time expiry to sub-second route withdrawal. Includes Ubuntu/BIRD and VyOS relay variants.";
+  "Add BFD to the existing MikroTik/Ubuntu-BIRD BGP session over WireGuard, cutting dead-tunnel detection from BGP hold-time expiry to sub-second route withdrawal.";
 const url =
   "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/";
 const ogImage = "https://marfillaster.github.io/og.png";
@@ -43,7 +42,6 @@ const structuredData = {
     "BGP",
     "BFD",
     "bird2",
-    "VyOS",
     "IPv6 failover",
     "WireGuard",
     "MikroTik RB5009",
@@ -93,31 +91,16 @@ const birdNavItems = [
   ["#references", "References"],
 ] as const;
 
-const vyosNavItems = [
-  ["#vyos-overview", "Overview"],
-  ["#vyos-design-decisions", "Design"],
-  ["#vyos-1-conventions-and-placeholders", "Conventions"],
-  ["#vyos-2-vyos--add-bfd-to-bgp", "VyOS"],
-  ["#vyos-3-mikrotik--enable-bfd-on-the-vyos-bgp-session", "MikroTik"],
-  ["#vyos-4-verification", "Verify"],
-  ["#vyos-5-failure-test", "Failure test"],
-  ["#vyos-references", "References"],
-] as const;
-
-const vyosMdxComponents = mdxComponentsWithHeadingPrefix("vyos-");
-
 export default function MikrotikIpv6FailoverBgpBfd() {
-  const [variant, setVariant] = useState<"bird" | "vyos">("bird");
   useEffect(() => {
     if (window.location.hash === "#vyos" || window.location.hash.startsWith("#vyos-")) {
-      setVariant("vyos");
+      window.location.replace(
+        `/mikrotik-ipv6-failover-bgp-bfd/vyos/${
+          window.location.hash === "#vyos" ? "" : window.location.hash
+        }`,
+      );
     }
   }, []);
-  const isBird = variant === "bird";
-  const selectVariant = (next: "bird" | "vyos") => {
-    setVariant(next);
-    window.history.replaceState(null, "", next === "vyos" ? "#vyos" : window.location.pathname);
-  };
 
   return (
     <SiteShell>
@@ -141,45 +124,31 @@ export default function MikrotikIpv6FailoverBgpBfd() {
 
         <div className="not-prose mt-10 border-b">
           <div role="tablist" aria-label="BFD relay implementation" className="flex gap-2">
-            <button
-              type="button"
+            <a
+              href="/mikrotik-ipv6-failover-bgp-bfd/"
               role="tab"
-              aria-selected={isBird}
-              className={`border-b-2 px-3 py-2 text-sm font-medium ${
-                isBird
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => selectVariant("bird")}
+              aria-selected="true"
+              aria-current="page"
+              className="border-b-2 border-foreground px-3 py-2 text-sm font-medium text-foreground"
             >
               Ubuntu + BIRD
-            </button>
-            <button
-              type="button"
+            </a>
+            <a
+              href="/mikrotik-ipv6-failover-bgp-bfd/vyos/"
               role="tab"
-              aria-selected={!isBird}
-              className={`border-b-2 px-3 py-2 text-sm font-medium ${
-                !isBird
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => selectVariant("vyos")}
+              aria-selected="false"
+              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               VyOS
-            </button>
+            </a>
           </div>
         </div>
 
-        <TableOfContents items={isBird ? birdNavItems : vyosNavItems} />
+        <TableOfContents items={birdNavItems} />
 
-        <div role="tabpanel" id="bird-panel" aria-label="Ubuntu + BIRD" hidden={!isBird}>
+        <div role="tabpanel" id="bird-panel" aria-label="Ubuntu + BIRD">
           <MDXProvider components={mdxComponents}>
             <Post />
-          </MDXProvider>
-        </div>
-        <div role="tabpanel" id="vyos" aria-label="VyOS" hidden={isBird}>
-          <MDXProvider components={vyosMdxComponents}>
-            <VyosPost />
           </MDXProvider>
         </div>
 
