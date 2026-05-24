@@ -9,7 +9,7 @@ import { ShareLinks } from "../components/share";
 const title =
   "VyOS BFD failover on RouterOS — BGP + BFD over WireGuard";
 const description =
-  "Add BFD to the MikroTik/VyOS BGP session over WireGuard so the RB5009 withdraws the IPv6 default route quickly when the VPS relay path fails.";
+  "Add BFD to the MikroTik/VyOS BGP session over WireGuard so the home MikroTik withdraws the IPv6 default route quickly when the VPS relay path fails.";
 const url =
   "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/vyos/";
 const ogImage = "https://marfillaster.github.io/og.png";
@@ -43,7 +43,7 @@ const structuredData = {
     "BFD",
     "IPv6 failover",
     "WireGuard",
-    "MikroTik RB5009",
+    "MikroTik",
     "RouterOS v7",
     "CGNAT",
     "fast IPv6 failover",
@@ -99,7 +99,7 @@ export default function MikrotikIpv6FailoverBgpBfdVyos() {
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Build log · MikroTik RB5009 · BGP + BFD failover · VyOS relay
+            Build log · MikroTik · BGP + BFD failover · VyOS relay
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
             VyOS BFD failover on RouterOS
@@ -131,6 +131,14 @@ export default function MikrotikIpv6FailoverBgpBfdVyos() {
               className="border-b-2 border-foreground px-3 py-2 text-sm font-medium text-foreground"
             >
               VyOS
+            </a>
+            <a
+              href="/mikrotik-ipv6-failover-bgp-bfd/chr/"
+              role="tab"
+              aria-selected="false"
+              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              CHR
             </a>
           </div>
         </div>

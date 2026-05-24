@@ -1,0 +1,285 @@
+## Overview
+
+This is the MikroTik CHR variant of the
+[VPS path](/vps-ipv6-cgnat-mikrotik/) in the
+[MikroTik CGNAT series](/mikrotik-home-network/). The relay VPS is RouterOS
+CHR, but the routing design stays the same: WireGuard carries transit, eBGP
+exchanges intent, and the home MikroTik advertises the routed `/48` while
+learning only a default route from the VPS.
+
+Use this when you want both ends of the tunnel to be RouterOS. The tradeoff is
+that provider bootstrap is more manual than a Linux template: CHR is usually
+written to the VPS disk from rescue, then configured over VNC or SSH.
+
+## Design decisions
+
+**Keep the routed `/48` off the WAN as a connected prefix.** If the provider
+assigns an address such as `<LAN_PREFIX>::a/48` to the VPS NIC, configure that
+specific address as `/128` on CHR. The aggregate route for `<LAN_PREFIX>::/48`
+should be learned from the home MikroTik over BGP, not treated as directly connected
+on `ether1`.
+
+**Use RouterOS routing filters on both routers.** The CHR imports only
+`<LAN_PREFIX>::/48` from the home MikroTik and advertises only `::/0` back.
+The home MikroTik imports only `::/0` and advertises only the home aggregate.
+
+**Originate the default route from the CHR BGP template.** RouterOS can send
+`::/0` with `output.default-originate=always`; it does not need a synthetic
+blackhole default route for this design. The real CHR internet default remains
+the provider route on `ether1`.
+
+**Pin the WireGuard endpoint to a real underlay.** If the VPS endpoint is IPv6
+only, the home MikroTik needs an independent route to that endpoint outside the CHR
+tunnel. Otherwise the endpoint may become reachable only through the default
+route learned from the tunnel it is trying to establish.
+
+## 1. Topology recap
+
+```ascii
+                       Internet (IPv4 + IPv6)
+                              │
+                ┌─────────────┴─────────────┐
+                │  VPS — MikroTik CHR       │
+                │  ether1: provider WAN     │
+                │  wg-vps: <LAN_PREFIX>:0::1│
+                │  RouterOS BGP to MikroTik │
+                └─────────────┬─────────────┘
+                              │ WireGuard / UDP 51820
+                              │ (IPv6 transit + eBGP)
+                              │
+                          MikroTik wg-vps
+                          <LAN_PREFIX>:0::2
+```
+
+## 2. Conventions and placeholders
+
+Series-wide placeholders (`<ULA_PREFIX>`) live in the
+[index §2](/mikrotik-home-network/#2-shared-conventions). This variant adds:
+
+| Placeholder                    | Meaning                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `<WAN_IF>`                     | CHR public interface. On KVM CHR this is usually `ether1`.                 |
+| `<VPS_IP>` / `<VPS_PREFIXLEN>` | Provider IPv4 address and prefix length, e.g. `194.127.178.92/24`.         |
+| `<VPS_GW4>`                    | Provider IPv4 gateway.                                                     |
+| `<VPS_LINK_GUA>`               | Provider IPv6 link address, e.g. `2a0a:8dc0:1000:1e6::2/126`.              |
+| `<VPS_GW6>`                    | Provider IPv6 gateway, e.g. `2a0a:8dc0:1000:1e6::1`.                       |
+| `<VPS_WG_ENDPOINT>`            | Address the home MikroTik dials for WireGuard. Prefer IPv4 when available. |
+| `<LAN_PREFIX>`                 | Routed IPv6 `/48`, written without trailing zeros, e.g. `2001:db8`.        |
+| `<VPS_PUBKEY>` / `<MT_PUBKEY>` | WireGuard public keys, one per side.                                       |
+| `<VPS_AS>` / `<MT_AS>`         | Private ASNs (RFC&nbsp;6996, `64512–65534`) for the eBGP session.          |
+| `<VPS_ROUTER_ID>`              | CHR BGP router ID written like an IPv4 address.                            |
+
+If your provider metadata exposes `<LAN_PREFIX>::a/48` as the routed-prefix
+address on the VPS, add it to CHR as `<LAN_PREFIX>::a/128`.
+
+## 3. Bootstrap CHR from rescue
+
+From the provider rescue environment, confirm the target disk before writing:
+
+```bash title="Rescue shell — identify the target disk"
+lsblk
+uname -m
+```
+
+For an x86_64 KVM VPS, download the CHR raw image and write it to the main
+virtual disk. This destroys the existing disk contents.
+
+```bash title="Rescue shell — write CHR raw image"
+cd /tmp
+wget -O chr.img.zip https://download.mikrotik.com/routeros/7.22.3/chr-7.22.3.img.zip
+busybox unzip -p chr.img.zip chr-7.22.3.img | dd of=/dev/vda bs=4M conv=fsync status=progress
+sync
+reboot
+```
+
+After CHR boots, log in on the provider console as `admin` with no password
+and set a temporary password. Configure enough IPv4 WAN access for SSH before
+uploading your key:
+
+```bash title="CHR console — temporary WAN and SSH access"
+/interface/ethernet/set [find default-name=ether1] disable-running-check=no
+
+/ip/dhcp-client/remove [find interface=<WAN_IF>]
+/ip/address/add address=<VPS_IP>/<VPS_PREFIXLEN> interface=<WAN_IF> comment=provider-wan
+/ip/route/add dst-address=0.0.0.0/0 gateway=<VPS_GW4> comment=provider-ipv4-default
+
+/ip/dns/set servers=1.1.1.1,8.8.8.8 allow-remote-requests=no
+/ip/service/enable ssh
+/ip/service/set ssh port=22 address=0.0.0.0/0
+```
+
+Then upload your SSH public key and disable SSH password authentication:
+
+```bash title="macOS — upload SSH key after temporary SSH works"
+scp ~/.ssh/id_rsa.pub admin@<VPS_IP>:id_rsa.pub
+```
+
+```bash title="CHR — import key and disable SSH passwords"
+/user/ssh-keys/import user=admin public-key-file=id_rsa.pub
+/ip/ssh/set password-authentication=no
+```
+
+## 4. CHR — provider addressing
+
+These commands add the provider IPv6 link address, the routed-prefix anchor,
+and the IPv6 default route. Keep the provider console open while applying them.
+
+```bash title="CHR — IPv6 WAN"
+/ipv6/address/add address=<VPS_LINK_GUA> interface=<WAN_IF> advertise=no comment=provider-wan-v6
+/ipv6/address/add address=<LAN_PREFIX>::a/128 interface=<WAN_IF> advertise=no comment=routed-prefix-anchor
+/ipv6/route/add dst-address=<VPS_GW6>/128 gateway=<WAN_IF> comment=provider-gw6-onlink
+/ipv6/route/add dst-address=::/0 gateway=<VPS_GW6> comment=provider-ipv6-default
+```
+
+Verify before touching WireGuard:
+
+```bash title="CHR — WAN checks"
+/ping <VPS_GW4> count=3
+/ping 1.1.1.1 count=3
+/ping <VPS_GW6> count=3
+/ping 2606:4700:4700::1111 count=3
+/ipv6/route/print detail where dst-address=::/0
+```
+
+## 5. CHR — WireGuard relay
+
+Create the CHR WireGuard interface first, then copy its public key into the
+MikroTik peer config as `<VPS_PUBKEY>`.
+
+```bash title="CHR — WireGuard relay"
+/interface/wireguard/add name=wg-vps listen-port=51820 mtu=1420
+/ipv6/address/add address=<LAN_PREFIX>:0::1/64 interface=wg-vps advertise=no
+
+/interface/wireguard/print detail where name=wg-vps
+
+/interface/wireguard/peers/add interface=wg-vps name=mikrotik \
+    public-key="<MT_PUBKEY>" \
+    allowed-address=<LAN_PREFIX>:0::2/128,<LAN_PREFIX>::/48 \
+    persistent-keepalive=25s
+```
+
+If the home router initiates to the VPS over IPv4, no IPv6 input rule is
+required for the WireGuard listener. If it initiates over IPv6, allow UDP
+51820 to the CHR WAN address as well.
+
+## 6. CHR — BGP route exchange
+
+The CHR side imports only the home aggregate from the MikroTik and originates a
+default route back to the MikroTik.
+
+```bash title="CHR — BGP policy and session"
+/routing/filter/rule/add chain=bgp-in-mikrotik \
+    rule="if (dst == <LAN_PREFIX>::/48) { accept } reject"
+/routing/filter/rule/add chain=bgp-out-mikrotik \
+    rule="if (dst == ::/0) { accept } reject"
+
+/routing/bgp/instance/add name=chr-vps as=<VPS_AS> router-id=<VPS_ROUTER_ID>
+/routing/bgp/template/add name=tpl-mikrotik as=<VPS_AS> output.default-originate=always
+/routing/bgp/connection/add name=mikrotik instance=chr-vps \
+    remote.address=<LAN_PREFIX>:0::2 remote.as=<MT_AS> \
+    local.address=<LAN_PREFIX>:0::1 local.role=ebgp \
+    templates=tpl-mikrotik afi=ipv6 \
+    input.filter=bgp-in-mikrotik output.filter-chain=bgp-out-mikrotik
+```
+
+`output.default-originate=always` is what makes the MikroTik learn a default
+route from CHR. The CHR's own upstream default route should still be the
+provider route on `ether1`.
+
+## 7. CHR — relay firewall
+
+Start with a small input surface. Forwarding is allowed only between the WAN
+and `wg-vps`; application policy stays on the home MikroTik.
+
+```bash title="CHR — minimal relay firewall"
+/ipv6/firewall/filter/add chain=input action=accept connection-state=established,related comment=established
+/ipv6/firewall/filter/add chain=input action=drop connection-state=invalid comment=invalid
+/ipv6/firewall/filter/add chain=input action=accept protocol=icmpv6 comment=icmpv6
+/ipv6/firewall/filter/add chain=input action=accept in-interface=wg-vps protocol=tcp dst-port=179 comment="BGP from MikroTik"
+/ipv6/firewall/filter/add chain=input action=drop in-interface=<WAN_IF> comment="drop WAN input"
+
+/ipv6/firewall/filter/add chain=forward action=accept connection-state=established,related comment=forward-established
+/ipv6/firewall/filter/add chain=forward action=drop connection-state=invalid comment=forward-invalid
+/ipv6/firewall/filter/add chain=forward action=accept in-interface=wg-vps out-interface=<WAN_IF> comment="LAN to internet"
+/ipv6/firewall/filter/add chain=forward action=accept in-interface=<WAN_IF> out-interface=wg-vps comment="internet return to LAN"
+/ipv6/firewall/filter/add chain=forward action=drop comment="drop other forwarded IPv6"
+```
+
+Add a separate input accept rule for UDP/51820 if the WireGuard endpoint is
+reachable over IPv6.
+
+## 8. MikroTik — WireGuard client and BGP
+
+Start from RouterOS defconf on the home router and add a dedicated WireGuard
+interface, CHR peer, aggregate route, filters, and BGP session. Use
+CHR-specific names so exports stay readable.
+
+```bash title="MikroTik — WireGuard + BGP to CHR VPS"
+/interface/wireguard add name=wg-vps listen-port=51820 mtu=1420
+/interface/wireguard/peers add interface=wg-vps name=chr-vps \
+    public-key="<VPS_PUBKEY>" \
+    endpoint-address=<VPS_WG_ENDPOINT> endpoint-port=51820 \
+    allowed-address=::/0 \
+    persistent-keepalive=25s
+
+/ipv6/address add address=<LAN_PREFIX>:0::2/64 interface=wg-vps advertise=no
+
+/ipv6/route add dst-address=<LAN_PREFIX>::/48 blackhole distance=254 \
+    comment="aggregate-for-bgp"
+
+/ipv6/firewall/address-list add list=bgp-networks-chr-vps \
+    address=<LAN_PREFIX>::/48 comment="aggregate to CHR VPS"
+
+/routing/filter/rule add chain=bgp-in-chr-vps \
+    rule="if (dst == ::/0) { accept } reject"
+/routing/filter/rule add chain=bgp-out-chr-vps \
+    rule="if (dst == <LAN_PREFIX>::/48) { accept } reject"
+
+/routing/bgp/instance add name=default-bgp as=<MT_AS> router-id=<MT_ROUTER_ID>
+/routing/bgp/template add name=tpl-vps as=<MT_AS>
+/routing/bgp/connection add name=chr-vps instance=default-bgp \
+    remote.address=<LAN_PREFIX>:0::1 remote.as=<VPS_AS> \
+    local.address=<LAN_PREFIX>:0::2 local.role=ebgp \
+    templates=tpl-vps afi=ipv6 \
+    input.filter=bgp-in-chr-vps \
+    output.network=bgp-networks-chr-vps output.filter-chain=bgp-out-chr-vps
+```
+
+## 9. Verification
+
+```bash title="CHR and MikroTik smoke tests"
+# CHR:
+/interface/wireguard/peers/print detail where name=mikrotik
+/routing/bgp/session/print
+/ipv6/route/print detail where dst-address=<LAN_PREFIX>::/48
+/ping <LAN_PREFIX>:0::2 count=3
+
+# MikroTik:
+/interface/wireguard/peers/print detail where name=chr-vps
+/routing/bgp/session/print
+/ipv6/route/print where dst-address=::/0
+/ping 2606:4700:4700::1111 count=3
+```
+
+The important return-routing check is on CHR:
+
+```bash title="CHR — return route should use wg-vps"
+/ipv6/route/print detail where dst-address=<LAN_PREFIX>::/48
+```
+
+Expect the BGP route to point to the MikroTik over `wg-vps`. If CHR treats the
+whole `/48` as connected on `ether1`, remove the WAN `/48` address and keep
+only the routed-prefix anchor as `/128`.
+
+## References
+
+- [Ubuntu/BIRD VPS path](/vps-ipv6-cgnat-mikrotik/) — same design with a Linux relay
+- [VyOS relay variant](/vps-ipv6-cgnat-mikrotik/vyos/) — same design with VyOS
+- [MikroTik CGNAT series index](/mikrotik-home-network/)
+- [Per-VLAN IPv6 on RouterOS](/mikrotik-per-vlan-ipv6/)
+- [Fast IPv6 failover](/mikrotik-ipv6-failover-bgp-bfd/chr/) — BFD on the same CHR BGP session
+- [MikroTik CHR manual](https://help.mikrotik.com/docs/spaces/ROS/pages/18350234/Cloud+Hosted+Router+CHR)
+- [RouterOS WireGuard documentation](https://help.mikrotik.com/docs/spaces/ROS/pages/69664792/WireGuard)
+- [RouterOS BGP documentation](https://help.mikrotik.com/docs/spaces/ROS/pages/328220/BGP)
+- [RFC&nbsp;4271 — Border Gateway Protocol 4](https://datatracker.ietf.org/doc/html/rfc4271)
+- [RFC&nbsp;6996 — Private-use ASNs](https://datatracker.ietf.org/doc/html/rfc6996)

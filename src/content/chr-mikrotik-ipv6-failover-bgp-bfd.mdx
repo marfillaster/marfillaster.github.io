@@ -1,0 +1,155 @@
+<SeriesNav current="failover" />
+
+## Overview
+This is the MikroTik CHR variant of the
+[BGP+BFD failover companion](/mikrotik-ipv6-failover-bgp-bfd/) for the
+[VPS path](/vps-ipv6-cgnat-mikrotik/chr/). It assumes the relay VPS is already
+running RouterOS CHR with WireGuard `wg-vps` and an eBGP session to the home
+MikroTik.
+
+BFD does not replace BGP. It gives the existing BGP session a fast liveness
+signal, so the home MikroTik withdraws the learned IPv6 default route when the
+WireGuard path is dead instead of waiting for the BGP hold timer.
+
+With RouterOS on both ends, the implementation is symmetric: add a BFD
+configuration for the WireGuard interface on each router, enable BFD on each
+BGP connection, and permit BFD control packets on the tunnel.
+
+## Design decisions
+
+**Bind BFD to the existing CHR BGP session.** The CHR relay already originates
+`::/0` to the home MikroTik, and the home MikroTik already advertises the
+routed `/48` back. BFD should monitor that same eBGP session; it should not
+introduce another routing path.
+
+**Permit BFD explicitly on both routers.** RouterOS BFD uses UDP/3784 and
+UDP/3785. Add tunnel-scoped input rules on both ends so a later input-drop
+policy cannot leave BGP established while BFD stays down.
+
+**Keep Happy Eyeballs behavior intentional.** If BFD withdraws the CHR-learned
+IPv6 default route and no other IPv6 default is active, clients fail IPv6
+quickly and move to IPv4. Do not add another IPv6 default route unless you
+intentionally want a second IPv6 uplink to catch the failure.
+
+## 1. Conventions and placeholders
+Use the same values from the CHR relay variant of the
+[VPS post](/vps-ipv6-cgnat-mikrotik/chr/):
+
+| Placeholder            | Meaning                                      |
+| ---------------------- | -------------------------------------------- |
+| `<LAN_PREFIX>`         | Routed `/48`, written without trailing `::`. |
+| `<MT_AS>` / `<VPS_AS>` | Home MikroTik and CHR private ASNs.          |
+| `wg-vps`               | WireGuard interface on both RouterOS peers.  |
+| `mikrotik`             | CHR BGP connection name toward home.         |
+| `chr-vps`              | Home MikroTik BGP connection name to CHR.    |
+
+The examples use `<LAN_PREFIX>:0::1` on CHR and `<LAN_PREFIX>:0::2` on the
+home MikroTik.
+
+## 2. CHR — enable BFD on the MikroTik BGP session
+Add a BFD configuration for the CHR WireGuard interface, enable BFD on the
+existing BGP connection, and allow BFD from the tunnel.
+
+```bash title="CHR — BFD on the home MikroTik BGP connection"
+/routing/bfd/configuration/add interfaces=wg-vps \
+    min-rx=200ms min-tx=200ms multiplier=3 \
+    comment="Home MikroTik BFD"
+
+/routing/bgp/connection/set [find name=mikrotik] use-bfd=yes
+
+/ipv6/firewall/filter/add chain=input action=accept protocol=udp \
+    in-interface=wg-vps dst-port=3784,3785 comment="BFD from home MikroTik"
+```
+
+If the CHR input policy has a final drop rule, move the BFD rule above it.
+For the minimal relay firewall in the CHR VPS post, placing it near the BGP
+input accept keeps the control-plane surface readable.
+
+## 3. MikroTik — enable BFD on the CHR BGP session
+Do the matching RouterOS change on the home MikroTik.
+
+```bash title="MikroTik — BFD on the CHR BGP connection"
+/routing/bfd/configuration/add interfaces=wg-vps \
+    min-rx=200ms min-tx=200ms multiplier=3 \
+    comment="CHR VPS BFD"
+
+/routing/bgp/connection/set [find name=chr-vps] use-bfd=yes
+
+/ipv6/firewall/filter/add chain=input action=accept protocol=udp \
+    in-interface=wg-vps dst-port=3784,3785 comment="BFD from chr-vps"
+
+:local bfdRule [/ipv6/firewall/filter/find where comment="BFD from chr-vps"]
+:local dropRule [/ipv6/firewall/filter/find where chain=input and comment="defconf: drop everything else not coming from LAN"]
+/ipv6/firewall/filter/move $bfdRule destination=$dropRule
+```
+
+If a BFD configuration for `wg-vps` already exists, edit that entry instead
+of adding a duplicate. If the firewall rule already exists, enable or update
+it instead of adding a second copy.
+
+## 4. Verification
+Both RouterOS peers should show BFD up, BGP established, and the learned
+`::/0` installed on the home MikroTik.
+
+```bash title="CHR — BFD, BGP, and return route"
+/routing/bfd/session/print detail
+/routing/bgp/session/print detail
+/ipv6/route/print detail where dst-address="<LAN_PREFIX>::/48"
+```
+
+```bash title="MikroTik — BFD, BGP, and default route"
+/routing/bfd/session/print detail
+/routing/bgp/session/print detail
+/ipv6/route/print detail where dst-address="::/0"
+/ping 2606:4700:4700::1111 count=3
+```
+
+Healthy RouterOS BFD should show:
+
+```text
+state=up
+actual-tx-interval=200ms
+required-min-rx=200ms
+remote-min-rx=200ms
+remote-min-tx=200ms
+multiplier=3
+hold-time=600ms
+```
+
+## 5. Failure test
+To prove clients get a fast signal, temporarily block BFD on the CHR side and
+watch the home MikroTik withdraw its IPv6 default route.
+
+```bash title="CHR — temporary BFD block"
+/ipv6/firewall/filter/add chain=input action=drop protocol=udp \
+    in-interface=wg-vps dst-port=3784,3785 comment="TEMP block BFD test"
+```
+
+```bash title="MikroTik — watch while testing"
+/routing/bfd/session/print detail
+/routing/bgp/session/print detail
+/ipv6/route/print detail where dst-address="::/0"
+```
+
+Remove the temporary block after the test:
+
+```bash title="CHR — remove temporary BFD block"
+/ipv6/firewall/filter/remove [find comment="TEMP block BFD test"]
+```
+
+Expected result:
+
+| Failure condition     | Router behavior                                  |
+| --------------------- | ------------------------------------------------ |
+| BFD down              | BGP session drops quickly                        |
+| BGP default withdrawn | `::/0` via `wg-vps` disappears                   |
+| No IPv6 default left  | Clients fail IPv6 quickly and try IPv4           |
+| BFD restored          | BGP re-establishes and `::/0` returns via `wg-vps` |
+
+## References
+- [VPS path post — CHR relay](/vps-ipv6-cgnat-mikrotik/chr/)
+- [Ubuntu/BIRD BFD variant](/mikrotik-ipv6-failover-bgp-bfd/)
+- [VyOS BFD variant](/mikrotik-ipv6-failover-bgp-bfd/vyos/)
+- [RouterOS `/routing/bgp` reference](https://help.mikrotik.com/docs/spaces/ROS/pages/331612228/routing%20bgp)
+- [RouterOS BFD documentation](https://help.mikrotik.com/docs/spaces/ROS/pages/19136518/BFD)
+- [RFC&nbsp;5880 — Bidirectional Forwarding Detection (BFD)](https://datatracker.ietf.org/doc/html/rfc5880)

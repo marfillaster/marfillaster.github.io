@@ -1,22 +1,25 @@
 import { MDXProvider } from "@mdx-js/react";
-import { useEffect } from "react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/mikrotik-ipv6-failover-bgp-bfd.mdx";
-import { TableOfContents, mdxComponents } from "../components/doc";
+import ChrPost from "../content/chr-vps-ipv6-cgnat-mikrotik.mdx";
+import {
+  SeriesNav,
+  TableOfContents,
+  mdxComponentsWithHeadingPrefix,
+} from "../components/doc";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
 const title =
-  "Fast IPv6 failover on RouterOS — BGP + BFD over WireGuard";
+  "MikroTik CHR relay for routed IPv6 over CGNAT — VPS, routed /48";
 const description =
-  "Add BFD to the existing MikroTik/Ubuntu-BIRD BGP session over WireGuard, cutting dead-tunnel detection from BGP hold-time expiry to sub-second route withdrawal.";
-const url =
-  "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/";
+  "Run the VPS-routed IPv6 over CGNAT path with a MikroTik CHR relay: provider-routed /48, WireGuard to the home MikroTik, eBGP route exchange, and RouterOS firewall rules.";
+const url = "https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/chr/";
+const ubuntuUrl = "https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/";
 const ogImage = "https://marfillaster.github.io/og.png";
 const author = "marfillaster";
-const datePublished = "2026-05-17";
-const dateModified = "2026-05-21";
+const datePublished = "2026-05-21";
+const dateModified = "2026-05-24";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -39,16 +42,16 @@ const structuredData = {
     url: "https://github.com/marfillaster",
   },
   keywords: [
-    "BGP",
-    "BFD",
-    "bird2",
-    "IPv6 failover",
-    "WireGuard",
+    "MikroTik CHR",
     "MikroTik",
     "RouterOS v7",
     "CGNAT",
-    "fast IPv6 failover",
-    "RFC 6996",
+    "WireGuard",
+    "IPv6",
+    "routed /48",
+    "BGP",
+    "VPS",
+    "home network",
   ],
 };
 
@@ -81,67 +84,58 @@ export const meta: MetaFunction = () => [
   },
 ];
 
-const birdNavItems = [
-  ["#overview", "Overview"],
-  ["#design-decisions", "Design"],
-  ["#1-conventions-and-placeholders", "Conventions"],
-  ["#2-vps--add-bfd-to-bird2", "VPS bird2"],
-  ["#3-mikrotik--enable-bfd-on-the-existing-bgp-session", "MikroTik"],
-  ["#4-verification", "Verify"],
-  ["#references", "References"],
+const navItems = [
+  ["#chr-overview", "Overview"],
+  ["#chr-design-decisions", "Design"],
+  ["#chr-1-topology-recap", "Topology"],
+  ["#chr-2-conventions-and-placeholders", "Conventions"],
+  ["#chr-3-bootstrap-chr-from-rescue", "Bootstrap"],
+  ["#chr-4-chr--provider-addressing", "WAN"],
+  ["#chr-5-chr--wireguard-relay", "WireGuard"],
+  ["#chr-6-chr--bgp-route-exchange", "BGP"],
+  ["#chr-7-chr--relay-firewall", "Firewall"],
+  ["#chr-8-mikrotik--wireguard-client-and-bgp", "MikroTik"],
+  ["#chr-9-verification", "Verify"],
+  ["#chr-references", "References"],
 ] as const;
 
-export default function MikrotikIpv6FailoverBgpBfd() {
-  useEffect(() => {
-    if (window.location.hash === "#vyos" || window.location.hash.startsWith("#vyos-")) {
-      window.location.replace(
-        `/mikrotik-ipv6-failover-bgp-bfd/vyos/${
-          window.location.hash === "#vyos" ? "" : window.location.hash
-        }`,
-      );
-    }
-    if (window.location.hash === "#chr" || window.location.hash.startsWith("#chr-")) {
-      window.location.replace(
-        `/mikrotik-ipv6-failover-bgp-bfd/chr/${
-          window.location.hash === "#chr" ? "" : window.location.hash
-        }`,
-      );
-    }
-  }, []);
+const chrMdxComponents = mdxComponentsWithHeadingPrefix("chr-");
 
+export default function VpsIpv6CgnatChr() {
   return (
     <SiteShell>
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Build log · MikroTik · BGP + BFD failover
+            Build log · MikroTik · VPS-routed /48 · CHR relay
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Fast IPv6 failover on RouterOS
+            MikroTik CHR relay for routed IPv6 over CGNAT
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Add BFD to the existing BGP session over WireGuard — BFD down in
-            ~700&nbsp;ms, route withdrawn fast enough for Happy Eyeballs.
-            Pick an Ubuntu/BIRD, VyOS, or CHR relay implementation.
+            Same VPS-routed /48 design as the Ubuntu/BIRD path, implemented
+            with RouterOS CHR, WireGuard, BGP filters, and relay firewall
+            rules.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-            <time dateTime={datePublished}>Published 17 May 2026</time>
+            <time dateTime={datePublished}>Published 21 May 2026</time>
           </p>
         </article>
 
+        <SeriesNav current="vps" />
+
         <div className="not-prose mt-10 border-b">
-          <div role="tablist" aria-label="BFD relay implementation" className="flex gap-2">
+          <div role="tablist" aria-label="VPS relay implementation" className="flex gap-2">
             <a
-              href="/mikrotik-ipv6-failover-bgp-bfd/"
+              href={ubuntuUrl.replace("https://marfillaster.github.io", "")}
               role="tab"
-              aria-selected="true"
-              aria-current="page"
-              className="border-b-2 border-foreground px-3 py-2 text-sm font-medium text-foreground"
+              aria-selected="false"
+              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Ubuntu + BIRD
             </a>
             <a
-              href="/mikrotik-ipv6-failover-bgp-bfd/vyos/"
+              href="/vps-ipv6-cgnat-mikrotik/vyos/"
               role="tab"
               aria-selected="false"
               className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -149,21 +143,22 @@ export default function MikrotikIpv6FailoverBgpBfd() {
               VyOS
             </a>
             <a
-              href="/mikrotik-ipv6-failover-bgp-bfd/chr/"
+              href="/vps-ipv6-cgnat-mikrotik/chr/"
               role="tab"
-              aria-selected="false"
-              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              aria-selected="true"
+              aria-current="page"
+              className="border-b-2 border-foreground px-3 py-2 text-sm font-medium text-foreground"
             >
               CHR
             </a>
           </div>
         </div>
 
-        <TableOfContents items={birdNavItems} />
+        <TableOfContents items={navItems} />
 
-        <div role="tabpanel" id="bird-panel" aria-label="Ubuntu + BIRD">
-          <MDXProvider components={mdxComponents}>
-            <Post />
+        <div role="tabpanel" id="chr" aria-label="MikroTik CHR">
+          <MDXProvider components={chrMdxComponents}>
+            <ChrPost />
           </MDXProvider>
         </div>
 

@@ -106,6 +106,13 @@ export default function VpsIpv6Cgnat() {
         }`,
       );
     }
+    if (window.location.hash === "#chr" || window.location.hash.startsWith("#chr-")) {
+      window.location.replace(
+        `/vps-ipv6-cgnat-mikrotik/chr/${
+          window.location.hash === "#chr" ? "" : window.location.hash
+        }`,
+      );
+    }
   }, []);
 
   return (
@@ -120,7 +127,8 @@ export default function VpsIpv6Cgnat() {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             $3/mo VPS that routes a /48, WireGuard from the RB5009, eBGP
-            between them. Pick an Ubuntu/BIRD or VyOS relay implementation.
+            between them. Pick an Ubuntu/BIRD, VyOS, or CHR relay
+            implementation.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 21 May 2026</time>
@@ -147,6 +155,14 @@ export default function VpsIpv6Cgnat() {
               className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               VyOS
+            </a>
+            <a
+              href="/vps-ipv6-cgnat-mikrotik/chr/"
+              role="tab"
+              aria-selected="false"
+              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              CHR
             </a>
           </div>
         </div>
