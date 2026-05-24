@@ -4,10 +4,10 @@
 This is the VyOS variant of the
 [BGP+BFD failover companion](/mikrotik-ipv6-failover-bgp-bfd/) for the
 [VPS path](/vps-ipv6-cgnat-mikrotik/). It assumes the relay VPS is already
-running VyOS with WireGuard `wg0` and an eBGP session to the RB5009.
+running VyOS with WireGuard `wg0` and an eBGP session to the home router.
 
 BFD does not replace BGP. It gives the existing BGP session a fast liveness
-signal, so the MikroTik withdraws the learned IPv6 default route when the
+signal, so the home router withdraws the learned IPv6 default route when the
 WireGuard path is dead instead of waiting for the BGP hold timer.
 
 On the measured VyOS path, `200ms` transmit/receive with multiplier `3`
@@ -27,8 +27,8 @@ while BFD stays down if UDP/3784 is blocked. On the live build, VyOS needed a
 `wg0` input permit and RouterOS needed an input permit before the default
 drop rule.
 
-**Keep the IPv6 default route honest.** In the base VPS path, the MikroTik's
-IPv6 default comes from the BGP session. When BFD withdraws that route, IPv6
+**Keep the IPv6 default route honest.** In the base VPS path, the home
+router's IPv6 default comes from the BGP session. When BFD withdraws that route, IPv6
 should fail quickly so clients can try IPv4. Do not add a second IPv6
 default route unless you intentionally want another IPv6 uplink to catch the
 failure.
@@ -37,16 +37,16 @@ failure.
 Use the same values from the VyOS relay variant of the
 [VPS post](/vps-ipv6-cgnat-mikrotik/vyos/):
 
-| Placeholder            | Meaning                                      |
-| ---------------------- | -------------------------------------------- |
-| `<LAN_PREFIX>`         | Routed `/48`, written without trailing `::`. |
-| `<MT_AS>` / `<VPS_AS>` | MikroTik and VyOS private ASNs.              |
-| `wg0`                  | VyOS WireGuard interface.                    |
-| `wg-vps`               | MikroTik WireGuard interface to the VPS.     |
-| `vyos-vps`             | MikroTik BGP connection to VyOS.             |
+| Placeholder              | Meaning                                      |
+| ------------------------ | -------------------------------------------- |
+| `<LAN_PREFIX>`           | Routed `/48`, written without trailing `::`. |
+| `<HOME_AS>` / `<VPS_AS>` | Home router and VyOS private ASNs.           |
+| `wg0`                    | VyOS WireGuard interface.                    |
+| `wg-vps`                 | Home router WireGuard interface to the VPS.  |
+| `vyos-vps`               | Home router BGP connection to VyOS.          |
 
 The examples use `<LAN_PREFIX>:0::1` on VyOS and `<LAN_PREFIX>:0::2` on the
-MikroTik.
+home router.
 
 ## 2. VyOS — add BFD to BGP
 Create a BFD profile, bind it to the existing BGP neighbor, and permit BFD
@@ -65,7 +65,7 @@ set firewall ipv6 input filter rule 30 action accept
 set firewall ipv6 input filter rule 30 inbound-interface name wg0
 set firewall ipv6 input filter rule 30 protocol udp
 set firewall ipv6 input filter rule 30 destination port 3784-3785
-set firewall ipv6 input filter rule 30 description 'BFD from RB5009'
+set firewall ipv6 input filter rule 30 description 'BFD from home'
 
 commit
 save
@@ -74,7 +74,7 @@ save
 Use an unused firewall rule number if `30` is already taken. The important
 part is that UDP/3784 reaches the VyOS control plane only from `wg0`.
 
-## 3. MikroTik — enable BFD on the VyOS BGP session
+## 3. Home router — enable BFD on the VyOS BGP session
 Add a BFD configuration for `wg-vps`, enable BFD on the BGP connection, and
 permit BFD before the default input drop.
 
@@ -103,7 +103,7 @@ duplicate. After moving, verify it appears before the input drop:
 If your RouterOS build does not accept the scripted `move`, use the printed
 IDs to move `BFD from vyos-vps` above `defconf: drop everything else not
 coming from LAN`. If the rule lands after that drop, BFD will remain down
-with `packets-rx=0` on the MikroTik.
+with `packets-rx=0` on the home router.
 
 ## 4. Verification
 Both sides should report BFD up, BGP established, and the learned `::/0`
@@ -139,7 +139,7 @@ timers.
 
 ## 5. Failure test
 To prove Happy Eyeballs gets a clean signal, temporarily block or stop the
-VyOS BFD path and watch the MikroTik lose its BGP default.
+VyOS BFD path and watch the home router lose its BGP default.
 
 ```bash title="RouterOS — watch while testing"
 /routing/bfd/session/print detail

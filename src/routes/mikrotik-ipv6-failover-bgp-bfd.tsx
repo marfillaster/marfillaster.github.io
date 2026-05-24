@@ -86,7 +86,7 @@ const birdNavItems = [
   ["#design-decisions", "Design"],
   ["#1-conventions-and-placeholders", "Conventions"],
   ["#2-vps--add-bfd-to-bird2", "VPS bird2"],
-  ["#3-mikrotik--enable-bfd-on-the-existing-bgp-session", "MikroTik"],
+  ["#3-home-router--enable-bfd-on-the-existing-bgp-session", "Home router"],
   ["#4-verification", "Verify"],
   ["#references", "References"],
 ] as const;

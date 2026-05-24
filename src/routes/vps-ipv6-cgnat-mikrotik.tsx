@@ -91,7 +91,7 @@ const ubuntuNavItems = [
   ["#2-conventions-and-placeholders", "Conventions"],
   ["#3-return-routing-wireguard-authorizes-bgp-routes", "Return routing"],
   ["#4-vps--wireguard-relay-and-bgp", "VPS"],
-  ["#5-mikrotik--wireguard-client-and-bgp", "MikroTik"],
+  ["#5-home-router--wireguard-client-and-bgp", "Home router"],
   ["#6-relay-side-verification", "Verify"],
   ["#a-appendix--cost-and-provider-notes", "Cost"],
   ["#glossary", "Glossary"],

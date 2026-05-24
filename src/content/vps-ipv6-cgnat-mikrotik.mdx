@@ -1,8 +1,8 @@
 ## Overview
 The VPS path in the [MikroTik RB5009 home-network series](/mikrotik-home-network/): recover
 real, routable IPv6 over a CGNAT'd line by paying a $3/month VPS to route a
-/48 to its instance, terminating a WireGuard tunnel from the RB5009 on it,
-and exchanging routing intent over eBGP. You operate the endpoint, so the
+/48 to its instance, terminating a WireGuard tunnel from the home router on
+it, and exchanging routing intent over eBGP. You operate the endpoint, so the
 prefix, the return routing, and the failure mode are yours to define.
 
 This post assumes you already have a working, segmented IPv4 LAN from the
@@ -25,7 +25,7 @@ rationale is in the
 [index](/mikrotik-home-network/#design-decisions); the ones below are
 specific to running your own relay.
 
-**eBGP rather than static routes between the RB5009 and the VPS.** The
+**eBGP rather than static routes between the home router and the VPS.** The
 provider routes the /48 to the VPS and configures one address from it on the
 public NIC at /48 mask, which installs a connected route for the entire /48
 on the public interface. If WireGuard also installs the same `/48` from
@@ -38,18 +38,18 @@ egress works, ping works, then the first packet to a SLAAC client falls off
 the public NIC and the network looks broken in a way no log line explains.
 
 **The VPS is configured once and never touched for new home services.** All
-gating lives on the MikroTik; the VPS is pure transit. The relay transports
-prefixes, not applications. Three specifics keep it that way:
+gating lives on the home router; the VPS is pure transit. The relay
+transports prefixes, not applications. Three specifics keep it that way:
 
 - BGP advertises the `/48` aggregate, not per-`/64`, so adding or removing
   subnets under it never triggers reconvergence or VPS re-config.
 - The VPS nftables forward chain is interface-based
   (`iifname "wg0" accept` / `oifname "wg0" accept`), not address- or
   port-based, so a new host, port, or VLAN inside the `/48` transits
-  without a VPS change. Per-service policy belongs on the MikroTik forward
-  chain, where it is colocated with the device it protects.
+  without a VPS change. Per-service policy belongs on the home router's
+  forward chain, where it is colocated with the device it protects.
 - Persistence is service-enable (`wg-quick@wg0`, `bird`, `nftables`) plus
-  `persistent-keepalive=25s` on the MikroTik peer, so a VPS reboot
+  `persistent-keepalive=25s` on the home router's peer, so a VPS reboot
   re-establishes the tunnel and BGP without operator intervention.
 
 The narrow exceptions — a service running on the VPS itself, adding BFD
@@ -70,12 +70,12 @@ The series-wide topology lives in the
                 │  <VPS_IP>                 │
                 │  enp3s0: provider GUA     │
                 │  wg0:    <LAN_PREFIX>:0::1│
-                │  bird2:  eBGP to RB5009   │
+                │  bird2:  eBGP to home     │
                 └─────────────┬─────────────┘
                               │ WireGuard / UDP 51820
                               │ (IPv6 transit + eBGP)
                               │
-                          RB5009 wg-host
+                          home   wg-host
                           <LAN_PREFIX>:0::2
 ```
 
@@ -89,9 +89,9 @@ Series-wide placeholders (`<ULA_PREFIX>`) are in the
 | `<LAN_PREFIX>`                       | Routed IPv6 /48 the VPS hands you. Drop the trailing zeros, e.g. `2001:db8`.                     |
 | `<VPS_IP>`                           | VPS public IPv4 from the provider panel.                                                         |
 | `<VPS_NIC>`                          | VPS public interface. `ip -o link` shows it (typical: `enp3s0`, `ens3`).                         |
-| `<VPS_PUBKEY>` / `<MT_PUBKEY>`       | WireGuard public keys, one per side. Each is printed during §4.                                  |
-| `<VPS_AS>` / `<MT_AS>`               | Private 2-byte ASNs (RFC&nbsp;6996, `64512–65534`) for the BGP session.                          |
-| `<VPS_ROUTER_ID>` / `<MT_ROUTER_ID>` | Any unique 32-bit router IDs written like IPv4 addresses.                                        |
+| `<VPS_PUBKEY>` / `<HOME_PUBKEY>`         | WireGuard public keys, one per side. Each is printed during §4.                              |
+| `<VPS_AS>` / `<HOME_AS>`                 | Private 2-byte ASNs (RFC&nbsp;6996, `64512–65534`) for the BGP session.                      |
+| `<VPS_ROUTER_ID>` / `<HOME_ROUTER_ID>`   | Any unique 32-bit router IDs written like IPv4 addresses.                                    |
 
 The `<LAN_PREFIX>` convention lets `<LAN_PREFIX>:1::/64` expand to
 `2001:db8:0:1::/64` and so on, mirroring VLAN numbers in the slice ID.
@@ -112,15 +112,15 @@ Table = off          = do not turn AllowedIPs into Linux routes
 BGP                  = exchange <LAN_PREFIX>::/48 and ::/0
 ```
 
-MikroTik advertises the home aggregate to the VPS over plain BGP. The VPS
-advertises only `::/0` back. Without BFD, liveness is normal BGP liveness:
+The home router advertises the home aggregate to the VPS over plain BGP.
+The VPS advertises only `::/0` back. Without BFD, liveness is normal BGP liveness:
 clean and dynamic, but not sub-second. The
 [BGP+BFD companion](/mikrotik-ipv6-failover-bgp-bfd/) adds fast failure
 detection to this same session.
 
 <Rationale>
 BGP gives the VPS one explicit route for the whole home prefix and gives
-the MikroTik one explicit default route, while `AllowedIPs` stays broad
+the home router one explicit default route, while `AllowedIPs` stays broad
 enough for WireGuard's cryptokey checks.
 </Rationale>
 
@@ -134,7 +134,7 @@ puts a BGP parser on the public internet. The nftables ruleset below
 restricts TCP/179 to `wg0` while keeping SSH, WireGuard, and ICMP reachable.
 If the VPS itself is running VyOS instead, use the
 [VyOS relay variant](/vps-ipv6-cgnat-mikrotik/vyos/) and keep the same
-MikroTik-side shape.
+home-side BGP/WireGuard contract.
 
 ```bash title="VPS wg0 + bird2 BGP + nftables"
 set -e
@@ -162,7 +162,7 @@ MTU        = 1420
 Table      = off
 
 [Peer]
-PublicKey  = <MT_PUBKEY>
+PublicKey  = <HOME_PUBKEY>
 # Authorize the tunnel peer and LAN prefix. Table=off keeps this from
 # becoming a Linux route; bird installs the kernel route learned by BGP.
 AllowedIPs = <LAN_PREFIX>:0::2/128, <LAN_PREFIX>::/48
@@ -187,7 +187,7 @@ table inet filter {
 
     tcp dport 22 accept                       # SSH
     udp dport 51820 accept                    # WireGuard
-    iifname "wg0" tcp dport 179 accept        # BGP from MikroTik, wg0 only
+    iifname "wg0" tcp dport 179 accept        # BGP from home, wg0 only
   }
 
   chain forward {
@@ -222,7 +222,7 @@ protocol kernel kernel6 {
   ipv6 {
     # Learn only the VPS default route from Linux. Do not import the
     # provider's connected <LAN_PREFIX>::/48 from the public NIC; the
-    # MikroTik will advertise the home aggregate over BGP.
+    # home router will advertise the home aggregate over BGP.
     import filter {
       if net = ::/0 then accept;
       reject;
@@ -237,9 +237,9 @@ protocol kernel kernel6 {
   learn yes;
 }
 
-protocol bgp mikrotik {
+protocol bgp home {
   local <LAN_PREFIX>:0::1 as <VPS_AS>;
-  neighbor <LAN_PREFIX>:0::2 as <MT_AS>;
+  neighbor <LAN_PREFIX>:0::2 as <HOME_AS>;
 
   ipv6 {
     import filter {
@@ -260,15 +260,15 @@ chown -R bird:bird /etc/bird
 systemctl enable --now bird
 ```
 
-## 5. MikroTik — WireGuard client and BGP
+## 5. Home router — WireGuard client and BGP
 
-The MikroTik side has two jobs: advertise the home aggregate back to the VPS,
+The home router has two jobs: advertise the home aggregate back to the VPS,
 and learn the IPv6 default route from the VPS. This keeps WireGuard as
 transport and BGP as routing intent. The companion post
 [Fast IPv6 failover on RouterOS](/mikrotik-ipv6-failover-bgp-bfd/)
 adds BFD for faster failure detection if normal BGP liveness is not fast enough.
 
-```bash title="MikroTik WireGuard + BGP"
+```bash title="Home router WireGuard + BGP"
 /interface/wireguard add name=wg-host listen-port=51820 mtu=1420
 /interface/wireguard/peers add interface=wg-host name=vps \
     public-key="<VPS_PUBKEY>" \
@@ -289,8 +289,8 @@ adds BFD for faster failure detection if normal BGP liveness is not fast enough.
 /routing/filter/rule add chain=bgp-out-vps \
     rule="if (dst == <LAN_PREFIX>::/48) { accept } reject"
 
-/routing/bgp/instance add name=default-bgp as=<MT_AS> router-id=<MT_ROUTER_ID>
-/routing/bgp/template add name=tpl-host as=<MT_AS>
+/routing/bgp/instance add name=default-bgp as=<HOME_AS> router-id=<HOME_ROUTER_ID>
+/routing/bgp/template add name=tpl-host as=<HOME_AS>
 /routing/bgp/connection add name=host-vps instance=default-bgp \
     remote.address=<LAN_PREFIX>:0::1 remote.as=<VPS_AS> \
     local.address=<LAN_PREFIX>:0::2 local.role=ebgp \
@@ -299,14 +299,14 @@ adds BFD for faster failure detection if normal BGP liveness is not fast enough.
     output.network=bgp-networks-vps output.filter-chain=bgp-out-vps
 ```
 
-No new MikroTik input rule is needed here. The BGP session is initiated
-outbound from the MikroTik on TCP/179, so the return traffic is accepted by
-the defconf `established,related,untracked` rule. ICMPv6 over the tunnel is
-already covered by the defconf accept-ICMPv6 rule.
+No new input rule is needed on the home router. The BGP session is initiated
+outbound from the home router on TCP/179, so the return traffic is accepted
+by the defconf `established,related,untracked` rule. ICMPv6 over the tunnel
+is already covered by the defconf accept-ICMPv6 rule.
 
-The MikroTik `listen-port=51820` above is the WireGuard source port — the
-router always initiates from behind CGNAT and never receives an unsolicited
-WG packet, so the value is cosmetic and need not match the VPS's port. Pick
+The home router's `listen-port=51820` above is the WireGuard source port —
+it always initiates from behind CGNAT and never receives an unsolicited WG
+packet, so the value is cosmetic and need not match the VPS's port. Pick
 anything if you ever stand up a second peer on the same router.
 
 At this point the router has a working IPv6 default route over WireGuard,
@@ -328,10 +328,10 @@ one-glance path-agnostic check is the screenshot at the
 ```bash title="VPS-side and tunnel smoke tests"
 # Tunnel and BGP
 wg show                                    # on VPS: handshake < 3 min
-ping6 -c 2 <LAN_PREFIX>:0::2               # VPS -> MikroTik WG endpoint
+ping6 -c 2 <LAN_PREFIX>:0::2               # VPS -> home WG endpoint
 birdc show route <LAN_PREFIX>::/48         # VPS: BGP-learned return route
 ip -6 route show <LAN_PREFIX>::/48         # VPS: proto bird, metric 32, dev wg0
-/routing/bgp/session/print                 # MikroTik: established
+/routing/bgp/session/print                 # home router: established
 ip -6 route get <client-IPv6-addr>         # on VPS: expect "dev wg0"
 ```
 

@@ -51,14 +51,14 @@ turn it on.
 
 ## 1. Conventions and placeholders
 All placeholders are defined in the [VPS post's §2](/vps-ipv6-cgnat-mikrotik/#2-conventions-and-placeholders)
-— `<LAN_PREFIX>`, `<VPS_AS>` / `<MT_AS>`, `<VPS_ROUTER_ID>` / `<MT_ROUTER_ID>`,
+— `<LAN_PREFIX>`, `<VPS_AS>` / `<HOME_AS>`, `<VPS_ROUTER_ID>` / `<HOME_ROUTER_ID>`,
 and the `wg-host` interface created in its §5. Substitute the same values
 here before pasting.
 
 ## 2. VPS — add BFD to bird2 and nftables
 Three surgical edits on the VPS: append a `protocol bfd` block to the
 existing `/etc/bird/bird.conf`, flip `bfd on;` inside its `protocol bgp
-mikrotik` block, and add one `wg0`-only allow line to `/etc/nftables.conf`.
+home` block, and add one `wg0`-only allow line to `/etc/nftables.conf`.
 Re-pasting will duplicate all three — re-run only after reverting.
 
 ```bash title="bird2 + nftables: BFD-only diffs"
@@ -82,10 +82,10 @@ protocol bfd {
 EOF
 
 # 2. Turn BFD on inside the existing BGP session.
-sed -i '/^protocol bgp mikrotik {/a\  bfd on;' /etc/bird/bird.conf
+sed -i '/^protocol bgp home {/a\  bfd on;' /etc/bird/bird.conf
 
 # 3. Add the wg0-only BFD/3784 allow next to the existing BGP/179 line.
-sed -i '/iifname "wg0" tcp dport 179 accept/a\    iifname "wg0" udp dport 3784 accept       # BFD from MikroTik, wg0 only' /etc/nftables.conf
+sed -i '/iifname "wg0" tcp dport 179 accept/a\    iifname "wg0" udp dport 3784 accept       # BFD from home, wg0 only' /etc/nftables.conf
 systemctl reload nftables
 
 # Restart bird so it loads the new BFD protocol and re-establishes BGP with
@@ -98,12 +98,12 @@ systemctl daemon-reload && systemctl restart bird
 
 <Rationale>
 The explicit `neighbor` in `protocol bfd` matters. Without it, bird is
-passive and only responds to probes; after a flap the MikroTik waits for BFD
-before re-establishing BGP, bird waits for BGP before initiating BFD, and
-recovery needs a manual `birdc restart`.
+passive and only responds to probes; after a flap the home router waits for
+BFD before re-establishing BGP, bird waits for BGP before initiating BFD,
+and recovery needs a manual `birdc restart`.
 </Rationale>
 
-## 3. MikroTik — enable BFD on the existing BGP session
+## 3. Home router — enable BFD on the existing BGP session
 ```bash title="RouterOS BGP + BFD"
 /routing/bgp/template/set [find name=tpl-host] use-bfd=yes
 /routing/bgp/connection/set [find name=host-vps] use-bfd=yes
@@ -119,16 +119,16 @@ recovery needs a manual `birdc restart`.
 ```
 
 BFD's UDP/3784 control packets arrive unsolicited, so the defconf
-`established,related,untracked` rule that lets the MikroTik-initiated BGP
-session work does not cover them. The explicit allow above is the one new
-input rule this companion adds on the MikroTik. The matching nftables line
-on the VPS side is in §2.
+`established,related,untracked` rule that lets the home-router-initiated
+BGP session work does not cover them. The explicit allow above is the one
+new input rule this companion adds on the home router. The matching
+nftables line on the VPS side is in §2.
 
 <Rationale>
 BFD is added on top of the BGP session the base build already created. Only
 the template and connection get `use-bfd=yes`, the BFD configuration entry
 defines the timing, and the firewall rule allows the control packets. On the
-live RB5009, setting only the template did not alter the already-created
+live home router, setting only the template did not alter the already-created
 connection; the connection needed its own `use-bfd=yes`.
 </Rationale>
 
@@ -136,11 +136,11 @@ connection; the connection needed its own `use-bfd=yes`.
 ```bash title="Confirm BGP/BFD and the failover"
 # On the VPS:
 birdc show protocols                       # bgp + bfd both Established/Up
-birdc show route <LAN_PREFIX>::/48         # learned from mikrotik
+birdc show route <LAN_PREFIX>::/48         # learned from home
 ip -6 route show <LAN_PREFIX>::/48         # proto bird, metric 32, via wg0
 wg show wg0 allowed-ips                    # /48 is allowed, not route-owned
 
-# On the MikroTik:
+# On the home router:
 /routing/bgp/session/print                 # established
 /routing/bfd/session/print                 # state=up
 /ipv6/route/print where dst-address=::/0   # bgp, distance 20

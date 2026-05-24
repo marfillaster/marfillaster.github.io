@@ -92,7 +92,7 @@ const navItems = [
   ["#vyos-3-baseline-vyos-networking", "Baseline"],
   ["#vyos-4-vyos--wireguard-and-bgp", "VyOS"],
   ["#vyos-5-vyos--relay-firewall", "Firewall"],
-  ["#vyos-6-mikrotik--wireguard-client-and-bgp", "MikroTik"],
+  ["#vyos-6-home-router--wireguard-client-and-bgp", "Home router"],
   ["#vyos-7-verification", "Verify"],
   ["#vyos-references", "References"],
 ] as const;

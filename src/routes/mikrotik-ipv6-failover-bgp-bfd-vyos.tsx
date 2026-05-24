@@ -85,7 +85,7 @@ const navItems = [
   ["#vyos-design-decisions", "Design"],
   ["#vyos-1-conventions-and-placeholders", "Conventions"],
   ["#vyos-2-vyos--add-bfd-to-bgp", "VyOS"],
-  ["#vyos-3-mikrotik--enable-bfd-on-the-vyos-bgp-session", "MikroTik"],
+  ["#vyos-3-home-router--enable-bfd-on-the-vyos-bgp-session", "Home router"],
   ["#vyos-4-verification", "Verify"],
   ["#vyos-5-failure-test", "Failure test"],
   ["#vyos-references", "References"],

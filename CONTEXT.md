@@ -119,6 +119,21 @@ searching for "MikroTik RB5009" as a phrase.
 _Avoid_: repeating the full phrase after first reference; pick RB5009
 or RouterOS as the body settles into the recipe.
 
+**Home router / `home`**:
+The home-side peer in VPS-side recipes — the device originating the
+home `/48` aggregate and terminating the WireGuard tunnel. Prose form
+on VPS-side pages is "the home router"; code form is the bare token
+`home` (BGP connection / template / WireGuard peer name, filter chains
+`bgp-in-home` / `bgp-out-home`, VyOS prefix-list `HOME-V6` and
+route-map `HOME-IN`, placeholders `<HOME_AS>` / `<HOME_PUBKEY>` /
+`<HOME_ROUTER_ID>`). The rename from device/vendor labels
+(`mikrotik` / `rb5009` → `home`) is captured in
+[ADR-0004](docs/adr/0004-vps-side-peer-name-home.md).
+_Avoid_: `mikrotik` or `rb5009` as code-level peer names in VPS-side
+snippets; "the MikroTik" or "the RB5009" in VPS-side prose when
+referring to the peer (those terms are reserved for vendor- or
+hardware-property sentences).
+
 **Title anchor rule**: pick the title's device/OS noun by what the
 recipe is bound to, not by the slug.
 - RouterOS-portable recipe (works on any RouterOS box) → title anchors
@@ -158,8 +173,13 @@ written brand-forward (`-mikrotik`); titles follow the rule above.
 
 **Casing**: `MikroTik` (brand caps), `RouterOS` (camelcase), `RB5009`
 (uppercase). Lowercase forms appear only as URL slugs (locked for SEO)
-and as identifier tokens in code (BGP peer-names like `protocol bgp
-mikrotik`, WireGuard peer `rb5009`). Never use lowercase in prose or
+and as identifier tokens in code — peer names, filter chains, BGP
+template names — which use the side label, not the vendor or device:
+`protocol bgp home`, WireGuard peer `home`, `bgp-in-home`/`bgp-out-home`,
+`tpl-home`. Placeholder namespaces follow: `<HOME_AS>`, `<HOME_PUBKEY>`,
+`<HOME_ROUTER_ID>`. See [home router](#home-router--home) and
+[ADR-0004](docs/adr/0004-vps-side-peer-name-home.md) for why VPS-side
+code does not use `mikrotik` or `rb5009`. Never use lowercase in prose or
 headings.
 
 ## Flagged ambiguities

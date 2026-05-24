@@ -94,7 +94,7 @@ const navItems = [
   ["#chr-5-chr--wireguard-relay", "WireGuard"],
   ["#chr-6-chr--bgp-route-exchange", "BGP"],
   ["#chr-7-chr--relay-firewall", "Firewall"],
-  ["#chr-8-mikrotik--wireguard-client-and-bgp", "MikroTik"],
+  ["#chr-8-home-router--wireguard-client-and-bgp", "Home router"],
   ["#chr-9-verification", "Verify"],
   ["#chr-references", "References"],
 ] as const;
