@@ -12,7 +12,7 @@ into VLANs — its own paste-ready companion post,
 [Trusted, IoT, and Guest VLANs on RouterOS](/mikrotik-vlan-guest-iot/);
 the rest of the series assumes it has been applied. **Layer&nbsp;2** recovers
 real, routable IPv6 over the CGNAT'd line. There are two equal ways to do
-that, and the choice between them is the load-bearing decision in this build:
+that, and choosing between them is the main decision in this build:
 
 - **[Routed IPv6 over CGNAT via a VPS](/vps-ipv6-cgnat-mikrotik/)** — a
   $3/month VPS that routes a /48 to its instance, a WireGuard tunnel from
@@ -40,8 +40,8 @@ at the original gists.
 
 ## Design decisions
 
-Two choices are load-bearing enough that a reader substituting parts will
-want a sentence of justification.
+Two choices matter enough that a reader substituting parts will want a
+sentence of justification.
 
 **WireGuard** carries the IPv6 transport because residential CGNAT only
 guarantees outbound UDP, and WireGuard needs nothing more than that. Both

@@ -11,9 +11,9 @@ attack surface to manage two UniFi 6 APs.
 The controller runs as two containers — MongoDB and the UniFi Network
 Application — bridged onto the main LAN through veth interfaces. From the LAN
 they look like ordinary hosts; from the router they are services with hard
-memory limits. Two constraints are load-bearing and explain almost every odd
-line below: the RB5009 has **1&nbsp;GB of RAM**, and its Cortex-A72 is
-**ARMv8.0-A**, which the current ARM64 MongoDB builds do not run on.
+memory limits. Two constraints drive almost every odd line below: the
+RB5009 has **1&nbsp;GB of RAM**, and its Cortex-A72 is **ARMv8.0-A**, which
+the current ARM64 MongoDB builds do not run on.
 
 Every numbered section is paste-ready against a RouterOS&nbsp;v7 box that
 already has the LAN segmentation from the companion post. The italic notes are

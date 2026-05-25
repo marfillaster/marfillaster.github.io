@@ -18,9 +18,9 @@ transport is plain outbound UDP, it traverses residential CGNAT — verified
 on a live Converge line, not inferred. A /56 is 256 /64s: enough to give
 every VLAN its own native global prefix straight from the delegation, with
 no helper daemon and no second prefix for clients to choose between. The
-single trade-off is honest and designed-for: Route64 is the *only* IPv6
-uplink, so when it is down the LAN fails fast and cleanly back to IPv4
-rather than blackholing.
+single trade-off is designed-for: Route64 is the *only* IPv6 uplink, so
+when it is down the LAN fails fast and cleanly back to IPv4 rather than
+blackholing.
 
 Every numbered section is paste-ready against a RouterOS&nbsp;v7 box that
 already has the VLAN segmentation from the companion post. The italic notes
@@ -42,7 +42,7 @@ are the rationale — the trade-off being made and why.
               └─────────────┬─────────────┘
                             │
                 ┌───────────┴───────────┐
-                │       RB5009          │
+                │     home router       │
                 │  wg-route64  ::2/64   │  ← tunnel link
                 │  bridge   <56>:1::1   │  ← LAN  GUA + ULA
                 │  vlan-iot <56>:10::1  │  ← IoT  GUA + ULA
@@ -63,7 +63,7 @@ so the netwatch scripts need no nested quotes.
 
 | Placeholder       | Meaning                                                                              |
 | ----------------- | ------------------------------------------------------------------------------------ |
-| `<R64_PRIVKEY>`   | Client (RB5009) WireGuard private key from the Route64 tunnel page.                   |
+| `<R64_PRIVKEY>`   | Client (home router) WireGuard private key from the Route64 tunnel page.              |
 | `<R64_SRV_PUBKEY>`| Route64 server public key.                                                           |
 | `<R64_POP_IP>`    | Route64 PoP endpoint IPv4.                                                            |
 | `<R64_POP_PORT>`  | Route64 PoP endpoint UDP port (also the local `listen-port`).                         |
@@ -86,15 +86,15 @@ server public key, the client private key, the tunnel-link `/64` (the
 point-to-point pair, client `::2`, gateway `::1`), the routed **/56**
 delegated for LAN use — a *different* prefix from the link `/64` — the
 numeric tunnel ID, and an API key for the DynDNS endpoint. The portal asks
-for a public IPv4; behind CGNAT that value is not load-bearing (see the
-design note above).
+for a public IPv4; behind CGNAT that value is not used (see the design
+note above).
 
 ## 4. WireGuard client
-The RB5009 always initiates; `::/0` in `allowed-address` lets the peer carry
-any IPv6 (the path is a routing decision, not set here). The tunnel-link
-address is `advertise=no` — it is point-to-point, no SLAAC.
+The home router always initiates; `::/0` in `allowed-address` lets the peer
+carry any IPv6 (the path is a routing decision, not set here). The
+tunnel-link address is `advertise=no` — it is point-to-point, no SLAAC.
 
-```bash title="MikroTik — Route64 WireGuard client"
+```bash title="Home router — Route64 WireGuard client"
 /interface/wireguard add name=wg-route64 mtu=1420 \
     listen-port=<R64_POP_PORT> private-key="<R64_PRIVKEY>"
 /interface/wireguard/peers add interface=wg-route64 \
@@ -109,7 +109,7 @@ WireGuard, not 6in4: the obvious free broker is Hurricane Electric, but its
 6in4 tunnel (IP protocol&nbsp;41) has no UDP/TCP ports for a carrier's NAT44
 to track and is dropped behind CGNAT — it transmits fine, nothing ever
 returns, confirmed on the live line. Route64's WireGuard is stateful outbound
-UDP: the RB5009 always initiates and the responder replies to whatever source
+UDP: the home router always initiates and the responder replies to whatever source
 sent a valid key-authenticated handshake, so the registered portal IPv4 is
 hygiene, not a dependency. `persistent-keepalive=15s` then keeps the carrier's
 NAT mapping fresh and Route64's learned endpoint under 15&nbsp;s old, so the
@@ -123,7 +123,7 @@ There is no second IPv6 path, so the Route64 default is just the default. It
 carries a comment because section&nbsp;6's netwatch enables and disables it
 by that token.
 
-```bash title="MikroTik — Route64 default route"
+```bash title="Home router — Route64 default route"
 /ipv6/route add dst-address=::/0 gateway=<R64_LINK>::1%wg-route64 \
     distance=1 comment=r64def
 ```
@@ -136,7 +136,7 @@ zero tells hosts "I am not a default router": they purge the IPv6 default and
 Happy&nbsp;Eyeballs to IPv4 within one RA interval. On recovery it restores
 the route and a normal `ra-lifetime`. Comments are single tokens.
 
-```bash title="MikroTik — netwatch arms/disarms the IPv6 uplink"
+```bash title="Home router — netwatch arms/disarms the IPv6 uplink"
 /tool/netwatch add name=r64health type=icmp host=<R64_LINK>::1 \
     interval=5s timeout=2s comment=r64health \
     up-script="/ipv6/route enable [find comment=r64def]; /ipv6/nd set [find interface=bridge] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=30m; :log info route64-up" \
@@ -174,7 +174,7 @@ handshakes. Kept only to keep the portal accurate, on a 15-minute scheduler
 unmetered, so 15&nbsp;min never trips it). `start-time=startup` corrects a
 stale pin after a reboot.
 
-```bash title="MikroTik — Route64 DynDNS scheduler"
+```bash title="Home router — Route64 DynDNS scheduler"
 /system/script add name=route64-ddns source=":do { :local r [/tool fetch url=\"https://manager.route64.org/nic/update?hostname=<R64_TUNNEL_ID>\" user=\"<R64_USER>\" password=\"<R64_APIKEY>\" mode=https output=user as-value]; :log info (\"route64-ddns: \" . (\$r->\"data\")); } on-error={ :log warning \"route64-ddns: fetch error\"; }"
 /system/scheduler add name=route64-ddns start-time=startup interval=15m \
     on-event="/system/script/run route64-ddns"
@@ -205,7 +205,7 @@ one-glance path-agnostic check is the screenshot at the
 
 Pulling the WireGuard peer's endpoint (or briefly disabling `wg-route64`)
 should produce a `route64-down-failedtoIPv4` log line within ~8&nbsp;s. The
-full ≈40&nbsp;s client-side failover is verified after per-VLAN IPv6 is in
+full ≈40&nbsp;s client-side failover lands once per-VLAN IPv6 is in
 place — see that post's verification block.
 
 ## 9. Caveats
