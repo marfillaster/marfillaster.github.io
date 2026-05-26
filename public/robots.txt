@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://marfillaster.github.io/sitemap.xml
+Sitemap: https://blog.homestack.space/sitemap.xml

@@ -14,9 +14,9 @@ const title =
   "MikroTik CHR relay for routed IPv6 over CGNAT — VPS, routed /48";
 const description =
   "Run the VPS-routed IPv6 over CGNAT path with a MikroTik CHR relay: provider-routed /48, WireGuard to the home MikroTik, eBGP route exchange, and RouterOS firewall rules.";
-const url = "https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/chr/";
-const ubuntuUrl = "https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/";
-const ogImage = "https://marfillaster.github.io/og.png";
+const url = "https://blog.homestack.space/vps-ipv6-cgnat-mikrotik/chr/";
+const ubuntuUrl = "https://blog.homestack.space/vps-ipv6-cgnat-mikrotik/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-21";
 const dateModified = "2026-05-24";
@@ -127,7 +127,7 @@ export default function VpsIpv6CgnatChr() {
         <div className="not-prose mt-10 border-b">
           <div role="tablist" aria-label="VPS relay implementation" className="flex gap-2">
             <a
-              href={ubuntuUrl.replace("https://marfillaster.github.io", "")}
+              href={ubuntuUrl.replace("https://blog.homestack.space", "")}
               role="tab"
               aria-selected="false"
               className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"

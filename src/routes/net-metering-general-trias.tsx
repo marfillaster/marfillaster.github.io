@@ -10,9 +10,9 @@ const title = "Net Metering Journey in General Trias";
 const description =
   "A realistic, step-by-step account of getting a 6 kWp rooftop solar system approved for net metering with Meralco in Rosario, Cavite: the PEE-sealed A3 SLD, the forms, the venues, the fees, and a ~50-day timeline.";
 const url =
-  "https://marfillaster.github.io/net-metering-general-trias/";
+  "https://blog.homestack.space/net-metering-general-trias/";
 const ogImage =
-  "https://marfillaster.github.io/net-metering-general-trias/og.png";
+  "https://blog.homestack.space/net-metering-general-trias/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-16";
 const dateModified = "2026-05-16";

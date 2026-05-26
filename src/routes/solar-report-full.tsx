@@ -8,8 +8,8 @@ const title =
   "Full residential solar performance report — Cavite, Philippines (Dec 2025–Apr 2026)";
 const description =
   "Full report: hourly-data-driven analysis of a 6.5 kWp / 14.3 kWh / 8 kW residential solar+battery system in Cavite, Philippines, covering five months from December 2025 to April 2026. Generation, self-sufficiency, alerts, recommendations, bill impact, ROI, battery health, projections, and methodology.";
-const url = "https://marfillaster.github.io/solar-report/full-report";
-const ogImage = "https://marfillaster.github.io/solar-report/og-image.png";
+const url = "https://blog.homestack.space/solar-report/full-report";
+const ogImage = "https://blog.homestack.space/solar-report/og-image.png";
 const author = "Ken Marfilla";
 const datePublished = "2026-05-01";
 const dateModified = "2026-05-01";

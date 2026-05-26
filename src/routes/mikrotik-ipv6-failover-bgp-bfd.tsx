@@ -12,8 +12,8 @@ const title =
 const description =
   "Add BFD to the existing MikroTik/Ubuntu-BIRD BGP session over WireGuard, cutting dead-tunnel detection from BGP hold-time expiry to sub-second route withdrawal.";
 const url =
-  "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/";
-const ogImage = "https://marfillaster.github.io/og.png";
+  "https://blog.homestack.space/mikrotik-ipv6-failover-bgp-bfd/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-21";

@@ -1,11 +1,11 @@
 ---
 name: update-solar-report-site
-description: Regenerate the /solar-report content of the marfillaster.github.io blog from /Users/ken/solar-skills/data/solar-analysis.md (or another solar-analysis.md report). Use when updating the markdown source for the summary and full-report routes, plus the OG image, after the analysis report changes.
+description: Regenerate the /solar-report content of the blog.homestack.space blog from /Users/ken/solar-skills/data/solar-analysis.md (or another solar-analysis.md report). Use when updating the markdown source for the summary and full-report routes, plus the OG image, after the analysis report changes.
 ---
 
 # Update Solar Report Site
 
-Regenerate the `/solar-report` markdown source with the bundled script instead of hand-editing the generated files. The site is a React Router app (sister blog at marfillaster.github.io); this skill regenerates only the solar inputs and lets `pnpm build` produce the final HTML.
+Regenerate the `/solar-report` markdown source with the bundled script instead of hand-editing the generated files. The site is a React Router app (sister blog at blog.homestack.space); this skill regenerates only the solar inputs and lets `pnpm build` produce the final HTML.
 
 ## Install For Codex
 

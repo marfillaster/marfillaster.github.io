@@ -11,8 +11,8 @@ const title =
 const description =
   "Make a MikroTik RouterOS v7 box resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA advertised via RA RDNSS. No VLAN segmentation and no IPv6 uplink required; works on a flat IPv4-only LAN. Paste-ready RouterOS v7 snippets.";
 const url =
-  "https://marfillaster.github.io/encrypted-dns-stable-resolver-mikrotik/";
-const ogImage = "https://marfillaster.github.io/og.png";
+  "https://blog.homestack.space/encrypted-dns-stable-resolver-mikrotik/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-17";

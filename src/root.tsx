@@ -6,7 +6,7 @@ import stylesheet from "./styles.css?url";
 const siteTitle = "marfillaster · notes";
 const siteDescription =
   "Build logs and case studies on home networking, residential solar, and other long-running experiments by marfillaster.";
-const siteUrl = "https://marfillaster.github.io/";
+const siteUrl = "https://blog.homestack.space/";
 const author = "marfillaster";
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
 

@@ -11,8 +11,8 @@ const title =
 const description =
   "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap + ext4 storage, the ARMv8.0-A Mongo 4.4.18 pin, veths on the main LAN, memory caps, and verification. Paste-ready RouterOS v7.";
 const url =
-  "https://marfillaster.github.io/unifi-controller-routeros-containers-mikrotik/";
-const ogImage = "https://marfillaster.github.io/og.png";
+  "https://blog.homestack.space/unifi-controller-routeros-containers-mikrotik/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-17";

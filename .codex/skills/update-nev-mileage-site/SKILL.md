@@ -1,6 +1,6 @@
 ---
 name: update-nev-mileage-site
-description: Regenerate the /nev-mileage content of the marfillaster.github.io blog from ~/phev-tracker/report.md (the PHEV Tracker extended report, written by the phev-tracker skill) and its phev_log.csv. Use when publishing the EV/PHEV report after the phev-tracker skill has refreshed it.
+description: Regenerate the /nev-mileage content of the blog.homestack.space blog from ~/phev-tracker/report.md (the PHEV Tracker extended report, written by the phev-tracker skill) and its phev_log.csv. Use when publishing the EV/PHEV report after the phev-tracker skill has refreshed it.
 ---
 
 # Update NEV Mileage Site

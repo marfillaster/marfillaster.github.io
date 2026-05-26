@@ -5,7 +5,7 @@ import { SiteShell } from "../components/site-shell";
 const title = "marfillaster · notes";
 const description =
   "Build logs and case studies on home networking, residential solar, and other long-running experiments by marfillaster.";
-const url = "https://marfillaster.github.io/";
+const url = "https://blog.homestack.space/";
 
 export const meta: MetaFunction = () => [
   { title },

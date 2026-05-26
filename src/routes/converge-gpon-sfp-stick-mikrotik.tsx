@@ -11,8 +11,8 @@ const title =
 const description =
   "A tested Converge FiberX GPON ONT replacement build log: Skyworth GN630V to ODI DFP-34X-2C2 GPON SFP stick in a MikroTik RB5009, VLAN 10 DHCP, SC/APC to SC/UPC connector caveat, and the minimum working configuration.";
 const url =
-  "https://marfillaster.github.io/converge-gpon-sfp-stick-mikrotik/";
-const ogImage = "https://marfillaster.github.io/og.png";
+  "https://blog.homestack.space/converge-gpon-sfp-stick-mikrotik/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-19";

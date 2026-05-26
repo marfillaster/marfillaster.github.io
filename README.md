@@ -1,6 +1,6 @@
 # marfillaster · notes
 
-GitHub Pages user site at https://marfillaster.github.io/ — a sister-blog umbrella for long-running experiments.
+Static site hosted on Cloudflare at https://blog.homestack.space/ — a sister-blog umbrella for long-running experiments. The repo is still the `marfillaster/marfillaster.github.io` user-site repo for historical reasons; only the hosting moved.
 
 Routes:
 

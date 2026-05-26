@@ -8,8 +8,8 @@ const title =
   "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Apr 2026)";
 const description =
   "Summary of five months of real residential solar performance from a 6.5 kWp / 14.3 kWh / 8 kW system in Cavite, Philippines: bill cut, payback, self-sufficiency, and battery behavior. Links to the full report and raw markdown.";
-const url = "https://marfillaster.github.io/solar-report/";
-const ogImage = "https://marfillaster.github.io/solar-report/og-image.png";
+const url = "https://blog.homestack.space/solar-report/";
+const ogImage = "https://blog.homestack.space/solar-report/og-image.png";
 const author = "Ken Marfilla";
 const datePublished = "2026-05-01";
 const dateModified = "2026-05-01";

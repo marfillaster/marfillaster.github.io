@@ -11,8 +11,8 @@ const title =
 const description =
   "Add BFD to the MikroTik/CHR BGP session over WireGuard so the home MikroTik withdraws the IPv6 default route quickly when the CHR relay path fails.";
 const url =
-  "https://marfillaster.github.io/mikrotik-ipv6-failover-bgp-bfd/chr/";
-const ogImage = "https://marfillaster.github.io/og.png";
+  "https://blog.homestack.space/mikrotik-ipv6-failover-bgp-bfd/chr/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-25";

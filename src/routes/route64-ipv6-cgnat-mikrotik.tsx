@@ -10,8 +10,8 @@ const title =
   "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT — Route64, no VPS";
 const description =
   "Add real routed IPv6 to an already-segmented IPv4-only LAN behind residential CGNAT using Route64's free WireGuard tunnel and a routed /56 — a native global /64 per VLAN, no VPS, with fast fail-to-IPv4 on outage. Paste-ready RouterOS v7 snippets for the MikroTik RB5009.";
-const url = "https://marfillaster.github.io/route64-ipv6-cgnat-mikrotik/";
-const ogImage = "https://marfillaster.github.io/og.png";
+const url = "https://blog.homestack.space/route64-ipv6-cgnat-mikrotik/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-17";

@@ -115,7 +115,7 @@ def render(output: Path, period: str, vehicle: str, stats: list[tuple[str, str]]
         draw.text((col_x, stat_y), value, font=value_font, fill=LEAF)
         draw.text((col_x, stat_y + 78), label, font=stat_label_font, fill=MUTED)
 
-    footer = "marfillaster.github.io/nev-mileage"
+    footer = "blog.homestack.space/nev-mileage"
     fw = text_width(draw, footer, footer_font)
     draw.text((WIDTH - margin_x - fw, HEIGHT - 60), footer, font=footer_font, fill=SLATE)
 

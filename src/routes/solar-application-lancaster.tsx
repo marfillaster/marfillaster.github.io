@@ -11,9 +11,9 @@ const title =
 const description =
   "Lancaster New City solar installation: the exact CIDC documents to prepare, a Letter of Intent template, where to submit, and how to get your gate pass on the same visit.";
 const url =
-  "https://marfillaster.github.io/solar-application-lancaster/";
+  "https://blog.homestack.space/solar-application-lancaster/";
 const ogImage =
-  "https://marfillaster.github.io/solar-application-lancaster/og.png";
+  "https://blog.homestack.space/solar-application-lancaster/og.png";
 const author = "marfillaster";
 const datePublished = "2025-12-01";
 const dateModified = "2025-12-01";

@@ -107,7 +107,7 @@ def render(output: Path, period: str, system_label: str, location: str, stats: l
         draw_text(draw, (col_x, stat_y), value, stat_value_font, SUN)
         draw_text(draw, (col_x, stat_y + 80), label, stat_label_font, MUTED)
 
-    footer = "marfillaster.github.io/solar-report"
+    footer = "blog.homestack.space/solar-report"
     fw = text_width(draw, footer, footer_font)
     draw_text(draw, (WIDTH - margin_x - fw, HEIGHT - 60), footer, footer_font, SEA)
 

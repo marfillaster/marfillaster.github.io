@@ -9,8 +9,8 @@ import { ShareLinks } from "../components/share";
 const title = "Per-VLAN IPv6 on RouterOS";
 const description =
   "Plumb a routable-IPv6 default route through to every VLAN on a MikroTik RB5009: per-VLAN GUA + ULA + RA RDNSS, IPv6 forward-chain isolation, and SLAAC anti-spoof. Path-agnostic — works after either the VPS-routed /48 or the Route64 /56 path.";
-const url = "https://marfillaster.github.io/mikrotik-per-vlan-ipv6/";
-const ogImage = "https://marfillaster.github.io/og.png";
+const url = "https://blog.homestack.space/mikrotik-per-vlan-ipv6/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-21";
 const dateModified = "2026-05-21";

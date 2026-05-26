@@ -15,8 +15,8 @@ const title =
   "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT — VPS, routed /48";
 const description =
   "Add real routed IPv6 to an already-segmented IPv4-only LAN behind residential CGNAT using a $3/mo VPS, WireGuard from the RB5009, and eBGP to an Ubuntu/BIRD relay.";
-const url = "https://marfillaster.github.io/vps-ipv6-cgnat-mikrotik/";
-const ogImage = "https://marfillaster.github.io/og.png";
+const url = "https://blog.homestack.space/vps-ipv6-cgnat-mikrotik/";
+const ogImage = "https://blog.homestack.space/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-21";
 const dateModified = "2026-05-21";

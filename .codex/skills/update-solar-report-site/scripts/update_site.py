@@ -28,7 +28,7 @@ MDX_PATH = REPO_ROOT / "src" / "content" / "full-report.md"
 RAW_REPORT_PATH = REPO_ROOT / "public" / "solar-report" / "full-report.md"
 OG_IMAGE_PATH = REPO_ROOT / "public" / "solar-report" / "og-image.png"
 
-SITE_URL = "https://marfillaster.github.io/solar-report"
+SITE_URL = "https://blog.homestack.space/solar-report"
 SITE_AUTHOR = "Ken Marfilla"
 
 GA_MEASUREMENT_ID = "G-S37EV14XH2"

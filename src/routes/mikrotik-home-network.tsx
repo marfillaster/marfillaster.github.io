@@ -9,8 +9,8 @@ import { ShareLinks } from "../components/share";
 const title = "Home network on residential CGNAT — RB5009 series index";
 const description =
   "Series index for a small, opinionated home network on a MikroTik RB5009 behind residential CGNAT. Two equal paths to routable IPv6 — a self-operated VPS routing a /48, or the free Route64 broker routing a /56 — with shared VLAN, DNS, and ULA-only-trusted-VLAN scaffolding.";
-const url = "https://marfillaster.github.io/mikrotik-home-network/";
-const ogImage = "https://marfillaster.github.io/mikrotik-home-network/og.png";
+const url = "https://blog.homestack.space/mikrotik-home-network/";
+const ogImage = "https://blog.homestack.space/mikrotik-home-network/og.png";
 const author = "marfillaster";
 const datePublished = "2026-05-15";
 const dateModified = "2026-05-21";
