@@ -17,9 +17,12 @@ const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-17";
 
+const seriesUrl = "https://blog.homestack.space/mikrotik-home-network/";
+const seriesName = "MikroTik RB5009 home network behind CGNAT";
+
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "BlogPosting",
+  "@type": "TechArticle",
   headline: title,
   description,
   url,
@@ -27,6 +30,8 @@ const structuredData = {
   image: ogImage,
   datePublished,
   dateModified,
+  inLanguage: "en",
+  dependencies: "MikroTik RouterOS v7, Cloudflare DoH, IPv6 RA RDNSS",
   author: {
     "@type": "Person",
     name: author,
@@ -36,6 +41,11 @@ const structuredData = {
     "@type": "Person",
     name: author,
     url: "https://github.com/marfillaster",
+  },
+  isPartOf: {
+    "@type": "CreativeWorkSeries",
+    name: seriesName,
+    url: seriesUrl,
   },
   keywords: [
     "DoH",
@@ -48,6 +58,31 @@ const structuredData = {
     "RouterOS v7",
     "encrypted DNS",
     "home network",
+  ],
+};
+
+const breadcrumbData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "marfillaster · notes",
+      item: "https://blog.homestack.space/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "RB5009 home network series",
+      item: seriesUrl,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Encrypted DNS with a stable resolver address on RouterOS",
+      item: url,
+    },
   ],
 };
 
@@ -77,6 +112,9 @@ export const meta: MetaFunction = () => [
   { tagName: "link", rel: "canonical", href: url },
   {
     "script:ld+json": structuredData,
+  },
+  {
+    "script:ld+json": breadcrumbData,
   },
 ];
 

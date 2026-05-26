@@ -159,6 +159,13 @@ hold-time expiry — is the whole point of this change.
 ## References
 - [VPS path post — the WireGuard + BGP layer this enhances](/vps-ipv6-cgnat-mikrotik/)
 - [RB5009 CGNAT series index](/mikrotik-home-network/)
+
+### Related in the series
+- [Per-VLAN IPv6 on RouterOS](/mikrotik-per-vlan-ipv6/) — the LAN-side layer whose default route this failover protects.
+- [Trusted, IoT, and Guest VLANs on RouterOS](/mikrotik-vlan-guest-iot/) — the bridge layout under that LAN-side IPv6.
+- [Encrypted DNS with a stable resolver address on RouterOS](/encrypted-dns-stable-resolver-mikrotik/) — survives the IPv6 outage because resolver addressing is on the ULA, not the routed prefix.
+
+### Standards and tools
 - [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)
 - [WireGuard paper — Cryptokey Routing](https://www.wireguard.com/papers/wireguard.pdf)
 - [BIRD 2.18 User's Guide — Kernel protocol](https://bird.nic.cz/doc/bird-2.18.html)

@@ -359,6 +359,45 @@ A clean score on both rows means the address plan, the WireGuard tunnel,
 and the per-VLAN GUA all work together. Anything less than that, drop into
 the path post's verification block to see which layer is failing.
 
+## FAQ
+
+### What is CGNAT (Carrier-Grade NAT)?
+CGNAT is when your ISP shares one public IPv4 address across many
+customers by NATing them behind a carrier-operated NAT. Your WAN
+interface gets an address in [RFC&nbsp;6598](https://datatracker.ietf.org/doc/html/rfc6598)
+space (`100.64.0.0/10`) — not a public IPv4 — and the ISP handles port
+translation upstream. It's common on residential fiber where public
+IPv4 is scarce. Inbound IPv4 services (port forwards, HE 6in4) stop
+working; outbound NAT still does.
+
+### How do I check if I'm behind CGNAT?
+Compare two addresses. Read the WAN IPv4 on your router (RouterOS:
+`/ip/address/print where interface=<wan>`). Then check what
+[ipinfo.io](https://ipinfo.io) or `curl ifconfig.me` reports. If the
+router's WAN address starts with `100.64–100.127` (RFC&nbsp;6598) or
+otherwise differs from the public address, you're behind CGNAT.
+
+### Does Hurricane Electric's 6in4 tunnelbroker work behind CGNAT?
+No. HE's 6in4 uses IP protocol&nbsp;41 (raw IPv6 inside IPv4), and
+carrier-grade NAT only translates TCP, UDP, and ICMP — protocol&nbsp;41
+packets get dropped. Use a WireGuard-based path instead: either the
+[Route64 broker](/route64-ipv6-cgnat-mikrotik/) for a free routed /56,
+or a [self-operated VPS](/vps-ipv6-cgnat-mikrotik/) routing a /48.
+
+### Do I need a VPS to get routable IPv6 behind CGNAT?
+No. The [Route64 broker path](/route64-ipv6-cgnat-mikrotik/) hands out
+a routed /56 over WireGuard with no VPS to operate. The
+[VPS-routed /48 path](/vps-ipv6-cgnat-mikrotik/) is the alternative if
+you'd rather own the relay end and get a larger prefix. Both produce
+the same per-VLAN result; the rest of the build is identical either way.
+
+### What's the difference between a routed /48 and a routed /56?
+A /48 gives you 65,536 /64 subnets; a /56 gives you 256. Both are
+ample for one /64 per home VLAN. /48 is the IETF "site allocation"
+size from [RFC&nbsp;6177](https://datatracker.ietf.org/doc/html/rfc6177);
+/56 is what consumer ISPs and most brokers (including Route64) hand
+out by default.
+
 ## Glossary
 
 | Acronym   | Expansion                                  | Reference                                                                         |

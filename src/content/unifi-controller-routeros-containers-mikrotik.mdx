@@ -193,3 +193,8 @@ controller hostname via DHCP option&nbsp;43 / a DNS `unifi` record).
 - [UniFi + MongoDB as RouterOS containers on the RB5009 — source gist](https://gist.github.com/marfillaster/9fa1a9571d4d93b2992977d33d99b1a9)
 - [RB5009 CGNAT series index — VLANs, routable IPv6, DoH](/mikrotik-home-network/)
 - [linuxserver/unifi-network-application image](https://docs.linuxserver.io/images/docker-unifi-network-application/)
+
+### Companion posts in the series
+- [Trusted, IoT, and Guest VLANs on RouterOS](/mikrotik-vlan-guest-iot/) — the bridge VLAN layout the container veth attaches to.
+- [Encrypted DNS with a stable resolver address on RouterOS](/encrypted-dns-stable-resolver-mikrotik/) — gives the controller a hostname clients can reach without DHCP option&nbsp;43.
+- [Routed IPv6 over CGNAT via a VPS-routed /48](/vps-ipv6-cgnat-mikrotik/) or [Routed IPv6 over CGNAT via Route64](/route64-ipv6-cgnat-mikrotik/) — needed if you want to reach the controller from off-net over IPv6.

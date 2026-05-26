@@ -19,7 +19,7 @@ const dateModified = "2026-05-19";
 
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "BlogPosting",
+  "@type": "TechArticle",
   headline: title,
   description,
   url,
@@ -27,6 +27,8 @@ const structuredData = {
   image: ogImage,
   datePublished,
   dateModified,
+  inLanguage: "en",
+  dependencies: "ODI DFP-34X-2C2 GPON SFP, MikroTik RB5009 SFP+ cage, RouterOS v7, Converge FiberX",
   author: {
     "@type": "Person",
     name: author,
@@ -48,6 +50,25 @@ const structuredData = {
     "ONT replacement",
     "VLAN 10",
     "SC APC SC UPC",
+  ],
+};
+
+const breadcrumbData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "marfillaster · notes",
+      item: "https://blog.homestack.space/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Replacing a Converge ONT with a GPON SFP stick on the RB5009",
+      item: url,
+    },
   ],
 };
 
@@ -77,6 +98,9 @@ export const meta: MetaFunction = () => [
   { tagName: "link", rel: "canonical", href: url },
   {
     "script:ld+json": structuredData,
+  },
+  {
+    "script:ld+json": breadcrumbData,
   },
 ];
 

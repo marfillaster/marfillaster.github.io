@@ -2,9 +2,10 @@ import { Link } from "react-router";
 import type { MetaFunction } from "react-router";
 import { SiteShell } from "../components/site-shell";
 
-const title = "marfillaster · notes";
+const title = "Home-lab build logs — MikroTik, solar, EV · marfillaster";
+const siteName = "marfillaster · notes";
 const description =
-  "Build logs and case studies on home networking, residential solar, and other long-running experiments by marfillaster.";
+  "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs — long-running experiments from Cavite, Philippines.";
 const url = "https://blog.homestack.space/";
 
 export const meta: MetaFunction = () => [
@@ -14,7 +15,7 @@ export const meta: MetaFunction = () => [
   { property: "og:description", content: description },
   { property: "og:url", content: url },
   { property: "og:type", content: "website" },
-  { property: "og:site_name", content: title },
+  { property: "og:site_name", content: siteName },
   { name: "twitter:card", content: "summary_large_image" },
   { name: "twitter:title", content: title },
   { name: "twitter:description", content: description },
@@ -136,7 +137,8 @@ export default function Index() {
           marfillaster · notes
         </p>
         <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          Long-running experiments, written down.
+          MikroTik RB5009, residential solar, and plug-in EV — home-lab build
+          logs from Cavite.
         </h1>
         <div className="mt-12 space-y-16">
           {sections.map((section) => {

@@ -17,9 +17,13 @@ const author = "marfillaster";
 const datePublished = "2026-05-17";
 const dateModified = "2026-05-25";
 
+const seriesUrl = "https://blog.homestack.space/mikrotik-home-network/";
+const seriesName = "MikroTik RB5009 home network behind CGNAT";
+const birdUrl = "https://blog.homestack.space/mikrotik-ipv6-failover-bgp-bfd/";
+
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "BlogPosting",
+  "@type": "TechArticle",
   headline: title,
   description,
   url,
@@ -27,6 +31,8 @@ const structuredData = {
   image: ogImage,
   datePublished,
   dateModified,
+  inLanguage: "en",
+  dependencies: "MikroTik CHR, RouterOS v7, WireGuard, BGP, BFD",
   author: {
     "@type": "Person",
     name: author,
@@ -36,6 +42,11 @@ const structuredData = {
     "@type": "Person",
     name: author,
     url: "https://github.com/marfillaster",
+  },
+  isPartOf: {
+    "@type": "CreativeWorkSeries",
+    name: seriesName,
+    url: seriesUrl,
   },
   keywords: [
     "MikroTik CHR",
@@ -47,6 +58,37 @@ const structuredData = {
     "CGNAT",
     "fast IPv6 failover",
     "RFC 6996",
+  ],
+};
+
+const breadcrumbData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "marfillaster · notes",
+      item: "https://blog.homestack.space/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "RB5009 home network series",
+      item: seriesUrl,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Fast IPv6 failover on RouterOS",
+      item: birdUrl,
+    },
+    {
+      "@type": "ListItem",
+      position: 4,
+      name: "MikroTik CHR relay",
+      item: url,
+    },
   ],
 };
 
@@ -76,6 +118,9 @@ export const meta: MetaFunction = () => [
   { tagName: "link", rel: "canonical", href: url },
   {
     "script:ld+json": structuredData,
+  },
+  {
+    "script:ld+json": breadcrumbData,
   },
 ];
 

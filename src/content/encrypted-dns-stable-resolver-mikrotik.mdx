@@ -165,6 +165,13 @@ address is one that prefix churn can never move.
 ## References
 - [DoH + IPv6 RA RDNSS with ULA DNS — source gist](https://gist.github.com/marfillaster/d34bd199b9e265ccd74af6d31fd9df85)
 - [RB5009 CGNAT series index — the segmented-LAN + routable-IPv6 companion](/mikrotik-home-network/)
+
+### Next in the series
+- [Trusted, IoT, and Guest VLANs on RouterOS](/mikrotik-vlan-guest-iot/) — the segmentation foundation; this DNS layer sits on top.
+- [Routed IPv6 over CGNAT via a VPS-routed /48](/vps-ipv6-cgnat-mikrotik/) or [Routed IPv6 over CGNAT via Route64](/route64-ipv6-cgnat-mikrotik/) — the routable-IPv6 uplink (either path) is the prerequisite for per-VLAN RDNSS.
+- [Per-VLAN IPv6 on RouterOS](/mikrotik-per-vlan-ipv6/) — propagates this resolver address to every VLAN via RA RDNSS.
+
+### Standards
 - [RFC&nbsp;4193 — Unique Local IPv6 unicast addresses](https://datatracker.ietf.org/doc/html/rfc4193) (`fd00::/8`)
 - [RFC&nbsp;8106 — IPv6 RA options for DNS configuration](https://datatracker.ietf.org/doc/html/rfc8106) (RDNSS)
 - [RFC&nbsp;8484 — DNS Queries over HTTPS (DoH)](https://datatracker.ietf.org/doc/html/rfc8484)

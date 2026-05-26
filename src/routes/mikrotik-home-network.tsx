@@ -15,9 +15,11 @@ const author = "marfillaster";
 const datePublished = "2026-05-15";
 const dateModified = "2026-05-21";
 
+const seriesName = "MikroTik RB5009 home network behind CGNAT";
+
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "BlogPosting",
+  "@type": "TechArticle",
   headline: title,
   description,
   url,
@@ -25,6 +27,7 @@ const structuredData = {
   image: ogImage,
   datePublished,
   dateModified,
+  inLanguage: "en",
   author: {
     "@type": "Person",
     name: author,
@@ -34,6 +37,50 @@ const structuredData = {
     "@type": "Person",
     name: author,
     url: "https://github.com/marfillaster",
+  },
+  isPartOf: {
+    "@type": "CreativeWorkSeries",
+    name: seriesName,
+    url,
+    numberOfItems: 8,
+    hasPart: [
+      { "@type": "TechArticle", url, name: "A small home network behind CGNAT" },
+      {
+        "@type": "TechArticle",
+        url: "https://blog.homestack.space/mikrotik-vlan-guest-iot/",
+        name: "Trusted, IoT, and Guest VLANs on RouterOS",
+      },
+      {
+        "@type": "TechArticle",
+        url: "https://blog.homestack.space/encrypted-dns-stable-resolver-mikrotik/",
+        name: "Encrypted DNS with a stable resolver address on RouterOS",
+      },
+      {
+        "@type": "TechArticle",
+        url: "https://blog.homestack.space/vps-ipv6-cgnat-mikrotik/",
+        name: "Routed IPv6 over CGNAT via a VPS-routed /48",
+      },
+      {
+        "@type": "TechArticle",
+        url: "https://blog.homestack.space/route64-ipv6-cgnat-mikrotik/",
+        name: "Routed IPv6 over CGNAT via Route64",
+      },
+      {
+        "@type": "TechArticle",
+        url: "https://blog.homestack.space/mikrotik-per-vlan-ipv6/",
+        name: "Per-VLAN IPv6 on RouterOS",
+      },
+      {
+        "@type": "TechArticle",
+        url: "https://blog.homestack.space/mikrotik-ipv6-failover-bgp-bfd/",
+        name: "Fast IPv6 failover on RouterOS",
+      },
+      {
+        "@type": "TechArticle",
+        url: "https://blog.homestack.space/unifi-controller-routeros-containers-mikrotik/",
+        name: "Running the UniFi controller on the RB5009",
+      },
+    ],
   },
   keywords: [
     "MikroTik RB5009",
@@ -46,6 +93,72 @@ const structuredData = {
     "BGP",
     "BFD",
     "home network",
+  ],
+};
+
+const breadcrumbData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "marfillaster · notes",
+      item: "https://blog.homestack.space/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "RB5009 home network series",
+      item: url,
+    },
+  ],
+};
+
+const faqData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is CGNAT (Carrier-Grade NAT)?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "CGNAT is when your ISP shares one public IPv4 address across many customers by NATing them behind a carrier-operated NAT. Your WAN interface gets an address in RFC 6598 space (100.64.0.0/10) — not a public IPv4 — and the ISP handles port translation upstream. It's common on residential fiber where public IPv4 is scarce. Inbound IPv4 services (port forwards, HE 6in4) stop working; outbound NAT still does.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How do I check if I'm behind CGNAT?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Compare two addresses. Read the WAN IPv4 on your router (on RouterOS: /ip/address/print where interface=<wan>). Then check what ipinfo.io or curl ifconfig.me reports. If the router's WAN address starts with 100.64–100.127 (RFC 6598) or otherwise differs from the public address, you're behind CGNAT.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Hurricane Electric's 6in4 tunnelbroker work behind CGNAT?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "No. HE's 6in4 uses IP protocol 41 (raw IPv6 inside IPv4), and carrier-grade NAT only translates TCP, UDP, and ICMP — protocol 41 packets get dropped. Use a WireGuard-based path instead: either the Route64 broker for a free routed /56, or a self-operated VPS routing a /48.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Do I need a VPS to get routable IPv6 behind CGNAT?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "No. The Route64 broker path hands out a routed /56 over WireGuard with no VPS to operate. The VPS-routed /48 path is the alternative if you'd rather own the relay end and get a larger prefix. Both produce the same per-VLAN result; the rest of the build is identical either way.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What's the difference between a routed /48 and a routed /56?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "A /48 gives you 65,536 /64 subnets; a /56 gives you 256. Both are ample for one /64 per home VLAN. /48 is the IETF 'site allocation' size from RFC 6177; /56 is what consumer ISPs and most brokers (including Route64) hand out by default.",
+      },
+    },
   ],
 };
 
@@ -77,6 +190,12 @@ export const meta: MetaFunction = () => [
   {
     "script:ld+json": structuredData,
   },
+  {
+    "script:ld+json": breadcrumbData,
+  },
+  {
+    "script:ld+json": faqData,
+  },
 ];
 
 const navItems = [
@@ -89,6 +208,7 @@ const navItems = [
   ["#5-keeping-streaming-off-the-routable-ipv6-path", "ULA-only"],
   ["#6-encrypted-dns-with-stable-resolver-addresses", "DNS"],
   ["#7-verification-path-agnostic", "Verify"],
+  ["#faq", "FAQ"],
   ["#glossary", "Glossary"],
 ] as const;
 

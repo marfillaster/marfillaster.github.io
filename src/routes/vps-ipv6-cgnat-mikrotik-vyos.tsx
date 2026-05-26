@@ -21,9 +21,12 @@ const author = "marfillaster";
 const datePublished = "2026-05-21";
 const dateModified = "2026-05-21";
 
+const seriesUrl = "https://blog.homestack.space/mikrotik-home-network/";
+const seriesName = "MikroTik RB5009 home network behind CGNAT";
+
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "BlogPosting",
+  "@type": "TechArticle",
   headline: title,
   description,
   url,
@@ -31,6 +34,8 @@ const structuredData = {
   image: ogImage,
   datePublished,
   dateModified,
+  inLanguage: "en",
+  dependencies: "VyOS 1.4+, MikroTik RouterOS v7, WireGuard, BGP",
   author: {
     "@type": "Person",
     name: author,
@@ -40,6 +45,11 @@ const structuredData = {
     "@type": "Person",
     name: author,
     url: "https://github.com/marfillaster",
+  },
+  isPartOf: {
+    "@type": "CreativeWorkSeries",
+    name: seriesName,
+    url: seriesUrl,
   },
   keywords: [
     "VyOS",
@@ -52,6 +62,37 @@ const structuredData = {
     "RouterOS v7",
     "VPS",
     "home network",
+  ],
+};
+
+const breadcrumbData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "marfillaster · notes",
+      item: "https://blog.homestack.space/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "RB5009 home network series",
+      item: seriesUrl,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Routed IPv6 over CGNAT via a VPS-routed /48",
+      item: ubuntuUrl,
+    },
+    {
+      "@type": "ListItem",
+      position: 4,
+      name: "VyOS relay",
+      item: url,
+    },
   ],
 };
 
@@ -81,6 +122,9 @@ export const meta: MetaFunction = () => [
   { tagName: "link", rel: "canonical", href: url },
   {
     "script:ld+json": structuredData,
+  },
+  {
+    "script:ld+json": breadcrumbData,
   },
 ];
 

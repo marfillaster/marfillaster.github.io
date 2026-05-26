@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import type { LinksFunction, MetaFunction } from "react-router";
 import stylesheet from "./styles.css?url";
 
-const siteTitle = "marfillaster · notes";
+const siteTitle = "Home-lab build logs — MikroTik, solar, EV · marfillaster";
 const siteDescription =
-  "Build logs and case studies on home networking, residential solar, and other long-running experiments by marfillaster.";
+  "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs — long-running experiments from Cavite, Philippines.";
 const siteUrl = "https://blog.homestack.space/";
 const author = "marfillaster";
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
