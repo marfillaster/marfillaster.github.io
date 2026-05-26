@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blog",
+  "compatibility_date": "2026-05-26",
+  "assets": {
+    "directory": "./build/client",
+    "not_found_handling": "404-page"
+  }
+}
