@@ -5,7 +5,7 @@ import { SiteShell } from "../components/site-shell";
 const title = "Home-lab build logs — MikroTik, solar, EV · marfillaster";
 const siteName = "marfillaster · notes";
 const description =
-  "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs — long-running experiments from Cavite, Philippines.";
+  "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs — long-running experiments.";
 const url = "https://blog.homestack.space/";
 
 export const meta: MetaFunction = () => [
@@ -138,7 +138,7 @@ export default function Index() {
         </p>
         <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
           MikroTik RB5009, residential solar, and plug-in EV — home-lab build
-          logs from Cavite.
+          logs.
         </h1>
         <div className="mt-12 space-y-16">
           {sections.map((section) => {
