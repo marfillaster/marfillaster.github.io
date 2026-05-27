@@ -1,0 +1,643 @@
+<SeriesNav current="multi-homed-ipv6-cgnat-mikrotik" />
+
+## Overview
+The series finale of the [MikroTik RB5009 home-network series](/mikrotik-home-network/):
+run **two IPv6 uplinks at once** under one announceable provider-assigned
+`/48`, so a dead tunnel on one upstream pivots traffic to the other
+without the LAN losing routable IPv6. This post is WAN clean-slate — it
+replaces the WAN-side plumbing of the two equal-paths posts
+([VPS](/vps-ipv6-cgnat-mikrotik/), [Route64](/route64-ipv6-cgnat-mikrotik/))
+with a self-contained multi-homed build, so you do **not** need to have
+read or built those posts first. The LAN side still assumes the
+[VLAN foundation post](/mikrotik-vlan-guest-iot/) — bridge, VLANs,
+inter-VLAN IPv4 firewall, per-VLAN DHCPv4, ULA-bound DoH resolver.
+
+The hard prerequisite is a 32-bit ASN (`<OWN_AS>`) and an announceable
+`/48` (`<OWN_48>`) — the assigning provider must authorize you to
+originate the `/48` from the ASN, with a matching ROA for RPKI. The
+same `<OWN_48>` rides over both upstreams, so consistent origin matters
+more than which provider issues it. If you do not yet have either,
+follow [jf.si's IPv6 ASN + BGP + WireGuard write-up](https://jf.si/posts/2024-07-27-ipv6-asn-bgp-wireguard/)
+for the acquisition step — this post is another flavor of the same
+idea (MikroTik RouterOS on the home side, Route64 as the second
+upstream, BFD on the VPS path) that picks up where it ends. The flavor
+I used was [NoPtk](https://noptk.com/) for both the ASN and the `/48`
+(`$20` one-time + `$60/year` USD), and
+[pdxnet.co.uk / getvps.net](https://my.pdxnet.co.uk/aff.php?aff=5)
+(AS&nbsp;52025, affiliate link) for the transit VPS — `$6/month`
+including a free self-service BGP session, so `<TRANSIT_AS>` in the
+snippets below is `52025` for this flavor.
+
+On top of the jf.si baseline (ASN + /48 + one transit VPS) you're
+adding the operational weight of a second BGP session and a BFD layer.
+That's worth weighing against what multi-homing actually buys you. It
+pays off if you self-host v6 services on `<OWN_48>` and want a public
+prefix that survives an upstream swap; if your two upstreams genuinely
+fail independently (different transits, different physical paths to
+the home); or if the build itself is the point — BGP, BFD, and RIR
+bureaucracy as a weekend project. If none of those apply — one path
+plus Happy Eyeballs fail-to-IPv4 already covers your failure modes
+invisibly — stop at the [VPS path](/vps-ipv6-cgnat-mikrotik/) or the
+[Route64 path](/route64-ipv6-cgnat-mikrotik/) and skip this post.
+
+Every numbered section is paste-ready against a defconf RouterOS&nbsp;v7 box
+that already has the [VLAN segmentation](/mikrotik-vlan-guest-iot/) from
+the foundation post. Italicized notes are the rationale.
+
+## 1. Topology
+
+```ascii
+                     Internet (IPv4 + IPv6)
+                            │
+              ┌─────────────┴─────────────┐ ┌──────────────────────────┐
+              │  Transit A — your VPS     │ │  Route64 PoP (WireGuard) │
+              │  AS<OWN_AS>, runs BFD     │ │  AS 212895, no BFD       │
+              │  iBGP to home over wg-host│ │  eBGP to home over wg-r64│
+              └─────────────┬─────────────┘ └────────────┬─────────────┘
+                            │                            │
+                       wg-host                       wg-route64
+                            │                            │
+                            │ both transit your <OWN_48>│
+                            │  and return ::/0 to home  │
+                            │                            │
+                       ┌────┴────────────────────────────┴────┐
+                       │             home router              │
+                       │  AS<OWN_AS>, originates <OWN_48>     │
+                       │  receives ::/0 from both, best-path  │
+                       │  installs VPS-learned default        │
+                       └──────────────────────────────────────┘
+                                       │
+                          ┌────────────┴────────────┐
+                          │  per-VLAN /64s from     │
+                          │  <OWN_48> — same recipe │
+                          │  as Per-VLAN IPv6 post  │
+                          └─────────────────────────┘
+```
+
+Per-VLAN IPv6 from `<OWN_48>` is plumbed via the
+[Per-VLAN IPv6 post](/mikrotik-per-vlan-ipv6/) once both BGP sessions
+are up.
+
+## 2. WAN architecture
+
+Three working pieces:
+
+```text
+A. VPS  — runs BFD with home, eBGPs your /48 to upstream transit,
+          iBGP-originates ::/0 to home with empty AS_PATH
+B. Route64 — eBGPs your /48 from home to AS 212895, advertises ::/0
+             back with AS_PATH=[212895]
+C. Home — receives ::/0 from both sessions, BGP best-path installs the
+          VPS-learned default (shorter AS_PATH), Route64-learned
+          default is the backup
+```
+
+Home and VPS share `<OWN_AS>`, so the session between them is iBGP and
+the VPS-side `::/0` reaches home with an empty `AS_PATH`. Route64 sits
+in `AS 212895`, so its `::/0` arrives with `AS_PATH=[212895]`. No
+local-pref or MED is set on either session, so RouterOS best-path
+falls through to AS_PATH length — empty beats `[212895]` — and the
+VPS default wins. The Route64 default sits in BGP as the backup.
+Nothing on the home router explicitly marks one path preferred — the
+primary/backup ordering falls out of where each `AS` boundary sits.
+
+The home router is the only place that needs to know about multi-homing.
+The VPS and Route64 each see exactly one BGP peer (home) and don't know
+the other exists. Both transits accept your `<OWN_48>` announcement on
+their respective sessions and reach `<OWN_48>` via the WireGuard tunnel.
+
+## 3. Conventions and placeholders
+
+| Placeholder            | Meaning                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| `<OWN_AS>`             | Your 32-bit ASN. Both home and the VPS use this; the session is iBGP.                  |
+| `<OWN_48>`             | Your assigned `/48`, written without trailing zeros, e.g. `2a14:7583:eff9`.            |
+| `<TRANSIT_AS>`         | The VPS provider's ASN (your eBGP peer from the VPS upstream-side). Provider tells you. |
+| `<TRANSIT_PEER_V6>`    | Provider's IPv6 BGP peer address handed to your VPS. From the provider's BGP onboarding. |
+| `<VPS_IP>`             | VPS public IPv4 (used as the WireGuard endpoint for the home → VPS tunnel).            |
+| `<VPS_NIC>`            | VPS public interface (`ip -o link`; typical `enp3s0`, `ens3`).                         |
+| `<VPS_PUBKEY>` / `<HOME_PUBKEY>` | WireGuard public keys, one per side. Printed during §4.                      |
+| `<VPS_ROUTER_ID>` / `<HOME_ROUTER_ID>` | Unique 32-bit BGP router IDs written like IPv4 addresses.              |
+| `<R64_LINK>`           | The /64 Route64 carves out for the BGP transport (portal calls it the point-to-point /64). `::1` is the PoP, `::2` is your home router. |
+| `<R64_*>` (other)      | Other Route64 placeholders defined in the [Route64 post §2](/route64-ipv6-cgnat-mikrotik/#2-conventions-and-placeholders). |
+| `<ULA_PREFIX>`         | Your locally-generated ULA (same one the DNS post uses).                               |
+| `<CLIENT_GUA>`         | A LAN client's GUA from `<OWN_48>`, used as the source in §8 induced-failover pings.   |
+
+The Route64 portal needs your `<OWN_AS>` set as the tunnel's
+**BYO ASN** — the BGP session requires it. The field is on the
+tunnel page next to the WireGuard config.
+
+`<OWN_48>` substitution mirrors the equal-paths posts: `<OWN_48>:0::1/64`
+on the tunnel link, `<OWN_48>:1::/64` for the trusted VLAN, etc.
+
+## 4. VPS — WireGuard, transit BGP, iBGP to home, BFD
+
+Two bird2 BGP sessions on the VPS: **eBGP upstream** to the transit
+provider (carries your `<OWN_48>` outbound and `::/0` inbound), and
+**iBGP downstream** to home (carries `<OWN_48>` inbound from home and
+`::/0` outbound). BFD only runs on the home-side session because that's
+the one your `<OWN_48>` rides over and the one that needs sub-second
+failure detection.
+
+Each WireGuard tunnel needs the peer's public key in its own config, so
+the keygen runs on both sides before either config is pasted. The VPS
+script below prints `<VPS_PUBKEY>` at the end; `<HOME_PUBKEY>` comes
+from running the `/interface/wireguard add name=wg-host …` line in §5
+first and reading the auto-generated public key with
+`/interface/wireguard print where name=wg-host`. The `<R64_*>` keys are
+not generated locally — Route64 hands you `<R64_PRIVKEY>` and
+`<R64_SRV_PUBKEY>` on the tunnel page.
+
+Assumes a minimal Ubuntu install. `bird` listens on TCP/179 on all
+interfaces by default; the nftables ruleset below scopes which NIC
+each session is reachable on — transit NIC for the upstream session,
+`wg0` for the home session.
+
+```bash title="VPS — wg0 + bird2 (transit eBGP + home iBGP + BFD) + nftables"
+set -e
+apt-get update -qq
+apt-get install -y -qq wireguard bird2 nftables
+
+cat >/etc/sysctl.d/99-multi-homed.conf <<'EOF'
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.default.forwarding = 1
+net.ipv6.conf.<VPS_NIC>.accept_ra = 2
+EOF
+sysctl --system >/dev/null
+
+umask 077
+mkdir -p /etc/wireguard
+wg genkey | tee /etc/wireguard/server.key | wg pubkey > /etc/wireguard/server.pub
+VPS_PRIVKEY=$(cat /etc/wireguard/server.key)
+
+cat >/etc/wireguard/wg0.conf <<EOF
+[Interface]
+PrivateKey = ${VPS_PRIVKEY}
+Address    = <OWN_48>:0::1/64, fe80::1/64
+ListenPort = 51820
+MTU        = 1420
+Table      = off
+
+[Peer]
+PublicKey  = <HOME_PUBKEY>
+AllowedIPs = <OWN_48>:0::2/128, <OWN_48>::/48
+PersistentKeepalive = 25
+EOF
+
+systemctl enable --now wg-quick@wg0
+echo "VPS public key: $(cat /etc/wireguard/server.pub)"
+
+cat >/etc/nftables.conf <<'EOF'
+#!/usr/sbin/nft -f
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter; policy drop;
+
+    ct state established,related accept
+    ct state invalid drop
+    iif lo accept
+    meta l4proto { icmp, icmpv6 } accept
+
+    tcp dport 22 accept                       # SSH
+    udp dport 51820 accept                    # WireGuard from home
+    iifname "<VPS_NIC>" tcp dport 179 accept  # BGP from transit
+    iifname "wg0" tcp dport 179 accept        # BGP from home, wg0 only
+    iifname "wg0" udp dport 3784 accept       # BFD from home, wg0 only
+  }
+
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+
+    ct state established,related accept
+    iifname "wg0" accept                      # LAN -> internet
+    oifname "wg0" accept                      # internet -> LAN
+  }
+
+  chain output {
+    type filter hook output priority filter; policy accept;
+  }
+}
+EOF
+systemctl enable --now nftables
+
+mkdir -p /etc/bird
+cat >/etc/bird/bird.conf <<'EOF'
+log syslog all;
+router id <VPS_ROUTER_ID>;
+
+protocol device { }
+
+protocol direct {
+  ipv6;
+  interface "wg0", "<VPS_NIC>";
+}
+
+protocol kernel kernel6 {
+  metric 32;
+  ipv6 {
+    # Pull only ::/0 from the kernel. This is what becomes locally-
+    # originated in BGP (empty AS_PATH) and what wins best-path on home.
+    import filter {
+      if net = ::/0 then accept;
+      reject;
+    };
+
+    # Install the BGP-learned <OWN_48> (from home) into the kernel so
+    # return traffic to home actually goes via wg0.
+    export filter {
+      if net = <OWN_48>::/48 then accept;
+      reject;
+    };
+  };
+  learn yes;
+}
+
+# Active BFD probing toward home. Without an explicit neighbor, bird is
+# passive; after a flap both sides wait for the other and recovery stalls.
+protocol bfd {
+  interface "wg0" {
+    min rx interval 200 ms;
+    min tx interval 200 ms;
+    idle tx interval 1 s;
+    multiplier 3;
+  };
+  neighbor <OWN_48>:0::2 dev "wg0";
+}
+
+# iBGP downstream to home — both ends in <OWN_AS>.
+protocol bgp home {
+  local <OWN_48>:0::1 as <OWN_AS>;
+  neighbor <OWN_48>:0::2 as <OWN_AS>;
+  bfd on;
+
+  ipv6 {
+    import filter {
+      if net = <OWN_48>::/48 then accept;
+      reject;
+    };
+
+    export filter {
+      if net = ::/0 then accept;
+      reject;
+    };
+
+    next hop self;
+  };
+}
+
+# eBGP upstream to transit — your <OWN_AS> peering with <TRANSIT_AS>.
+# The transit hands you a peer address (<TRANSIT_PEER_V6>) over the
+# public NIC; the session is single-hop and rides the on-link /64.
+protocol bgp transit {
+  local as <OWN_AS>;
+  neighbor <TRANSIT_PEER_V6> as <TRANSIT_AS>;
+
+  ipv6 {
+    # Accept only ::/0 from transit. Anything more-specific is
+    # provider-routed and would compete with our own announcements.
+    import filter {
+      if net = ::/0 then accept;
+      reject;
+    };
+
+    # Originate only <OWN_48> upstream. ROA must already authorize this
+    # origin or transit will drop it via RPKI.
+    export filter {
+      if net = <OWN_48>::/48 then accept;
+      reject;
+    };
+  };
+}
+EOF
+chown -R bird:bird /etc/bird
+
+mkdir -p /etc/systemd/system/bird.service.d
+printf '[Service]\nRestart=on-failure\nRestartSec=2s\n' \
+  > /etc/systemd/system/bird.service.d/restart.conf
+systemctl daemon-reload
+systemctl enable --now bird
+```
+
+<Rationale>
+The explicit `neighbor <OWN_48>:0::2 dev "wg0"` line in the `protocol
+bfd` block is what turns this side into the active prober. Without
+it bird is passive — it answers BFD packets but never originates
+them. If the home side is also passive (or briefly drops out), both
+ends sit waiting for the other and the session never re-establishes.
+The config will work fine on first boot and fail to recover from the
+first real outage.
+
+Two separate `protocol bgp` blocks because the sessions have very
+different shapes — iBGP to home over wg0 with BFD, eBGP to transit over
+the public NIC without. The transit session has no BFD by default;
+whether your transit provider supports it varies and is not required
+for the multi-homed story to work. The kernel `import filter` taking
+only `::/0` is what gives home an empty `AS_PATH` on the route — bird
+treats kernel-learned routes as locally originated, and iBGP doesn't
+prepend.
+</Rationale>
+
+## 5. Home router — both BGP sessions, BFD on the VPS one
+
+The configuration below is RouterOS-only. If your home router is
+Linux/bird2 or VyOS, take §4 as the template: it's the same bird2
+session shape you need at home, with the BGP roles swapped — home
+originates `<OWN_48>` (kernel-import a static blackhole for it) and
+imports `::/0` from both peers; VPS originates `::/0` (already shown)
+and imports `<OWN_48>` from home. The Route64 session is plain eBGP
+with no BFD.
+
+Three blocks below — origination + aggregate, VPS session, Route64
+session. The first block stands up the BGP instance and the
+locally-originated `/48` that both sessions advertise; the second and
+third blocks are independent and either order works.
+
+```bash title="Home router — BGP instance + originated /48 (shared by both sessions)"
+/ipv6/route add dst-address=<OWN_48>::/48 blackhole distance=254 \
+    comment="aggregate-for-bgp"
+
+/ipv6/firewall/address-list add list=bgp-networks-own \
+    address=<OWN_48>::/48 comment="/48 to both upstreams"
+
+/routing/bgp/instance add name=default-bgp as=<OWN_AS> router-id=<HOME_ROUTER_ID>
+```
+
+```bash title="Home router — VPS path WireGuard + iBGP + BFD"
+/interface/wireguard add name=wg-host listen-port=51820 mtu=1420
+/interface/wireguard/peers add interface=wg-host name=vps \
+    public-key="<VPS_PUBKEY>" \
+    endpoint-address=<VPS_IP> endpoint-port=51820 \
+    allowed-address=::/0 \
+    persistent-keepalive=25s
+
+/ipv6/address add address=<OWN_48>:0::2/64 interface=wg-host advertise=no
+
+/routing/filter/rule add chain=bgp-in-vps \
+    rule="if (dst == ::/0) { accept } reject"
+/routing/filter/rule add chain=bgp-out-vps \
+    rule="if (dst == <OWN_48>::/48) { accept } reject"
+
+/routing/bgp/template add name=tpl-host as=<OWN_AS> use-bfd=yes
+/routing/bgp/connection add name=host-vps instance=default-bgp \
+    remote.address=<OWN_48>:0::1 remote.as=<OWN_AS> \
+    local.address=<OWN_48>:0::2 local.role=ibgp \
+    templates=tpl-host afi=ipv6 use-bfd=yes \
+    input.filter=bgp-in-vps \
+    output.network=bgp-networks-own output.filter-chain=bgp-out-vps
+
+/routing/bfd/configuration/add interfaces=wg-host \
+    min-rx=200ms min-tx=200ms multiplier=3
+
+# BFD's UDP/3784 packets arrive unsolicited, so the defconf
+# established,related,untracked rule doesn't cover them. The BGP
+# session itself is dialed out by home and needs no input rule.
+/ipv6/firewall/filter add chain=input action=accept protocol=udp dst-port=3784 \
+    in-interface=wg-host comment="BFD from VPS" \
+    place-before=[find where chain=input and comment="defconf: drop everything else not coming from LAN"]
+# place-before= pins the new accept above the defconf drop. If your
+# RouterOS version's defconf wording differs, [find ...] returns
+# nothing and the rule lands at the bottom (after the drop) — swap to
+# a numeric place-before= in that case.
+```
+
+```bash title="Home router — Route64 path WireGuard + eBGP, no BFD"
+/interface/wireguard add name=wg-route64 mtu=1420 \
+    listen-port=<R64_POP_PORT> private-key="<R64_PRIVKEY>"
+/interface/wireguard/peers add interface=wg-route64 \
+    public-key="<R64_SRV_PUBKEY>" \
+    endpoint-address=<R64_POP_IP> endpoint-port=<R64_POP_PORT> \
+    allowed-address=::/0 persistent-keepalive=15s
+/ipv6/address add address=<R64_LINK>::2/64 interface=wg-route64 advertise=no
+
+/routing/filter/rule add chain=bgp-in-r64 \
+    rule="if (dst == ::/0) { accept } reject"
+/routing/filter/rule add chain=bgp-out-r64 \
+    rule="if (dst == <OWN_48>::/48) { accept } reject"
+
+# Route64 portal must have BYO ASN set to <OWN_AS> for this to peer.
+/routing/bgp/connection add name=host-r64 instance=default-bgp \
+    remote.address=<R64_LINK>::1 remote.as=212895 \
+    local.address=<R64_LINK>::2 local.role=ebgp \
+    afi=ipv6 \
+    input.filter=bgp-in-r64 \
+    output.network=bgp-networks-own output.filter-chain=bgp-out-r64
+```
+
+No input firewall rule is needed for either WireGuard peer at base —
+both BGP sessions dial out from home on TCP/179, so the return traffic
+rides the defconf `established,related,untracked` rule. The only
+unsolicited inbound is BFD/3784, which exists only on `wg-host`.
+
+The Route64 link uses Route64's `<R64_LINK>` /64 from the portal (the
+point-to-point pair, `::1`/`::2`) as the BGP session addressing — your
+`<OWN_48>` does not appear in the Route64 transport at all; it appears
+in the BGP advertisement that rides over it.
+
+## 6. BFD where the peer supports it
+
+BFD is enabled where it works (AS&nbsp;52025-class transits like the
+VPS upstream above, where bird2 on a peer you operate runs BFD) and
+skipped where it doesn't. Route64 does not reply to BFD —
+`use-bfd=yes` on the `host-r64` connection drops the BGP session — so
+the home-router BGP configuration in §5 only attaches BFD to the
+`host-vps` connection.
+
+The `host-r64` connection runs plain BGP liveness — the only option,
+since Route64 doesn't support BFD — and that's fine for the
+backup-path role it occupies: the fast-failover work is done by the
+primary's BFD. When BFD says the VPS path is dead, RouterOS withdraws
+the VPS-learned `::/0` within ~1.5&nbsp;s and best-path immediately
+switches to the Route64-learned `::/0`, which is already in BGP, just
+not active.
+
+| Failure mode                              | What detects it      | Recovery time          |
+| ----------------------------------------- | -------------------- | ---------------------- |
+| VPS WG path dead, Route64 still up        | BFD on wg-host       | `~1.5 s` to switch     |
+| Route64 path dead, VPS still up           | irrelevant — VPS is already primary; no client-visible event | `0` |
+| Both paths dead simultaneously            | netwatch (§7)        | `~6–8 s` to drain LAN RA |
+| VPS path recovers, Route64 was active     | BFD comes back up    | `~10 s` to reinstall   |
+
+The second row is the asymmetry worth internalizing. If only Route64
+fails, nothing happens at the LAN — Route64's `::/0` is the backup, not
+the active path, so its withdrawal is invisible to clients.
+
+## 7. Last-resort fallback — netwatch + LAN RA drain
+
+If both upstreams fail at once, neither BGP session has a route to
+withdraw against — there is no surviving primary to fail over to. The
+LAN would happily continue picking the home router as its IPv6 default
+even though the router can't reach anything beyond `<OWN_48>`. The
+mitigation, lifted directly from the [Route64 post §6](/route64-ipv6-cgnat-mikrotik/#6-fast-fail-to-ipv4),
+is a netwatch that drains LAN RA so clients fall back to IPv4 by Happy
+Eyeballs.
+
+```bash title="Home router — netwatch drains LAN RA when both paths are gone"
+/tool/netwatch add name=v6health type=tcp-conn \
+    host=2606:4700:4700::1111 port=443 \
+    interval=5s timeout=2s comment=v6health \
+    up-script="/ipv6/nd set [find interface=bridge] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=30m; :log info v6-up" \
+    down-script="/ipv6/nd set [find interface=bridge] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=0s; :log info v6-down-failedtoIPv4"
+```
+
+The probe is a TCP-connect to Cloudflare's IPv6 anycast on 443 — it
+exits via whichever `::/0` is active, so a single netwatch covers both
+paths. It does not distinguish VPS-down from Route64-down, by design:
+BFD + BGP best-path already handle single-path failures invisibly, so
+the netwatch only needs to fire when *neither* path is forwarding —
+the one state where the LAN must drop IPv6 entirely.
+
+<Rationale>
+RouterOS 7.22's IPv6 ICMP netwatch is broken (`type=icmp` stays "down"
+for v6 targets even when `/ping` works) — `type=tcp-conn` is the
+working replacement. End-to-end client failover is netwatch detection
+(~5–7&nbsp;s at `interval=5s timeout=2s`) plus the ~0.6&nbsp;s
+unsolicited RA RouterOS emits whenever `ra-lifetime` changes ≈
+~6–8&nbsp;s, symmetric on recovery. The `set [find interface=...]`
+lines start working as soon as [Per-VLAN IPv6](/mikrotik-per-vlan-ipv6/)
+is applied (substitution: `<GUA_LAN>=<OWN_48>:1`,
+`<GUA_IOT>=<OWN_48>:10`, `<GUA_GUEST>=<OWN_48>:20`).
+</Rationale>
+
+## 8. Verification
+
+```bash title="Home router — both sessions healthy"
+# Both BGP sessions established
+/routing/bgp/session/print
+#   expect:  host-vps  established
+#            host-r64  established
+
+# BFD up on the VPS session only
+/routing/bfd/session/print
+#   expect:  one entry, state=up, peer=<OWN_48>:0::1
+
+# Active default route
+/routing/route/print where dst-address=::/0
+#   expect: two ::/0 candidates; the bgp.as-path=[] one is active
+
+# The active default's gateway is the VPS WG endpoint
+/ipv6/route/print where active and dst-address=::/0
+#   expect: gateway=<OWN_48>:0::1%wg-host
+
+# netwatch healthy
+/tool/netwatch/print where comment=v6health
+
+# BFD/3784 input rule lives above the defconf drop.
+# The §5 place-before=[find ...] depends on the defconf comment string
+# in your RouterOS version; if it doesn't match, the rule lands at the
+# bottom of the chain (after the drop) and BFD silently never arrives.
+/ipv6/firewall/filter print
+#   expect: the chain=input udp dst-port=3784 rule above the
+#           "defconf: drop everything else not coming from LAN" rule
+```
+
+```bash title="VPS — transit + home sessions healthy"
+birdc show protocols
+#   expect: home (bgp)     Established
+#           transit (bgp)  Established
+#           bfd1 (bfd)     Up
+
+birdc show route ::/0 all
+#   expect: best path via wg0 to <OWN_48>:0::2 from home (iBGP, AS_PATH empty)
+#           plus transit's ::/0 from <TRANSIT_PEER_V6>
+
+birdc show route <OWN_48>::/48 all
+#   expect: via wg0 from home (learned by iBGP), exported to transit
+```
+
+### Induced failover
+
+```bash title="Verify primary→backup pivot"
+# On the VPS, drop BFD packets to simulate a half-dead tunnel.
+# BFD declares down in ~700 ms; bird withdraws ::/0 from home; home's
+# best-path picks the Route64-learned ::/0.
+nft add rule inet filter input iifname wg0 udp dport 3784 drop
+
+# On home router: time it.
+/log/print where message~"BGP|BFD"
+/ipv6/route/print where active and dst-address=::/0
+#   expect: gateway now <R64_LINK>::1%wg-route64
+
+ping -c 5 -I <CLIENT_GUA> 2606:4700:4700::1111
+#   expect: 1 dropped packet at the switchover, rest reach via Route64
+
+# Undo it — BFD comes back, best-path returns to VPS.
+nft -a list ruleset | grep "udp dport 3784 drop"   # note the handle
+nft delete rule inet filter input handle <handle>
+```
+
+```bash title="Verify backup-only failure is invisible to the LAN"
+# Disable Route64 alone. Because VPS is already best-path, this should
+# produce no active-route change and no v6-down log line — Route64
+# leaves BGP, the LAN sees nothing.
+/interface/wireguard/peers/disable [find interface=wg-route64]
+/ipv6/route/print where active and dst-address=::/0
+#   expect: gateway still <OWN_48>:0::1%wg-host
+/log/print where message~"v6-(up|down)"
+#   expect: no new entries
+
+/interface/wireguard/peers/enable [find interface=wg-route64]
+```
+
+```bash title="Verify both-paths-dead fallback"
+# Stop WireGuard on the VPS and disable Route64 on home simultaneously.
+# Within ~8 s the netwatch fires; clients drop their v6 default and
+# Happy-Eyeballs to IPv4.
+ssh vps "wg-quick down wg0"
+/interface/wireguard/peers/disable [find interface=wg-route64]
+/log/print where message~"v6-(up|down)"
+
+# Restore.
+/interface/wireguard/peers/enable [find interface=wg-route64]
+ssh vps "wg-quick up wg0"
+```
+
+A brief IPv6 miss at the switchover plus a 6–8&nbsp;s window before
+clients drop to IPv4 when both paths die — instead of either a
+hold-time-long blackhole or a permanent LAN-thinks-it-has-v6 stall — is
+the whole point of this build.
+
+After both BGP sessions are established and verified, continue to
+[**Per-VLAN IPv6 on RouterOS**](/mikrotik-per-vlan-ipv6/) to plumb
+`<OWN_48>` through to every VLAN — per-VLAN GUA + ULA + RA RDNSS, IPv6
+forward-chain isolation, and SLAAC anti-spoof, using the substitution
+`<GUA_LAN>=<OWN_48>:1`, `<GUA_IOT>=<OWN_48>:10`,
+`<GUA_GUEST>=<OWN_48>:20`.
+
+## Glossary
+
+| Acronym   | Expansion                                  | Reference                                                                         |
+| --------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
+| AS / ASN  | Autonomous system (number)                 | [RFC&nbsp;1930](https://datatracker.ietf.org/doc/html/rfc1930)                    |
+| BFD       | Bidirectional Forwarding Detection         | [RFC&nbsp;5880](https://datatracker.ietf.org/doc/html/rfc5880)                    |
+| BGP       | Border Gateway Protocol                    | [RFC&nbsp;4271](https://datatracker.ietf.org/doc/html/rfc4271)                    |
+| eBGP      | external BGP (across AS boundary)          | [RFC&nbsp;4271 §3.2](https://datatracker.ietf.org/doc/html/rfc4271#section-3.2)   |
+| iBGP      | internal BGP (within one AS)               | [RFC&nbsp;4271 §3.2](https://datatracker.ietf.org/doc/html/rfc4271#section-3.2)   |
+| LIR       | Local Internet Registry                    | [RIPE NCC](https://www.ripe.net/manage-ips-and-asns/db/support/lirs-and-end-users) |
+| ROA       | Route Origin Authorization (RPKI)          | [RFC&nbsp;6482](https://datatracker.ietf.org/doc/html/rfc6482)                    |
+| RPKI      | Resource Public Key Infrastructure         | [RFC&nbsp;6480](https://datatracker.ietf.org/doc/html/rfc6480)                    |
+
+Series-wide acronyms (CGNAT, DoH, GUA, RA, RDNSS, SLAAC, ULA, VLAN,
+VPS, WireGuard) live in the [index glossary](/mikrotik-home-network/#glossary).
+
+## References
+- [RB5009 CGNAT series index](/mikrotik-home-network/)
+- [Equal path A — VPS-routed /48 (provider prefix)](/vps-ipv6-cgnat-mikrotik/)
+- [Equal path B — Route64 /56](/route64-ipv6-cgnat-mikrotik/)
+- [Per-VLAN IPv6 on RouterOS](/mikrotik-per-vlan-ipv6/)
+- [jf.si — IPv6 ASN + BGP + WireGuard](https://jf.si/posts/2024-07-27-ipv6-asn-bgp-wireguard/) (the acquisition flavor this post builds on)
+- [NoPtk](https://noptk.com/) — the LIR I used for the ASN and `/48`
+- [pdxnet.co.uk / getvps.net](https://my.pdxnet.co.uk/aff.php?aff=5) (AS&nbsp;52025, affiliate link) — the transit VPS I used, $6/month with a free self-service BGP session
+- [BIRD 2.18 User's Guide — BGP and BFD](https://bird.nic.cz/doc/bird-2.18.html)
+- [RouterOS `/routing/bgp` reference](https://help.mikrotik.com/docs/spaces/ROS/pages/331612228/routing%20bgp)
+- [RFC&nbsp;4271 — Border Gateway Protocol 4 (BGP)](https://datatracker.ietf.org/doc/html/rfc4271)
+- [RFC&nbsp;5880 — Bidirectional Forwarding Detection (BFD)](https://datatracker.ietf.org/doc/html/rfc5880)
+- [RFC&nbsp;6482 — Route Origin Authorization (ROA)](https://datatracker.ietf.org/doc/html/rfc6482)
+
+---
+
+*Disclosure: the pdxnet.co.uk link above is an affiliate link — signing
+up through it earns me a referral credit at no extra cost to you. I am
+recommending the provider because I use it on this build, not because
+of the credit.*

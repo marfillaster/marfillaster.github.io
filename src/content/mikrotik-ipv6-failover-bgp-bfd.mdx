@@ -156,6 +156,14 @@ wg show wg0 allowed-ips                    # /48 is allowed, not route-owned
 A brief IPv6 miss and quick fallback to IPv4 — instead of waiting for BGP
 hold-time expiry — is the whole point of this change.
 
+If you'd rather have a *second active upstream* than a fast fall-to-IPv4
+on the single one, see
+[**Multi-homing IPv6 over CGNAT on RouterOS**](/multi-homed-ipv6-cgnat-mikrotik/)
+— the series finale. It carries the same BFD layer on the VPS session,
+adds a parallel Route64 BGP session under one announceable `/48`, and
+lets RouterOS best-path pick the active default. Requires a 32-bit ASN
+and an announceable `/48` as hard prerequisites.
+
 ## References
 - [VPS path post — the WireGuard + BGP layer this enhances](/vps-ipv6-cgnat-mikrotik/)
 - [RB5009 CGNAT series index](/mikrotik-home-network/)
@@ -164,6 +172,7 @@ hold-time expiry — is the whole point of this change.
 - [Per-VLAN IPv6 on RouterOS](/mikrotik-per-vlan-ipv6/) — the LAN-side layer whose default route this failover protects.
 - [Trusted, IoT, and Guest VLANs on RouterOS](/mikrotik-vlan-guest-iot/) — the bridge layout under that LAN-side IPv6.
 - [Encrypted DNS with a stable resolver address on RouterOS](/encrypted-dns-stable-resolver-mikrotik/) — survives the IPv6 outage because resolver addressing is on the ULA, not the routed prefix.
+- [Multi-homing IPv6 over CGNAT on RouterOS](/multi-homed-ipv6-cgnat-mikrotik/) — series finale; same BFD shape on the VPS session, plus a parallel Route64 BGP session under one announceable `/48`.
 
 ### Standards and tools
 - [IPv6-over-WireGuard relay with a routed /48 VPS — source gist](https://gist.github.com/marfillaster/7580167fb1721b7a43002daf3382e6e5)

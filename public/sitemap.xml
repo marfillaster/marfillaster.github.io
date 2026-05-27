@@ -82,6 +82,12 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://blog.homestack.space/multi-homed-ipv6-cgnat-mikrotik/</loc>
+    <lastmod>2026-05-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
     <loc>https://blog.homestack.space/net-metering-general-trias/</loc>
     <lastmod>2026-05-16</lastmod>
     <changefreq>monthly</changefreq>

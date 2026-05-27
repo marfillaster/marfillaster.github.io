@@ -172,6 +172,14 @@ peers, not primary and fallback. Pick on the trade-offs that matter to you:
 Everything else in this series — VLANs, DNS, per-VLAN address plan, the
 §5 ULA-only update below — is identical either way.
 
+Want both running at the same time? The series finale,
+[Multi-homing IPv6 over CGNAT on RouterOS](/multi-homed-ipv6-cgnat-mikrotik/),
+is a clean-slate WAN build that brings up the VPS and Route64 paths
+simultaneously under one announceable `/48`, with BGP best-path picking
+the active default and BFD on the VPS session. It is standalone — you do
+not need to have read or built Parts 4 or 5 first — but it requires a
+32-bit ASN and an announceable `/48` as hard prerequisites.
+
 ## 4. LAN segmentation comes first
 
 Layer 1 — main LAN on VLAN&nbsp;1 untagged, IoT and Guest on tagged VLANs 10
@@ -391,6 +399,16 @@ a routed /56 over WireGuard with no VPS to operate. The
 you'd rather own the relay end and get a larger prefix. Both produce
 the same per-VLAN result; the rest of the build is identical either way.
 
+### Can I run both paths at once for redundancy?
+Yes — the series finale,
+[Multi-homing IPv6 over CGNAT on RouterOS](/multi-homed-ipv6-cgnat-mikrotik/),
+brings up the VPS and Route64 paths simultaneously under one
+announceable `/48`, with BGP best-path selecting the active default and
+BFD on the VPS session for sub-second failover. It is a clean-slate WAN
+build (not a sequel to Parts 4 or 5) and requires a 32-bit ASN plus an
+announceable `/48` as hard prerequisites — Parts 4 and 5 stay as the
+friction-low standalone reads for the single-uplink case.
+
 ### What's the difference between a routed /48 and a routed /56?
 A /48 gives you 65,536 /64 subnets; a /56 gives you 256. Both are
 ample for one /64 per home VLAN. /48 is the IETF "site allocation"
@@ -429,6 +447,7 @@ out by default.
 - [Per-VLAN IPv6 on RouterOS — the LAN-side step after either path](/mikrotik-per-vlan-ipv6/)
 - [Encrypted DNS with a stable resolver address — companion post](/encrypted-dns-stable-resolver-mikrotik/)
 - [Fast IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post, VPS path only](/mikrotik-ipv6-failover-bgp-bfd/)
+- [Multi-homing IPv6 over CGNAT on RouterOS — series finale, both paths active under one /48](/multi-homed-ipv6-cgnat-mikrotik/)
 - [Running the UniFi controller on the RB5009 — companion post](/unifi-controller-routeros-containers-mikrotik/)
 - [RFC&nbsp;3849 — IPv6 address prefix reserved for documentation](https://datatracker.ietf.org/doc/html/rfc3849) (`2001:db8::/32`)
 - [RFC&nbsp;4193 — Unique Local IPv6 unicast addresses](https://datatracker.ietf.org/doc/html/rfc4193) (`fd00::/8`)

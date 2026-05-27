@@ -157,6 +157,12 @@ const SERIES: ReadonlyArray<{
     title: "UniFi controller on the router",
     note: "Optional add-on",
   },
+  {
+    slug: "multi-homed-ipv6-cgnat-mikrotik",
+    href: "/multi-homed-ipv6-cgnat-mikrotik/",
+    title: "Multi-homing IPv6 over CGNAT on RouterOS",
+    note: "Series finale — own ASN + /48, both paths active under BGP best-path",
+  },
 ];
 
 export function SeriesNav({ current }: { current: string }) {

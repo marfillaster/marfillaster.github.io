@@ -9,20 +9,23 @@ eBGP or a static gateway) but no LAN client has a GUA. This post fixes
 that: per-VLAN GUA + ULA + RA RDNSS, IPv6 forward-chain isolation, and
 anti-spoof enforcement against the address-list pattern this series uses.
 
-Path-agnostic: the same snippets work whether your routed prefix is a /48
-from a VPS or a /56 from Route64. The reader resolves the prefix into
-three per-VLAN /64 placeholders once at the top, and every snippet below
-reads cleanly.
+Path-agnostic: the same snippets work whether your routed prefix is a
+/48 from a VPS, a /56 from Route64, or a self-originated /48 from the
+[multi-homed build](/multi-homed-ipv6-cgnat-mikrotik/). The reader
+resolves the prefix into three per-VLAN /64 placeholders once at the
+top, and every snippet below reads cleanly.
 
 Prerequisites:
 
 - [VLAN companion post](/mikrotik-vlan-guest-iot/) applied — `bridge`,
   `vlan-iot`, `vlan-guest` interfaces and the bridge VLAN table.
-- One of the two paths complete:
-  [VPS-routed /48](/vps-ipv6-cgnat-mikrotik/) or
-  [Route64 /56](/route64-ipv6-cgnat-mikrotik/) — you have a default IPv6
-  route over WireGuard, and no per-VLAN GUA is plumbed on any LAN
-  interface yet (only the tunnel link carries a GUA at this point).
+- One of the three paths complete:
+  [VPS-routed /48](/vps-ipv6-cgnat-mikrotik/),
+  [Route64 /56](/route64-ipv6-cgnat-mikrotik/), or the
+  [multi-homed build](/multi-homed-ipv6-cgnat-mikrotik/) — you have a
+  default IPv6 route over WireGuard, and no per-VLAN GUA is plumbed on
+  any LAN interface yet (only the tunnel link carries a GUA at this
+  point).
 - [DNS companion post](/encrypted-dns-stable-resolver-mikrotik/) applied
   if you want RA RDNSS to advertise the router as the resolver — the
   `advertise-dns=self` posture below assumes that piece is in place.
@@ -42,8 +45,9 @@ Fill from the path post you just completed:
 
 | From this path | `<GUA_LAN>`        | `<GUA_IOT>`        | `<GUA_GUEST>`      |
 | -------------- | ------------------ | ------------------ | ------------------ |
-| **VPS /48** (`<LAN_PREFIX>=2001:db8`)        | `<LAN_PREFIX>:1`   | `<LAN_PREFIX>:10`   | `<LAN_PREFIX>:20`   |
+| **VPS /48** (`<LAN_PREFIX>=2001:db8`)         | `<LAN_PREFIX>:1`   | `<LAN_PREFIX>:10`   | `<LAN_PREFIX>:20`   |
 | **Route64 /56** (`<R64_56>=2001:db8:abcd:c0`) | `<R64_56>01`       | `<R64_56>10`        | `<R64_56>20`        |
+| **Multi-homed /48** (`<OWN_48>=2a14:7583:eff9`) | `<OWN_48>:1`     | `<OWN_48>:10`       | `<OWN_48>:20`       |
 
 The VLAN numbers reused as IPv6 slice IDs (`:1`, `:10`, `:20` or `01`,
 `10`, `20`) mean the mapping stays obvious in tcpdump regardless of which

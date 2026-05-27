@@ -33,11 +33,27 @@ over WireGuard. Lives at `/route64-ipv6-cgnat-mikrotik/`.
 _Avoid_: "fallback", "broker path", "the /56 path".
 
 **Equal paths**:
-The relationship between **VPS path** and **Route64 path**: peer choices
-for getting a routable IPv6 prefix over residential CGNAT, not a primary
-with a fallback. The reader picks one; everything else in the build is
-identical either way.
-_Avoid_: "primary and fallback", "default and alternative".
+The relationship between **VPS path** and **Route64 path** *as
+standalone single-uplink builds*: peer choices for getting a routable
+IPv6 prefix over residential CGNAT, not a primary with a fallback. The
+reader picks one; everything else in the build is identical either way.
+The **multi-homed path** composes both under a shared announceable /48,
+where one of them becomes the active default by BGP best-path selection —
+that primary/backup reframe is local to the multi-homed build only.
+_Avoid_: "primary and fallback", "default and alternative" — outside
+the multi-homed build.
+
+**Multi-homed path**:
+The IPv6-uplink recipe that runs the **VPS path** *and* the
+**Route64 path** simultaneously on the same router under a single
+announceable /48. Lives in its own post (Part 9 of the series). The two
+upstreams are assumed independent — sharing a
+physical transit provider is a coincidence to avoid where possible,
+not a property of the design. Replaces the WAN-side plumbing of the
+equal paths for readers who choose this architecture; Parts 4 and 5
+remain as friction-low standalone reads for the single-uplink case.
+_Avoid_: "primary/backup path" (only meaningful inside this build);
+"dual-uplink path" (locks at exactly two).
 
 **Shared scaffolding**:
 The path-agnostic mechanics that live in the **index post** instead of
@@ -79,6 +95,13 @@ _Avoid_: "the IPv6 firewall step", "the GUA section", "LAN-side IPv6",
   BGP/WireGuard contract.
 - **Per-VLAN IPv6** is path-agnostic — it sits after either **path post** and consumes the routed prefix using local per-VLAN /64 placeholders, with a substitution table mapping back to each path's prefix notation.
 - The failover **companion post** extends the **VPS path** only (its BFD adds to the VPS path's BGP session). It can present Ubuntu/BIRD and VyOS implementation tabs, but it is not relevant to the **Route64 path**.
+- The **multi-homed path** subsumes both **path posts**' WAN-side
+  recipes under an announceable /48 and an own ASN. It is not a fourth
+  equal-path option — it is a different architecture aimed at readers
+  who want two-upstream redundancy and accept the ASN + /48 prerequisite.
+  Like the equal paths, it ends by pointing at **Per-VLAN IPv6**. It
+  may also overlap with or supersede the failover **companion post**
+  depending on how that post's role is reframed.
 
 ## Device, OS, vendor
 

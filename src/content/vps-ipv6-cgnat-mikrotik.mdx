@@ -316,6 +316,14 @@ through to every VLAN — per-VLAN GUA + ULA + RA RDNSS, IPv6 forward-chain
 isolation, and SLAAC anti-spoof, using the substitution `<GUA_LAN>=<LAN_PREFIX>:1`,
 `<GUA_IOT>=<LAN_PREFIX>:10`, `<GUA_GUEST>=<LAN_PREFIX>:20`.
 
+If you'd rather run this path *alongside* Route64 under one announceable
+`/48` with BGP best-path failover, see
+[**Multi-homing IPv6 over CGNAT on RouterOS**](/multi-homed-ipv6-cgnat-mikrotik/)
+— the series finale. It replaces the WAN-side plumbing of this post with
+a self-contained multi-homed build (own ASN, announceable `/48` as hard
+prerequisites) and supersedes the failover companion's single-session
+BFD with a two-session BGP best-path.
+
 ## 6. Relay-side verification
 
 The VPS-specific checks are below — they prove the WireGuard tunnel, the
@@ -379,6 +387,7 @@ WireGuard) live in the [index glossary](/mikrotik-home-network/#glossary).
 - [RB5009 CGNAT series index](/mikrotik-home-network/)
 - [Sibling path — Route64 /56, no VPS](/route64-ipv6-cgnat-mikrotik/)
 - [Fast IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post](/mikrotik-ipv6-failover-bgp-bfd/)
+- [Multi-homing IPv6 over CGNAT on RouterOS — series finale, both paths active under one /48](/multi-homed-ipv6-cgnat-mikrotik/)
 - [Vultr / on-link /64 variant — when the VPS does not route a prefix](https://gist.github.com/marfillaster/a80d378124db0d879a962ce73d31b345)
 - [WireGuard paper — Cryptokey Routing](https://www.wireguard.com/papers/wireguard.pdf)
 - [BIRD 2.18 User's Guide — Kernel protocol](https://bird.nic.cz/doc/bird-2.18.html)

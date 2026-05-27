@@ -48,4 +48,8 @@ export default [
     "solar-application-lancaster",
     "routes/solar-application-lancaster.tsx",
   ),
+  route(
+    "multi-homed-ipv6-cgnat-mikrotik",
+    "routes/multi-homed-ipv6-cgnat-mikrotik.tsx",
+  ),
 ] satisfies RouteConfig;
