@@ -119,9 +119,7 @@ cold handshake and both worked.
 </Rationale>
 
 ## 5. Default route — single uplink
-There is no second IPv6 path, so the Route64 default is just the default. It
-carries a comment because section&nbsp;6's netwatch enables and disables it
-by that token.
+There is no second IPv6 path, so the Route64 default is just the default.
 
 ```bash title="Home router — Route64 default route"
 /ipv6/route add dst-address=::/0 gateway=<R64_LINK>::1%wg-route64 \
@@ -129,42 +127,44 @@ by that token.
 ```
 
 ## 6. Fast fail-to-IPv4
-netwatch pings the tunnel gateway — reachable only through `wg-route64`, so
-it tracks Route64's own health. On failure it disables the default route
-**and** sets `ra-lifetime=0` on every GUA-bearing VLAN. A Router Lifetime of
-zero tells hosts "I am not a default router": they purge the IPv6 default and
-Happy&nbsp;Eyeballs to IPv4 within one RA interval. On recovery it restores
-the route and a normal `ra-lifetime`. Comments are single tokens.
+netwatch probes Cloudflare's IPv6 anycast on TCP&nbsp;443 — reachable
+only through the Route64 default. On failure it sets `ra-lifetime=0` on
+every GUA-bearing VLAN. A Router Lifetime of zero tells hosts "I am not
+a default router": they purge the IPv6 default and Happy&nbsp;Eyeballs
+to IPv4 within seconds. On recovery it restores `ra-lifetime=30m`. The
+default route stays installed throughout — only the Router Lifetime
+toggles.
 
-```bash title="Home router — netwatch arms/disarms the IPv6 uplink"
-/tool/netwatch add name=r64health type=icmp host=<R64_LINK>::1 \
+```bash title="Home router — netwatch drains LAN RA on Route64 outage"
+/tool/netwatch add name=r64health type=tcp-conn \
+    host=2606:4700:4700::1111 port=443 \
     interval=5s timeout=2s comment=r64health \
-    up-script="/ipv6/route enable [find comment=r64def]; /ipv6/nd set [find interface=bridge] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=30m; :log info route64-up" \
-    down-script="/ipv6/route disable [find comment=r64def]; /ipv6/nd set [find interface=bridge] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=0s; :log info route64-down-failedtoIPv4"
+    up-script="/ipv6/nd set [find interface=bridge] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=30m; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=30m; :log info route64-up" \
+    down-script="/ipv6/nd set [find interface=bridge] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-iot] ra-lifetime=0s; /ipv6/nd set [find interface=vlan-guest] ra-lifetime=0s; :log info route64-down-failedtoIPv4"
 ```
 
 The `set [find interface=...]` lines are no-ops until the per-VLAN ND
 entries exist; they start working as soon as the
 [Per-VLAN IPv6](/mikrotik-per-vlan-ipv6/) post is applied (substitution:
 `<GUA_LAN>=<R64_56>01`, `<GUA_IOT>=<R64_56>10`, `<GUA_GUEST>=<R64_56>20`).
-That post also carries the matching
-[`ra-interval=10s-30s` tuning](/mikrotik-per-vlan-ipv6/#2-per-vlan-addresses-and-ra-rdnss)
-this netwatch depends on for the 30-second visibility window.
 
 After the [index §5 ULA-only update](/mikrotik-home-network/#5-keeping-streaming-off-the-routable-ipv6-path)
 strips Guest's GUA, the `vlan-guest` line above becomes a no-op (the VLAN
 has no global default to withdraw); leave it in for symmetry or drop it.
 
 <Rationale>
-Verified on a live build: both netwatch transitions fire and
-`ra-lifetime=0s` is accepted (RouterOS renders it as `none`). With
-`ra-interval=10s-30s` (set in the Per-VLAN IPv6 post) end-to-end failover
-is ≈&nbsp;netwatch detection (~8&nbsp;s at `interval=5s timeout=2s`)
-plus one RA (≤&nbsp;30&nbsp;s) ≈&nbsp;~38&nbsp;s to clean IPv4, symmetric
-on recovery. This withdraws the router as a default router for *all*
-IPv6, so router-forwarded inter-VLAN IPv6 also pauses during the outage
-— by design, it falls to IPv4 with everything else. Same-VLAN IPv6 and
-the ULA resolver are on-link and keep working throughout.
+End-to-end failover is netwatch detection (~5–7&nbsp;s at `interval=5s
+timeout=2s`) plus the ~0.6&nbsp;s unsolicited RA RouterOS emits whenever
+`ra-lifetime` changes ≈ ~6–8&nbsp;s, symmetric on recovery — no
+dependence on `ra-interval`. `type=tcp-conn` is used because RouterOS
+7.22's IPv6 ICMP netwatch stays stuck at `down` even for reachable v6
+hosts (the v4 variant works fine); a TCP connect to Cloudflare's HTTPS
+port exits via whatever default is active and confirms end-to-end v6
+reachability. The default route stays installed across outages — only
+the Router Lifetime toggles, which withdraws the router as a default
+for *all* IPv6, so router-forwarded inter-VLAN IPv6 also pauses during
+the outage. Same-VLAN IPv6 and the ULA resolver are on-link and keep
+working throughout.
 </Rationale>
 
 ## 7. DynDNS hygiene (optional)
