@@ -8,7 +8,9 @@ without the LAN losing routable IPv6. This post is WAN clean-slate — it
 replaces the WAN-side plumbing of the two equal-paths posts
 ([VPS](/vps-ipv6-cgnat-mikrotik/), [Route64](/route64-ipv6-cgnat-mikrotik/))
 with a self-contained multi-homed build, so you do **not** need to have
-read or built those posts first. The LAN side still assumes the
+built those posts first — though §3 below pulls `<R64_*>` placeholders
+from the [Route64 post §2](/route64-ipv6-cgnat-mikrotik/#2-conventions-and-placeholders)
+portal walkthrough, so keep that tab open. The LAN side still assumes the
 [VLAN foundation post](/mikrotik-vlan-guest-iot/) — bridge, VLANs,
 inter-VLAN IPv4 firewall, per-VLAN DHCPv4, ULA-bound DoH resolver.
 
@@ -83,8 +85,10 @@ are up.
 Three working pieces:
 
 ```text
-A. VPS  — runs BFD with home, eBGPs your /48 to upstream transit,
-          iBGP-originates ::/0 to home with empty AS_PATH
+A. VPS  — runs BFD with home, announces your /48 up to transit
+          (announce-only — AS 52025 sends nothing back), and re-
+          originates its own default route to home over iBGP as
+          ::/0 with empty AS_PATH
 B. Route64 — eBGPs your /48 from home to AS 212895, advertises ::/0
              back with AS_PATH=[212895]
 C. Home — receives ::/0 from both sessions, BGP best-path installs the
@@ -93,8 +97,12 @@ C. Home — receives ::/0 from both sessions, BGP best-path installs the
 ```
 
 Home and VPS share `<OWN_AS>`, so the session between them is iBGP and
-the VPS-side `::/0` reaches home with an empty `AS_PATH`. Route64 sits
-in `AS 212895`, so its `::/0` arrives with `AS_PATH=[212895]`. No
+the VPS-side `::/0` reaches home with an empty `AS_PATH`. That `::/0` is
+the VPS's own upstream default — from the public NIC's RA or a static
+route, pulled into bird and re-originated locally — not a route learned
+over the transit session, which for AS 52025 carries nothing back to
+you. Route64 sits in `AS 212895`, so its `::/0` arrives with
+`AS_PATH=[212895]`. No
 local-pref or MED is set on either session, so RouterOS best-path
 falls through to AS_PATH length — empty beats `[212895]` — and the
 VPS default wins. The Route64 default sits in BGP as the backup.
@@ -111,11 +119,12 @@ their respective sessions and reach `<OWN_48>` via the WireGuard tunnel.
 | Placeholder            | Meaning                                                                                |
 | ---------------------- | -------------------------------------------------------------------------------------- |
 | `<OWN_AS>`             | Your 32-bit ASN. Both home and the VPS use this; the session is iBGP.                  |
-| `<OWN_48>`             | Your assigned `/48`, written without trailing zeros, e.g. `2a14:7583:eff9`.            |
+| `<OWN_48>`             | Your assigned `/48`, written without trailing zeros, e.g. `2001:db8:eff9`.            |
 | `<TRANSIT_AS>`         | The VPS provider's ASN (your eBGP peer from the VPS upstream-side). Provider tells you. |
 | `<TRANSIT_PEER_V6>`    | Provider's IPv6 BGP peer address handed to your VPS. From the provider's BGP onboarding. |
 | `<VPS_IP>`             | VPS public IPv4 (used as the WireGuard endpoint for the home → VPS tunnel).            |
 | `<VPS_NIC>`            | VPS public interface (`ip -o link`; typical `enp3s0`, `ens3`).                         |
+| `<VPS_GUA>`            | The VPS's own IPv6 on its public `/64` (e.g. `2001:db8::2b`). Used as the BGP source toward transit. |
 | `<VPS_PUBKEY>` / `<HOME_PUBKEY>` | WireGuard public keys, one per side. Printed during §4.                      |
 | `<VPS_ROUTER_ID>` / `<HOME_ROUTER_ID>` | Unique 32-bit BGP router IDs written like IPv4 addresses.              |
 | `<R64_LINK>`           | The /64 Route64 carves out for the BGP transport (portal calls it the point-to-point /64). `::1` is the PoP, `::2` is your home router. |
@@ -211,8 +220,8 @@ table inet filter {
     type filter hook forward priority filter; policy drop;
 
     ct state established,related accept
-    iifname "wg0" accept                      # LAN -> internet
-    oifname "wg0" accept                      # internet -> LAN
+    iifname "wg0" ip6 saddr <OWN_48>::/48 accept   # LAN -> internet, source must be ours
+    oifname "wg0" ip6 daddr <OWN_48>::/48 accept   # internet -> LAN, dest must be ours
   }
 
   chain output {
@@ -288,15 +297,21 @@ protocol bgp home {
 }
 
 # eBGP upstream to transit — your <OWN_AS> peering with <TRANSIT_AS>.
-# The transit hands you a peer address (<TRANSIT_PEER_V6>) over the
-# public NIC; the session is single-hop and rides the on-link /64.
+# AS 52025 hands you a peer address (<TRANSIT_PEER_V6>) that sits in a
+# different subnet from your on-link /64, so it's reached over your
+# default route and the session is multihop. `local` pins the source to
+# your on-link address (<VPS_GUA>); without it bird may source from the
+# wrong address and the peering won't come up.
 protocol bgp transit {
-  local as <OWN_AS>;
+  local <VPS_GUA> as <OWN_AS>;
   neighbor <TRANSIT_PEER_V6> as <TRANSIT_AS>;
+  multihop 2;
 
   ipv6 {
-    # Accept only ::/0 from transit. Anything more-specific is
-    # provider-routed and would compete with our own announcements.
+    # AS 52025 is announce-only and sends nothing, so this imports no
+    # routes in practice. Kept defensive: the ::/0 home uses is the
+    # kernel-originated one above (empty AS_PATH), not anything learned
+    # here. Anything more-specific would be provider-routed; reject it.
     import filter {
       if net = ::/0 then accept;
       reject;
@@ -337,6 +352,21 @@ for the multi-homed story to work. The kernel `import filter` taking
 only `::/0` is what gives home an empty `AS_PATH` on the route — bird
 treats kernel-learned routes as locally originated, and iBGP doesn't
 prepend.
+
+The forward chain's `ip6 saddr <OWN_48>::/48` and `ip6 daddr <OWN_48>::/48`
+guards are anti-spoof: the VPS will only forward outbound packets sourced
+from your prefix and inbound packets destined to it. Without them
+`iifname "wg0" accept` would let the home side egress with any source
+address, and `oifname "wg0" accept` would let the VPS be used as a
+generic router toward whatever happens to be reachable through wg0.
+
+If you configure the public NIC's IPv6 by hand rather than via RA
+(`accept_ra=2` above) — on VyOS, static netplan, etc. — give it the
+on-link `/64`, never the provider's full `/48`. A `/48` on the
+interface installs an on-link route for all 65k `/64`s it covers, so
+the box answers its own NDP for addresses that actually live elsewhere
+and silently drops them — the multihop transit peer above is exactly
+one such address.
 </Rationale>
 
 ## 5. Home router — both BGP sessions, BFD on the VPS one

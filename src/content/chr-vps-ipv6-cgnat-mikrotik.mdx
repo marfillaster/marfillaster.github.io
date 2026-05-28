@@ -59,10 +59,10 @@ Series-wide placeholders (`<ULA_PREFIX>`) live in the
 | Placeholder                    | Meaning                                                                    |
 | ------------------------------ | -------------------------------------------------------------------------- |
 | `<WAN_IF>`                     | CHR public interface. On KVM CHR this is usually `ether1`.                 |
-| `<VPS_IP>` / `<VPS_PREFIXLEN>` | Provider IPv4 address and prefix length, e.g. `194.127.178.92/24`.         |
+| `<VPS_IP>` / `<VPS_PREFIXLEN>` | Provider IPv4 address and prefix length, e.g. `192.0.2.92/24`.         |
 | `<VPS_GW4>`                    | Provider IPv4 gateway.                                                     |
-| `<VPS_LINK_GUA>`               | Provider IPv6 link address, e.g. `2a0a:8dc0:1000:1e6::2/126`.              |
-| `<VPS_GW6>`                    | Provider IPv6 gateway, e.g. `2a0a:8dc0:1000:1e6::1`.                       |
+| `<VPS_LINK_GUA>`               | Provider IPv6 link address, e.g. `2001:db8:1000:1e6::2/126`.              |
+| `<VPS_GW6>`                    | Provider IPv6 gateway, e.g. `2001:db8:1000:1e6::1`.                       |
 | `<VPS_WG_ENDPOINT>`            | Address the home router dials for WireGuard. Prefer IPv4 when available.   |
 | `<LAN_PREFIX>`                 | Routed IPv6 `/48`, written without trailing zeros, e.g. `2001:db8`.        |
 | `<VPS_PUBKEY>` / `<HOME_PUBKEY>` | WireGuard public keys, one per side.                                     |
