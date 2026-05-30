@@ -36,6 +36,15 @@ export function SiteShell({ children }: { children: ReactNode }) {
               rel="noopener noreferrer"
             >
               ☕ buy me a coffee
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://as197291.homestack.space/"
+              className="hover:text-foreground hover:underline underline-offset-4"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              AS197291
             </a>
           </span>
           <a
