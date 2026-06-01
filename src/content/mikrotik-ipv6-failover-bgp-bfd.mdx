@@ -10,6 +10,21 @@ dateModified: "2026-05-21"
 category: "Infrastructure"
 sectionOrder: 1
 order: 7
+hero:
+  eyebrow: "Build log · MikroTik · BGP + BFD failover"
+  description: >-
+    Bind BFD to the existing MikroTik/Ubuntu BIRD BGP session over WireGuard so the IPv6 default route withdraws quickly when the relay path dies.
+seo:
+  dependencies: "Ubuntu 22.04+, BIRD 2.x, MikroTik RouterOS v7, WireGuard, BGP, BFD"
+tabs:
+  ariaLabel: "BFD relay implementation"
+  items:
+    - href: "/mikrotik-ipv6-failover-bgp-bfd/"
+      label: "Ubuntu + BIRD"
+    - href: "/mikrotik-ipv6-failover-bgp-bfd/vyos/"
+      label: "VyOS"
+    - href: "/mikrotik-ipv6-failover-bgp-bfd/chr/"
+      label: "CHR"
 ---
 
 <SeriesNav current="failover" />

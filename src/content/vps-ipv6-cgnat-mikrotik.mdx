@@ -10,6 +10,31 @@ dateModified: "2026-05-21"
 category: "Infrastructure"
 sectionOrder: 1
 order: 4
+hero:
+  eyebrow: "Build log · MikroTik RB5009 · VPS-routed /48"
+  title: "Routed IPv6 for a segmented IPv4-only LAN behind CGNAT"
+  description: >-
+    $3/mo VPS that routes a /48, WireGuard from the RB5009, eBGP between them. Pick an Ubuntu/BIRD, VyOS, or CHR relay implementation.
+seo:
+  dependencies: "Ubuntu 22.04+, BIRD 2.x, MikroTik RouterOS v7, WireGuard, BGP"
+redirects:
+  - exact: "vyos"
+    prefix: "vyos-"
+    toPath: "/vps-ipv6-cgnat-mikrotik/vyos/"
+  - exact: "chr"
+    prefix: "chr-"
+    toPath: "/vps-ipv6-cgnat-mikrotik/chr/"
+series:
+  current: "vps"
+tabs:
+  ariaLabel: "VPS relay implementation"
+  items:
+    - href: "/vps-ipv6-cgnat-mikrotik/"
+      label: "Ubuntu + BIRD"
+    - href: "/vps-ipv6-cgnat-mikrotik/vyos/"
+      label: "VyOS"
+    - href: "/vps-ipv6-cgnat-mikrotik/chr/"
+      label: "CHR"
 ---
 
 ## Overview

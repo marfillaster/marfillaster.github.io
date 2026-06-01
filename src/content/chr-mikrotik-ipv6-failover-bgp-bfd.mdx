@@ -1,3 +1,35 @@
+---
+feed: false
+route: true
+href: "/mikrotik-ipv6-failover-bgp-bfd/chr/"
+eyebrow: "Build log · MikroTik · BGP + BFD failover · CHR relay"
+title: "MikroTik CHR BFD failover on RouterOS — BGP + BFD over WireGuard"
+description: >-
+  Add BFD to the MikroTik/CHR BGP session over WireGuard so the home MikroTik withdraws the IPv6 default route quickly when the CHR relay path fails.
+datePublished: "2026-05-17"
+dateModified: "2026-05-25"
+category: "Infrastructure"
+sectionOrder: 1
+order: 7.2
+headingPrefix: "chr-"
+hero:
+  eyebrow: "Build log · MikroTik · BGP + BFD failover · CHR relay"
+  title: "MikroTik CHR BFD failover on RouterOS"
+  description: >-
+    Bind BFD to the existing MikroTik/CHR BGP session over WireGuard so the IPv6 default route withdraws quickly when the relay path dies.
+seo:
+  dependencies: "MikroTik CHR, RouterOS v7, WireGuard, BGP, BFD"
+tabs:
+  ariaLabel: "BFD relay implementation"
+  items:
+    - href: "/mikrotik-ipv6-failover-bgp-bfd/"
+      label: "Ubuntu + BIRD"
+    - href: "/mikrotik-ipv6-failover-bgp-bfd/vyos/"
+      label: "VyOS"
+    - href: "/mikrotik-ipv6-failover-bgp-bfd/chr/"
+      label: "CHR"
+---
+
 <SeriesNav current="failover" />
 
 ## Overview

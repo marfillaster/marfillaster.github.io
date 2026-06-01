@@ -6,7 +6,7 @@ import rehypeSlug from "rehype-slug";
 import rehypeMdxCodeProps from "rehype-mdx-code-props";
 import { defineConfig } from "vite";
 // @ts-ignore This helper runs in Vite's Node context.
-import { buildPostIndex, readFeedPosts } from "./scripts/post-metadata.mjs";
+import { buildPostIndex, readRoutablePosts } from "./scripts/post-metadata.mjs";
 
 const virtualPostIndexId = "virtual:post-index";
 const resolvedVirtualPostIndexId = `\0${virtualPostIndexId}`;
@@ -25,7 +25,7 @@ export default defineConfig({
           return;
         }
 
-        const postIndex = buildPostIndex(await readFeedPosts());
+        const postIndex = buildPostIndex(await readRoutablePosts());
         return `export default ${JSON.stringify(postIndex)};`;
       },
     },

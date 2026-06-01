@@ -1,3 +1,37 @@
+---
+feed: false
+route: true
+href: "/vps-ipv6-cgnat-mikrotik/vyos/"
+eyebrow: "Build log · MikroTik RB5009 · VPS-routed /48 · VyOS relay"
+title: "VyOS relay for routed IPv6 over CGNAT — VPS, routed /48"
+description: >-
+  Run the VPS-routed IPv6 over CGNAT path with a VyOS relay: provider-routed /48, WireGuard to the RB5009, eBGP route exchange, and interface-based relay firewall.
+datePublished: "2026-05-21"
+dateModified: "2026-05-21"
+category: "Infrastructure"
+sectionOrder: 1
+order: 4.1
+headingPrefix: "vyos-"
+hero:
+  eyebrow: "Build log · MikroTik RB5009 · VPS-routed /48 · VyOS relay"
+  title: "VyOS relay for routed IPv6 over CGNAT"
+  description: >-
+    Same VPS-routed /48 design as the Ubuntu/BIRD path, implemented with VyOS WireGuard, BGP policy, and relay firewall rules.
+seo:
+  dependencies: "VyOS 1.4+, MikroTik RouterOS v7, WireGuard, BGP"
+series:
+  current: "vps"
+tabs:
+  ariaLabel: "VPS relay implementation"
+  items:
+    - href: "/vps-ipv6-cgnat-mikrotik/"
+      label: "Ubuntu + BIRD"
+    - href: "/vps-ipv6-cgnat-mikrotik/vyos/"
+      label: "VyOS"
+    - href: "/vps-ipv6-cgnat-mikrotik/chr/"
+      label: "CHR"
+---
+
 ## Overview
 This is the VyOS variant of the
 [VPS path](/vps-ipv6-cgnat-mikrotik/) in the

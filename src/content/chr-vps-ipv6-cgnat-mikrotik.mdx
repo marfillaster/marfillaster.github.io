@@ -1,3 +1,37 @@
+---
+feed: false
+route: true
+href: "/vps-ipv6-cgnat-mikrotik/chr/"
+eyebrow: "Build log · MikroTik · VPS-routed /48 · CHR relay"
+title: "MikroTik CHR relay for routed IPv6 over CGNAT — VPS, routed /48"
+description: >-
+  Run the VPS-routed IPv6 over CGNAT path with a MikroTik CHR relay: provider-routed /48, WireGuard to the home MikroTik, eBGP route exchange, and RouterOS firewall rules.
+datePublished: "2026-05-21"
+dateModified: "2026-05-24"
+category: "Infrastructure"
+sectionOrder: 1
+order: 4.2
+headingPrefix: "chr-"
+hero:
+  eyebrow: "Build log · MikroTik · VPS-routed /48 · CHR relay"
+  title: "MikroTik CHR relay for routed IPv6 over CGNAT"
+  description: >-
+    Same VPS-routed /48 design as the Ubuntu/BIRD path, implemented with RouterOS CHR, WireGuard, BGP filters, and relay firewall rules.
+seo:
+  dependencies: "MikroTik CHR, RouterOS v7, WireGuard, BGP"
+series:
+  current: "vps"
+tabs:
+  ariaLabel: "VPS relay implementation"
+  items:
+    - href: "/vps-ipv6-cgnat-mikrotik/"
+      label: "Ubuntu + BIRD"
+    - href: "/vps-ipv6-cgnat-mikrotik/vyos/"
+      label: "VyOS"
+    - href: "/vps-ipv6-cgnat-mikrotik/chr/"
+      label: "CHR"
+---
+
 ## Overview
 
 This is the MikroTik CHR variant of the

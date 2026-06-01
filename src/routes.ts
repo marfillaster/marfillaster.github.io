@@ -1,55 +1,34 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
+// @ts-ignore This helper runs in React Router's Node route-config context.
+import { readRoutablePosts } from "../scripts/post-metadata.mjs";
+
+const customHrefs = new Set([
+  "/nev-mileage/",
+  "/solar-report/",
+]);
+
+type RoutablePost = {
+  href: string;
+  routePath: string;
+};
+
+function routeId(path: string) {
+  return `routes/post-${path.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+const routablePosts = (await readRoutablePosts()) as RoutablePost[];
+
+const postRoutes = routablePosts
+  .filter((post) => !customHrefs.has(post.href))
+  .map((post) =>
+    route(post.routePath, "routes/post.tsx", { id: routeId(post.routePath) }),
+  );
 
 export default [
   index("routes/_index.tsx"),
-  route("mikrotik-home-network", "routes/mikrotik-home-network.tsx"),
-  route(
-    "converge-gpon-sfp-stick-mikrotik",
-    "routes/converge-gpon-sfp-stick-mikrotik.tsx",
-  ),
-  route("route64-ipv6-cgnat-mikrotik", "routes/route64-ipv6-cgnat-mikrotik.tsx"),
-  route("vps-ipv6-cgnat-mikrotik", "routes/vps-ipv6-cgnat-mikrotik.tsx"),
-  route("vps-ipv6-cgnat-mikrotik/vyos", "routes/vps-ipv6-cgnat-mikrotik-vyos.tsx"),
-  route("vps-ipv6-cgnat-mikrotik/chr", "routes/vps-ipv6-cgnat-mikrotik-chr.tsx"),
-  route("mikrotik-per-vlan-ipv6", "routes/mikrotik-per-vlan-ipv6.tsx"),
-  route(
-    "unifi-controller-routeros-containers-mikrotik",
-    "routes/unifi-controller-routeros-containers-mikrotik.tsx",
-  ),
-  route(
-    "encrypted-dns-stable-resolver-mikrotik",
-    "routes/encrypted-dns-stable-resolver-mikrotik.tsx",
-  ),
-  route(
-    "mikrotik-vlan-guest-iot",
-    "routes/mikrotik-vlan-guest-iot.tsx",
-  ),
-  route(
-    "mikrotik-ipv6-failover-bgp-bfd",
-    "routes/mikrotik-ipv6-failover-bgp-bfd.tsx",
-  ),
-  route(
-    "mikrotik-ipv6-failover-bgp-bfd/vyos",
-    "routes/mikrotik-ipv6-failover-bgp-bfd-vyos.tsx",
-  ),
-  route(
-    "mikrotik-ipv6-failover-bgp-bfd/chr",
-    "routes/mikrotik-ipv6-failover-bgp-bfd-chr.tsx",
-  ),
+  ...postRoutes,
   route("solar-report", "routes/solar-report.tsx"),
   route("solar-report/full-report", "routes/solar-report-full.tsx"),
   route("nev-mileage", "routes/nev-mileage.tsx"),
   route("nev-mileage/full-report", "routes/nev-mileage-full.tsx"),
-  route(
-    "net-metering-general-trias",
-    "routes/net-metering-general-trias.tsx",
-  ),
-  route(
-    "solar-application-lancaster",
-    "routes/solar-application-lancaster.tsx",
-  ),
-  route(
-    "multi-homed-ipv6-cgnat-mikrotik",
-    "routes/multi-homed-ipv6-cgnat-mikrotik.tsx",
-  ),
 ] satisfies RouteConfig;
