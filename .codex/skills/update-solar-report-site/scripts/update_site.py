@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import html
 import re
 import sys
@@ -77,7 +78,6 @@ def seo_head(page_path: str, title: str, description: str) -> str:
 REQUIRED_SECTIONS = [
     "Executive Summary",
     "System Profile",
-    "Alerts",
     "Recommendations",
     "Bill Impact",
     "ROI Estimate",
@@ -99,6 +99,28 @@ MONTH_NAMES = {
     11: "November",
     12: "December",
 }
+
+_MONTH_NUMS = {name.lower(): num for num, name in MONTH_NAMES.items()}
+
+
+def parse_period_bounds(markdown: str) -> tuple[int, int, int, int]:
+    """Extract (start_year, start_month, end_year, end_month) from the report's
+    period line. Accepts both the numeric form ("from 2025-12 to 2026-05") and
+    the month-name form ("from December 2025 – May 2026"); the separator may be
+    "to" or a hyphen/en-dash/em-dash."""
+    sep = r"(?:to|[–—-])"
+    numeric = re.search(rf"from\s+(\d{{4}})-(\d{{2}})\s*{sep}\s*(\d{{4}})-(\d{{2}})", markdown)
+    if numeric:
+        return int(numeric[1]), int(numeric[2]), int(numeric[3]), int(numeric[4])
+    named = re.search(
+        rf"from\s+([A-Za-z]+)\s+(\d{{4}})\s*{sep}\s*([A-Za-z]+)\s+(\d{{4}})", markdown
+    )
+    if named:
+        start_month = _MONTH_NUMS.get(named[1].lower())
+        end_month = _MONTH_NUMS.get(named[3].lower())
+        if start_month and end_month:
+            return int(named[2]), start_month, int(named[4]), end_month
+    raise ValueError("Could not parse report period from source markdown")
 
 
 def normalize_text(text: str) -> str:
@@ -158,14 +180,7 @@ def split_sections(markdown: str) -> dict[str, str]:
 
 
 def parse_report_period(markdown: str) -> tuple[str, str]:
-    match = re.search(r"Based on analysis of solar data from (\d{4})-(\d{2}) to (\d{4})-(\d{2})", markdown)
-    if not match:
-        raise ValueError("Could not parse report period from source markdown")
-
-    start_year = int(match.group(1))
-    start_month = int(match.group(2))
-    end_year = int(match.group(3))
-    end_month = int(match.group(4))
+    start_year, start_month, end_year, end_month = parse_period_bounds(markdown)
 
     return (
         f"{MONTH_NAMES[start_month]} {start_year} to {MONTH_NAMES[end_month]} {end_year}",
@@ -373,6 +388,8 @@ def render_table(table: list[list[str]]) -> str:
 
 
 def render_alert_table(rows: list[dict[str, str]]) -> str:
+    if not rows:
+        return '<p class="muted">No anomalies flagged this period.</p>'
     header = ["Type", "Date", "Observation", "Likely Cause"]
     thead = "".join(f"<th>{html.escape(cell)}</th>" for cell in header)
     tbody = []
@@ -476,7 +493,8 @@ def build_summary_page(sections: dict[str, str], period_long: str, period_short:
     recommendation_title, recommendation_body = first_recommendation(sections["Recommendations"])
     bill_table = first_table(sections["Bill Impact"])
     health_bullets = battery_health_bullets(sections["Battery Health"])
-    alerts = alert_rows(sections["Alerts"])
+    # `Alerts` is optional: a report with no anomalies omits the whole section.
+    alerts = alert_rows(sections.get("Alerts", ""))
 
     pv_value = profile.get("PV capacity", profile.get("PV Array", "Solar PV"))
     inverter_value = profile.get("Inverter", "")
@@ -701,6 +719,81 @@ def to_mdx(markdown: str) -> str:
     return _MDX_ANGLE_RE.sub(r"\\<", markdown)
 
 
+# The full-report targets carry a hand-maintained YAML frontmatter block (feed
+# card metadata: title, description, eyebrow, dates, ordering). The generated
+# report body is regenerated every run, but the frontmatter must survive — only
+# the derived fields are refreshed: `dateModified` -> the run date, and the
+# `eyebrow` YYYY-MM stamp -> the report's end month. Everything else is kept
+# verbatim (line-edited, never YAML-reflowed, so folded scalars and comments
+# stay intact).
+_FM_DATE_MODIFIED_RE = re.compile(
+    r'(?m)^(?P<pre>\s*dateModified:\s*)(?P<q>["\']?)\d{4}-\d{2}-\d{2}(?P=q)(?P<post>\s*)$'
+)
+_FM_EYEBROW_RE = re.compile(r"(?m)^\s*eyebrow:.*$")
+
+
+def split_frontmatter(text: str) -> tuple[str | None, str]:
+    """Split a leading YAML frontmatter block. Returns (frontmatter, body) where
+    frontmatter is the text between the `---` fences (fences excluded), or
+    (None, text) when the text has no frontmatter."""
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        return None, text
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return "".join(lines[1:i]), "".join(lines[i + 1:]).lstrip("\n")
+    return None, text  # unterminated fence: treat as no frontmatter
+
+
+def report_end_month(markdown: str) -> str:
+    """The report period's end month as `YYYY-MM`, or '' if unparseable."""
+    try:
+        _sy, _sm, end_year, end_month = parse_period_bounds(markdown)
+    except ValueError:
+        return ""
+    return f"{end_year:04d}-{end_month:02d}"
+
+
+def refresh_frontmatter(frontmatter: str, run_date: str, period_end: str) -> str:
+    """Refresh `dateModified` to run_date and the `eyebrow` YYYY-MM stamp to
+    period_end; leave every other line untouched."""
+    frontmatter = _FM_DATE_MODIFIED_RE.sub(
+        lambda m: f'{m.group("pre")}{m.group("q")}{run_date}{m.group("q")}{m.group("post")}',
+        frontmatter,
+    )
+    if period_end:
+        frontmatter = _FM_EYEBROW_RE.sub(
+            lambda m: re.sub(r"\d{4}-\d{2}", period_end, m.group(0)),
+            frontmatter,
+        )
+    return frontmatter
+
+
+def preserved_frontmatter(mdx_path: Path, raw_path: Path, markdown: str) -> str:
+    """Return a `---\\n...\\n---\\n\\n` block to prepend to both full-report
+    targets, or '' when there is no frontmatter to preserve. The block is read
+    from the existing MDX target (the hand-maintained source of truth), falling
+    back to the raw download, then refreshed via refresh_frontmatter()."""
+    frontmatter: str | None = None
+    for path in (mdx_path, raw_path):
+        if path.exists():
+            candidate, _body = split_frontmatter(path.read_text(encoding="utf-8"))
+            if candidate is not None:
+                frontmatter = candidate
+                break
+    if frontmatter is None:
+        print(
+            "warning: no frontmatter block found in src/content/full-report.md; "
+            "add one and re-run to have it preserved and refreshed",
+            file=sys.stderr,
+        )
+        return ""
+    frontmatter = refresh_frontmatter(
+        frontmatter, dt.date.today().isoformat(), report_end_month(markdown)
+    )
+    return "---\n" + frontmatter.strip("\n") + "\n---\n\n"
+
+
 # Matches the per-CSV bullet lines under the "Data Sources" section, e.g.
 #   - `data/solar_hourly_2025-12.csv` — 31 days
 # Captures the bare filename (e.g. `solar_hourly_2025-12.csv`).
@@ -806,11 +899,17 @@ def build_site(source: Path, repo_root: Path) -> list[str]:
     # at /solar-report/full-report.md keeps relative `data/X.csv` paths so the
     # file remains portable when saved alongside its data/ folder.
     copied = copy_data_sources(source, repo_root, referenced_data_files(markdown))
-    write_text(
-        repo_root / "src" / "content" / "full-report.md",
-        to_mdx(linkify_data_sources(markdown)),
-    )
-    write_text(repo_root / "public" / "solar-report" / "full-report.md", markdown)
+
+    mdx_path = repo_root / "src" / "content" / "full-report.md"
+    raw_path = repo_root / "public" / "solar-report" / "full-report.md"
+
+    # The report body is regenerated every run; the hand-maintained frontmatter
+    # block is preserved and its derived fields refreshed. The same block is
+    # written to both targets so the MDX route and the raw download stay in sync.
+    front_block = preserved_frontmatter(mdx_path, raw_path, markdown)
+
+    write_text(mdx_path, front_block + to_mdx(linkify_data_sources(markdown)))
+    write_text(raw_path, front_block + markdown)
     build_og_image(sections, period_long, repo_root)
     return copied
 

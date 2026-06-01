@@ -5,14 +5,14 @@ import { Comments } from "../components/comments";
 import { ShareLinks } from "../components/share";
 
 const title =
-  "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Apr 2026)";
+  "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–May 2026)";
 const description =
-  "Summary of five months of real residential solar performance from a 6.5 kWp / 14.3 kWh / 8 kW system in Cavite, Philippines: bill cut, payback, self-sufficiency, and battery behavior. Links to the full report and raw markdown.";
+  "Summary of six months of real residential solar performance from a 6.5 kWp / 14.3 kWh / 8 kW system in Cavite, Philippines: bill cut, payback, self-sufficiency, and battery behavior. Links to the full report and raw markdown.";
 const url = "https://blog.homestack.space/solar-report/";
 const ogImage = "https://blog.homestack.space/solar-report/og-image.png";
 const author = "Ken Marfilla";
 const datePublished = "2026-05-01";
-const dateModified = "2026-05-01";
+const dateModified = "2026-06-01";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -64,38 +64,39 @@ const systemChips = [
   "14.3 kWh battery",
   "8.0 kW AC inverter",
   "Cavite, Philippines",
-  "₱15/kWh flat · 56% feed-in",
+  "₱15.5/kWh flat · 57% feed-in",
 ] as const;
 
 const headlineMetrics = [
   {
     label: "Annual bill cut",
-    value: "₱115,973",
-    note: "~69% of pre-solar bill",
+    value: "₱125,917",
+    note: "~70% of pre-solar bill",
   },
   {
     label: "Simple payback",
-    value: "~3.5 yrs",
+    value: "~3.2 yrs",
     note: "on ₱400k turnkey",
   },
   {
     label: "Year-1 generation",
-    value: "~7,663 kWh",
-    note: "~21 kWh/day baseline",
+    value: "~8,064 kWh",
+    note: "~22 kWh/day baseline",
   },
   {
     label: "CO₂ avoided",
-    value: "~4.7 t/yr",
-    note: "≈216 trees · 22,600 km",
+    value: "~5.1 t/yr",
+    note: "≈230 trees · 24,000 km",
   },
 ] as const;
 
 const monthlyBills = [
-  { month: "Dec 2025", without: "₱13,974", net: "₱7,589" },
-  { month: "Jan 2026", without: "₱12,459", net: "₱7,564" },
-  { month: "Feb 2026", without: "₱11,531", net: "₱9,160" },
-  { month: "Mar 2026", without: "₱13,222", net: "₱11,166" },
-  { month: "Apr 2026", without: "₱17,565", net: "₱12,181" },
+  { month: "Dec 2025", without: "₱14,440", net: "₱7,842" },
+  { month: "Jan 2026", without: "₱12,874", net: "₱7,818" },
+  { month: "Feb 2026", without: "₱11,916", net: "₱9,476" },
+  { month: "Mar 2026", without: "₱13,663", net: "₱11,553" },
+  { month: "Apr 2026", without: "₱18,151", net: "₱12,590" },
+  { month: "May 2026", without: "₱18,633", net: "₱13,162" },
 ] as const;
 
 export default function SolarReport() {
@@ -104,14 +105,14 @@ export default function SolarReport() {
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Case study · 6.5 kWp · Cavite, PH · Dec 2025 – Apr 2026
+            Case study · 6.5 kWp · Cavite, PH · Dec 2025 – May 2026
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Residential solar performance — five months in
+            Residential solar performance — six months in
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
             Real generation, self-sufficiency, bill impact, and battery
-            behavior from a 6.5 kWp / 14.3 kWh / 8 kW system across 150 days of
+            behavior from a 6.5 kWp / 14.3 kWh / 8 kW system across 181 days of
             hourly data.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -146,15 +147,16 @@ export default function SolarReport() {
           </p>
 
           <p className="mt-8 border-l-2 border-primary/40 pl-4 text-sm leading-relaxed text-muted-foreground">
-            The short version: five months in, the array covers roughly
+            The short version: six months in, the array covers roughly
             two-thirds to three-quarters of the house and is tracking to a
-            ~3.5-year payback. What surprised me wasn't the generation — it
-            was how much the <em>timing</em> of PHEV charging swings the bill
-            (Dec–Mar EV-charging days import ~₱12/day more than non-EV days).
-            If you're sizing a system here, the lever that generalizes from
-            this single-site data is load timing, not panel count. Once it
-            was running I also took it through Meralco net metering — that
-            paperwork is its own story:{" "}
+            ~3.2-year payback. The biggest lever on the bill is the{" "}
+            <em>timing</em> of PHEV charging: charging days pull ~21 kWh from
+            the grid versus ~9 kWh otherwise, because the car currently charges
+            in the late afternoon and evening instead of the midday solar
+            window. If you're sizing a system here, the variable that
+            generalizes from this single-site data is load timing, not panel
+            count. Once it was running I also took it through Meralco net
+            metering — that paperwork is its own story:{" "}
             <Link
               to="/net-metering-general-trias/"
               className="underline underline-offset-4 hover:text-primary"
@@ -192,25 +194,24 @@ export default function SolarReport() {
             What the data shows
           </h2>
           <p className="mt-3">
-            Self-sufficiency climbed from 54% in December to a peak of 76% in
-            March, then dipped to 68% in April when household consumption
-            jumped sharply (avg daily load rose from ~29 to ~39 kWh). The
-            April surge is not vehicle charging — the PHEV was off the road
-            all month — it is the second AC unit running nearly 24/7 during
-            summer break.
+            Self-sufficiency climbed from 54% in December to a peak of 77% in
+            March, then eased to ~70% across April and May as household
+            consumption rose (avg daily load went from ~29 to ~39 kWh). The
+            April–May surge is mostly air-conditioning during summer break —
+            the PHEV was off the road much of April — not vehicle charging.
           </p>
           <p className="mt-3">
             No equipment fault is visible. Peak PV reached 5.4 kW (68% of
             inverter capacity), there is zero clipping, and battery round-trip
             efficiency stays in the healthy 94–98% band. One day worth
-            flagging: 2026-01-02 generated only 4.7 kWh against an expected
-            ~17.8 kWh — confirm against weather/inverter logs.
+            flagging: 2026-01-02 generated only 4.7 kWh — about 74% below
+            baseline, an overcast wet-season day rather than a fault.
           </p>
           <p className="mt-3">
-            For Dec–Mar, the highest-impact lever is shifting PHEV charging
-            earlier into the solar window. For April specifically — and for
-            future summer-break stretches — the highest-impact lever shifts to
-            AC management.{" "}
+            The highest-impact lever is moving PHEV charging into the midday
+            solar window (09:00–14:00): it currently lands in the late
+            afternoon and evening, when it draws straight from the grid and
+            more than doubles daily import.{" "}
             <Link
               to="/solar-report/full-report#recommendations"
               className="underline underline-offset-4 hover:text-primary"
@@ -245,9 +246,10 @@ export default function SolarReport() {
             </table>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            April's "without solar" bill is the highest because household load
-            was ~39 kWh/day. Even so, net savings hit a record ₱12,181 — solar
-            is doing more work in absolute terms when consumption is higher.
+            May's "without solar" bill is the highest because household load
+            stayed near ~39 kWh/day. Even so, net savings hit a record ₱13,162
+            — solar is doing more work in absolute terms when consumption is
+            higher.
           </p>
           <p className="mt-6 text-sm">
             <Link
