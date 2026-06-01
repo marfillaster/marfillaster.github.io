@@ -16,6 +16,12 @@ const favicon =
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
   { rel: "icon", href: favicon },
+  {
+    rel: "alternate",
+    type: "application/rss+xml",
+    title: "marfillaster · notes RSS",
+    href: "/rss.xml",
+  },
 ];
 
 export const meta: MetaFunction = () => [

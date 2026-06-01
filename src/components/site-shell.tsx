@@ -45,6 +45,13 @@ export function SiteShell({ children }: { children: ReactNode }) {
               rel="noopener noreferrer"
             >
               AS197291
+            </a>{" "}
+            ·{" "}
+            <a
+              href="/rss.xml"
+              className="hover:text-foreground hover:underline underline-offset-4"
+            >
+              RSS
             </a>
           </span>
           <a

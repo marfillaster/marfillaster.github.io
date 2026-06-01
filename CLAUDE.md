@@ -14,6 +14,9 @@ Lead with the fact. No "the thing that surprised me" framing; no "Proven, not as
 ## Build & deploy
 `npm run build` (prerenders to `build/client`). Pushing `main` auto-deploys via Cloudflare → https://blog.homestack.space. `local/` is gitignored scratch — never commit it.
 
+## RSS feed
+`public/rss.xml` is generated from YAML frontmatter in `src/content/*.mdx`. The homepage post list comes from the same frontmatter through the `virtual:post-index` Vite module. Whenever blog content is added, renamed, or materially updated, update the matching frontmatter title/description/date fields and run `pnpm rss` before committing. TSX-only summary pages use metadata-only MDX sidecars. `pnpm build` also regenerates the feed.
+
 ## CHR/VyOS variant of a post
 Mirror an existing `*-vyos` / `*-chr` flavor — three pieces:
 1. content `src/content/<flavor>-<base>.mdx`

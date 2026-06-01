@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>marfillaster · notes</title>
+    <link>https://blog.homestack.space/</link>
+    <description>Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs.</description>
+    <language>en</language>
+    <lastBuildDate>Mon, 01 Jun 2026 00:00:00 +0800</lastBuildDate>
+    <atom:link href="https://blog.homestack.space/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Residential 6.5 kWp solar performance — Cavite, Philippines</title>
+      <link>https://blog.homestack.space/solar-report/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/solar-report/</guid>
+      <description>Six months of real generation, self-sufficiency, battery behavior, and bill impact from a 6.5 kWp / 14.3 kWh / 8 kW system, with monthly tariff math and ROI payback.</description>
+      <category>Home &amp; Energy</category>
+      <pubDate>Mon, 01 Jun 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Multi-homing IPv6 over CGNAT on RouterOS</title>
+      <link>https://blog.homestack.space/multi-homed-ipv6-cgnat-mikrotik/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/multi-homed-ipv6-cgnat-mikrotik/</guid>
+      <description>Run the VPS and Route64 paths at the same time under one announceable /48: own ASN, two BGP sessions, BFD on the VPS path, and RouterOS best-path selecting the active default.</description>
+      <category>Infrastructure</category>
+      <pubDate>Wed, 27 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Routed IPv6 over CGNAT via a VPS-routed /48</title>
+      <link>https://blog.homestack.space/vps-ipv6-cgnat-mikrotik/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/vps-ipv6-cgnat-mikrotik/</guid>
+      <description>Equal path A: a $3/mo VPS that routes a /48 to its instance, WireGuard from the RB5009, eBGP between them. Includes Ubuntu/BIRD, VyOS, and CHR relay variants.</description>
+      <category>Infrastructure</category>
+      <pubDate>Thu, 21 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Per-VLAN IPv6 on RouterOS</title>
+      <link>https://blog.homestack.space/mikrotik-per-vlan-ipv6/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/mikrotik-per-vlan-ipv6/</guid>
+      <description>Plumb the routable IPv6 you just stood up through to every VLAN: GUA + ULA + RA RDNSS per VLAN, IPv6 forward-chain isolation, and SLAAC anti-spoof. Path-agnostic — three per-VLAN /64 placeholders fold the /48-vs-/56 difference into one substitution table.</description>
+      <category>Infrastructure</category>
+      <pubDate>Thu, 21 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Fast IPv6 failover on RouterOS</title>
+      <link>https://blog.homestack.space/mikrotik-ipv6-failover-bgp-bfd/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/mikrotik-ipv6-failover-bgp-bfd/</guid>
+      <description>Add BFD to the existing BGP session over WireGuard — fast default-route withdrawal with Ubuntu/BIRD, VyOS, or CHR relay variants. VPS path only.</description>
+      <category>Infrastructure</category>
+      <pubDate>Thu, 21 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>A small home network behind CGNAT</title>
+      <link>https://blog.homestack.space/mikrotik-home-network/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/mikrotik-home-network/</guid>
+      <description>Series index: overview, topology, address plan, the VPS-vs-Route64 path-choice matrix, and the ULA-only-trusted-VLAN update that keeps streaming off the routable-IPv6 path. Start here.</description>
+      <category>Infrastructure</category>
+      <pubDate>Thu, 21 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Replacing a Converge ONT with a GPON SFP stick on the RB5009</title>
+      <link>https://blog.homestack.space/converge-gpon-sfp-stick-mikrotik/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/converge-gpon-sfp-stick-mikrotik/</guid>
+      <description>Skyworth GN630V to ODI DFP-34X-2C2 in a MikroTik RB5009: the SC/APC to SC/UPC connector gotcha, VLAN 10 DHCP handoff, and the minimum stick config that worked. Standalone — not part of the series above.</description>
+      <category>Infrastructure</category>
+      <pubDate>Tue, 19 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Trusted, IoT, and Guest VLANs on RouterOS</title>
+      <link>https://blog.homestack.space/mikrotik-vlan-guest-iot/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/mikrotik-vlan-guest-iot/</guid>
+      <description>Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. The foundation the rest of the series sits on.</description>
+      <category>Infrastructure</category>
+      <pubDate>Sun, 17 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Encrypted DNS with a stable resolver address on RouterOS</title>
+      <link>https://blog.homestack.space/encrypted-dns-stable-resolver-mikrotik/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/encrypted-dns-stable-resolver-mikrotik/</guid>
+      <description>Resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA over RA RDNSS. No VLANs, no IPv6 uplink; works on a flat IPv4-only LAN.</description>
+      <category>Infrastructure</category>
+      <pubDate>Sun, 17 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Routed IPv6 over CGNAT via Route64</title>
+      <link>https://blog.homestack.space/route64-ipv6-cgnat-mikrotik/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/route64-ipv6-cgnat-mikrotik/</guid>
+      <description>Equal path B: Route64's free WireGuard /56 — a native global /64 per VLAN, nothing to operate, fast fail-to-IPv4 on outage. Single broker-managed uplink by design.</description>
+      <category>Infrastructure</category>
+      <pubDate>Sun, 17 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Running the UniFi controller on the RB5009</title>
+      <link>https://blog.homestack.space/unifi-controller-routeros-containers-mikrotik/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/unifi-controller-routeros-containers-mikrotik/</guid>
+      <description>Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap, the ARMv8.0-A Mongo 4.4.18 pin, veths, memory caps, verification.</description>
+      <category>Infrastructure</category>
+      <pubDate>Sun, 17 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Net Metering Journey in General Trias</title>
+      <link>https://blog.homestack.space/net-metering-general-trias/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/net-metering-general-trias/</guid>
+      <description>A realistic, step-by-step account of getting a 6 kWp rooftop array approved for net metering with Meralco in Cavite — the PEE-sealed A3 SLD, the forms, the venues, the fees, and a ~50-day timeline.</description>
+      <category>Home &amp; Energy</category>
+      <pubDate>Sat, 16 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>BYD Sealion 6 PHEV running cost — Cavite, Philippines</title>
+      <link>https://blog.homestack.space/nev-mileage/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/nev-mileage/</guid>
+      <description>5,123 km of odometer- and meter-tracked driving: electric-vs-fuel running cost, 63% EV usage split, combined 6.0 L/100km efficiency, and battery health.</description>
+      <category>Home &amp; Energy</category>
+      <pubDate>Fri, 15 May 2026 00:00:00 +0800</pubDate>
+    </item>
+    <item>
+      <title>Solar Panel Installation Application Guide for Lancaster New City</title>
+      <link>https://blog.homestack.space/solar-application-lancaster/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/solar-application-lancaster/</guid>
+      <description>The exact CIDC documents to prepare before installing solar panels on your Lancaster New City unit — with a copy-ready Letter of Intent template, where to submit, and how to get your gate pass on the same visit.</description>
+      <category>Home &amp; Energy</category>
+      <pubDate>Mon, 01 Dec 2025 00:00:00 +0800</pubDate>
+    </item>
+  </channel>
+</rss>

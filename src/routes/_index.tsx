@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import type { MetaFunction } from "react-router";
 import { SiteShell } from "../components/site-shell";
+import postIndex from "virtual:post-index";
 
 const title = "Home-lab build logs — MikroTik, solar, EV · marfillaster";
 const siteName = "marfillaster · notes";
@@ -22,119 +23,8 @@ export const meta: MetaFunction = () => [
   { tagName: "link", rel: "canonical", href: url },
 ];
 
-// Grouped by theme; newest-first within each section.
-const sections = [
-  {
-    name: "Infrastructure",
-    blurb:
-      "A nine-part series building one MikroTik RB5009 from a flat LAN into a segmented, IPv6-capable, self-hosted home network behind residential CGNAT. Start at the index, or jump to a layer — each post stands alone. Steps 4 and 5 are two equal paths to routable IPv6; step 9 is the clean-slate multi-homed finale.",
-    posts: [
-      {
-        href: "/mikrotik-home-network/",
-        eyebrow: "Series 1/9 · Series index · 2026-05",
-        title: "A small home network behind CGNAT",
-        description:
-          "Series index: overview, topology, address plan, the VPS-vs-Route64 path-choice matrix, and the ULA-only-trusted-VLAN update that keeps streaming off the routable-IPv6 path. Start here.",
-      },
-      {
-        href: "/mikrotik-vlan-guest-iot/",
-        eyebrow: "Series 2/9 · Build log · 2026-05",
-        title: "Trusted, IoT, and Guest VLANs on RouterOS",
-        description:
-          "Split a flat home LAN into trusted, IoT, and Guest VLANs with two UniFi APs on hybrid trunks, plus a reviewable east-west firewall. Pure IPv4 plus 802.1Q; no IPv6, no VPS. The foundation the rest of the series sits on.",
-      },
-      {
-        href: "/encrypted-dns-stable-resolver-mikrotik/",
-        eyebrow: "Series 3/9 · Build log · 2026-05",
-        title: "Encrypted DNS with a stable resolver address on RouterOS",
-        description:
-          "Resolve upstream over Cloudflare DoH and hand clients a resolver address that never changes — a locally assigned ULA over RA RDNSS. No VLANs, no IPv6 uplink; works on a flat IPv4-only LAN.",
-      },
-      {
-        href: "/vps-ipv6-cgnat-mikrotik/",
-        eyebrow: "Series 4/9 · Build log · 2026-05",
-        title: "Routed IPv6 over CGNAT via a VPS-routed /48",
-        description:
-          "Equal path A: a $3/mo VPS that routes a /48 to its instance, WireGuard from the RB5009, eBGP between them. Includes Ubuntu/BIRD, VyOS, and CHR relay variants.",
-      },
-      {
-        href: "/route64-ipv6-cgnat-mikrotik/",
-        eyebrow: "Series 5/9 · Build log · 2026-05",
-        title: "Routed IPv6 over CGNAT via Route64",
-        description:
-          "Equal path B: Route64's free WireGuard /56 — a native global /64 per VLAN, nothing to operate, fast fail-to-IPv4 on outage. Single broker-managed uplink by design.",
-      },
-      {
-        href: "/mikrotik-per-vlan-ipv6/",
-        eyebrow: "Series 6/9 · Build log · 2026-05",
-        title: "Per-VLAN IPv6 on RouterOS",
-        description:
-          "Plumb the routable IPv6 you just stood up through to every VLAN: GUA + ULA + RA RDNSS per VLAN, IPv6 forward-chain isolation, and SLAAC anti-spoof. Path-agnostic — three per-VLAN /64 placeholders fold the /48-vs-/56 difference into one substitution table.",
-      },
-      {
-        href: "/mikrotik-ipv6-failover-bgp-bfd/",
-        eyebrow: "Series 7/9 · Build log · 2026-05",
-        title: "Fast IPv6 failover on RouterOS",
-        description:
-          "Add BFD to the existing BGP session over WireGuard — fast default-route withdrawal with Ubuntu/BIRD, VyOS, or CHR relay variants. VPS path only.",
-      },
-      {
-        href: "/unifi-controller-routeros-containers-mikrotik/",
-        eyebrow: "Series 8/9 · Build log · 2026-05",
-        title: "Running the UniFi controller on the RB5009",
-        description:
-          "Run the UniFi Network Application and its MongoDB on a MikroTik RB5009 as RouterOS containers — no second always-on box. USB swap, the ARMv8.0-A Mongo 4.4.18 pin, veths, memory caps, verification.",
-      },
-      {
-        href: "/multi-homed-ipv6-cgnat-mikrotik/",
-        eyebrow: "Series 9/9 · Series finale · 2026-05",
-        title: "Multi-homing IPv6 over CGNAT on RouterOS",
-        description:
-          "Run the VPS and Route64 paths at the same time under one announceable /48: own ASN, two BGP sessions, BFD on the VPS path, and RouterOS best-path selecting the active default.",
-      },
-      {
-        href: "/converge-gpon-sfp-stick-mikrotik/",
-        eyebrow: "Build log · 2026-05",
-        title: "Replacing a Converge ONT with a GPON SFP stick on the RB5009",
-        description:
-          "Skyworth GN630V to ODI DFP-34X-2C2 in a MikroTik RB5009: the SC/APC to SC/UPC connector gotcha, VLAN 10 DHCP handoff, and the minimum stick config that worked. Standalone — not part of the series above.",
-      },
-    ],
-  },
-  {
-    name: "Home & Energy",
-    posts: [
-      {
-        href: "/net-metering-general-trias/",
-        eyebrow: "Field log · 2026-05",
-        title: "Net Metering Journey in General Trias",
-        description:
-          "A realistic, step-by-step account of getting a 6 kWp rooftop array approved for net metering with Meralco in Cavite — the PEE-sealed A3 SLD, the forms, the venues, the fees, and a ~50-day timeline.",
-      },
-      {
-        href: "/nev-mileage/",
-        eyebrow: "Case study · 2026-05",
-        title: "BYD Sealion 6 PHEV running cost — Cavite, Philippines",
-        description:
-          "5,123 km of odometer- and meter-tracked driving: electric-vs-fuel running cost, 63% EV usage split, combined 6.0 L/100km efficiency, and battery health.",
-      },
-      {
-        href: "/solar-report/",
-        eyebrow: "Case study · 2026-04",
-        title: "Residential 6.5 kWp solar performance — Cavite, Philippines",
-        description:
-          "Five months of real generation, self-sufficiency, battery behavior, and bill impact from a 6.5 kWp / 14.3 kWh / 8 kW system, with monthly tariff math and ROI payback.",
-      },
-      {
-        href: "/solar-application-lancaster/",
-        eyebrow: "Guide · 2025-12",
-        title: "Solar Panel Installation Application Guide for Lancaster New City",
-        description:
-          "The exact CIDC documents to prepare before installing solar panels on your Lancaster New City unit — with a copy-ready Letter of Intent template, where to submit, and how to get your gate pass on the same visit.",
-      },
-    ],
-  },
-] as const;
+// Grouped by theme; display order comes from post frontmatter.
+const sections = postIndex.sections;
 
 export default function Index() {
   return (
