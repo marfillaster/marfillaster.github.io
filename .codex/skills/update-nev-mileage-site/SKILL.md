@@ -36,7 +36,9 @@ Use $update-nev-mileage-site to publish the latest ~/phev-tracker/report.md to /
 
 1. Confirm the source paths (defaults shown):
    - Report: `~/phev-tracker/report.md` (written by the `phev-tracker` skill)
-   - Data: `~/.local/share/phev-tracker/phev_log.csv`
+   - Data: `$PHEV_TRACKER_DATA_DIR/phev_log.csv` when that env var is set (the
+     `phev-tracker` skill's data-dir override), else
+     `~/.local/share/phev-tracker/phev_log.csv`. `--data` overrides both.
 
 2. Run the transform from the blog repo root:
 
@@ -75,7 +77,7 @@ pnpm build
 - Treat `.codex/skills/update-nev-mileage-site/scripts/update_nev_site.py` as the source of truth for the repo/site markdown. Do not hand-edit `src/content/nev-full-report.md`, `public/nev-mileage/full-report.md`, `public/nev-mileage/og-image.png`, or `public/nev-mileage/data/phev_log.csv` to change report content — fix the upstream report and re-run.
 - Redact the public location to `Cavite, Philippines` in any hand-written copy.
 - If required report sections are missing, the script aborts and names the missing headings instead of improvising. Regenerate the report via the `phev-tracker` skill and re-run.
-- The data CSV is copied from `--data` (default `~/.local/share/phev-tracker/phev_log.csv`). A missing file is warned about but does not abort the build; publish the file or fix the path, then re-run.
+- The data CSV is copied from `--data` (default `$PHEV_TRACKER_DATA_DIR/phev_log.csv` when that env var is set, else `~/.local/share/phev-tracker/phev_log.csv`). A missing file is warned about but does not abort the build; publish the file or fix the path, then re-run.
 
 ## Extraction Contract
 
@@ -93,6 +95,17 @@ The first non-empty line must be the bold header line (e.g.
 vehicle and fill-up count parse. A `## Data Sources` section is appended
 automatically if absent. This format is owned by the `phev-tracker` skill's
 extended-report write step; this skill only consumes it.
+
+The transform first runs `normalize_report()`, which bridges the `phev-tracker`
+skill's *native* extended-report format into the consumed one so either input
+publishes identically:
+
+- `## Core Analysis` is aliased to `## AI Analysis`.
+- A leading `# PHEV Analysis — DATE` title line is dropped so the bold header
+  becomes the first non-empty line.
+
+Normalization is idempotent on the already-consumed format, so a report already
+in the consumed shape passes through unchanged.
 
 ## Outputs
 

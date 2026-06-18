@@ -3,7 +3,8 @@
 
 Source of truth: ~/phev-tracker/report.md (the extended AI-analysis report
 emitted by the phev-tracker skill). The refuel log CSV that backs the report
-lives at ~/.local/share/phev-tracker/phev_log.csv.
+lives at $PHEV_TRACKER_DATA_DIR/phev_log.csv when that env var is set (the
+phev-tracker skill's data-dir override), else ~/.local/share/phev-tracker/phev_log.csv.
 
 This script only regenerates the markdown inputs + OG image + copied data file
 under /nev-mileage. The summary route (src/routes/nev-mileage.tsx) is
@@ -15,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import re
 import sys
 from pathlib import Path
@@ -22,8 +24,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generate_og_image import render as render_og_image  # noqa: E402
 
+
+def default_data_path() -> Path:
+    """Resolve phev_log.csv from $PHEV_TRACKER_DATA_DIR if set (the phev-tracker
+    skill's data-dir override), else the skill's default share location."""
+    env_dir = os.environ.get("PHEV_TRACKER_DATA_DIR")
+    if env_dir:
+        return Path(env_dir) / "phev_log.csv"
+    return Path.home() / ".local" / "share" / "phev-tracker" / "phev_log.csv"
+
+
 DEFAULT_SOURCE = Path.home() / "phev-tracker" / "report.md"
-DEFAULT_DATA = Path.home() / ".local" / "share" / "phev-tracker" / "phev_log.csv"
+DEFAULT_DATA = default_data_path()
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
 # Output targets in the React Router site layout:
@@ -66,6 +78,30 @@ _MDX_ANGLE_RE = re.compile(r"<(?=[^a-zA-Z/!])")
 
 def to_mdx(markdown: str) -> str:
     return _MDX_ANGLE_RE.sub(r"\\<", markdown)
+
+
+# The phev-tracker skill's extended report can render its analysis section as
+# `## Core Analysis` and lead with a `# PHEV Analysis — DATE` title line. The
+# format consumed here leads with the bold vehicle header and names that
+# section `## AI Analysis`. Normalize both so either input publishes
+# identically. Idempotent on the already-consumed format.
+_TITLE_RE = re.compile(r"^#{1,6}\s*PHEV Analysis\b", re.IGNORECASE)
+
+
+def normalize_report(markdown: str) -> str:
+    markdown = re.sub(r"(?m)^##\s+Core Analysis\s*$", "## AI Analysis", markdown)
+    lines = markdown.splitlines()
+    # Drop a leading "PHEV Analysis — DATE" title so the bold vehicle header is
+    # the first non-empty line (parse_header reads that line for the vehicle).
+    for i, line in enumerate(lines):
+        if line.strip() == "":
+            continue
+        if _TITLE_RE.match(line.strip()):
+            del lines[i]
+            if i < len(lines) and lines[i].strip() == "":
+                del lines[i]
+        break
+    return "\n".join(lines).strip() + "\n"
 
 
 def split_sections(markdown: str) -> dict[str, str]:
@@ -218,7 +254,7 @@ def build_og_image(
 
 
 def build_site(source: Path, data_csv: Path, repo_root: Path) -> bool:
-    markdown = source.read_text(encoding="utf-8")
+    markdown = normalize_report(source.read_text(encoding="utf-8"))
     sections = split_sections(markdown)
     ensure_sections(sections)
 
