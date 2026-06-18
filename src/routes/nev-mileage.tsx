@@ -6,14 +6,14 @@ import { ShareLinks } from "../components/share";
 import { ogVersion } from "../content/nev-og-version";
 
 const title =
-  "BYD Sealion 6 PHEV mileage & running-cost report — Cavite, Philippines (Dec 2025–Mar 2026)";
+  "BYD Sealion 6 PHEV mileage & running-cost report — Cavite, Philippines (Dec 2025–Jun 2026)";
 const description =
-  "Real-world EV/PHEV efficiency, electric-vs-fuel running cost, usage split, and battery health from a BYD Sealion 6 tracked over 5,123 km in Cavite, Philippines. Links to the full report and raw markdown.";
+  "Real-world EV/PHEV efficiency, electric-vs-fuel running cost, usage split, and battery health from a BYD Sealion 6 tracked over 7,234 km in Cavite, Philippines. Links to the full report and raw markdown.";
 const url = "https://blog.homestack.space/nev-mileage/";
 const ogImage = `https://blog.homestack.space/nev-mileage/og-image.png?v=${ogVersion}`;
 const author = "Ken Marfilla";
 const datePublished = "2026-05-15";
-const dateModified = "2026-05-15";
+const dateModified = "2026-06-19";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -63,55 +63,55 @@ export const meta: MetaFunction = () => [
 const vehicleChips = [
   "BYD Sealion 6",
   "Plug-in hybrid",
-  "5,123 km tracked",
-  "63% EV usage",
+  "7,234 km tracked",
+  "66% EV usage",
   "Cavite, Philippines",
 ] as const;
 
 const headlineMetrics = [
   {
     label: "Combined efficiency",
-    value: "6.0 L/100km",
+    value: "5.8 L/100km",
     note: "beats the 8–10 L/100km class benchmark",
   },
   {
     label: "EV running cost",
-    value: "₱2.51/km",
-    note: "vs ₱4.81/km on fuel — 48% cheaper",
+    value: "₱2.58/km",
+    note: "vs ₱5.27/km on fuel — 51% cheaper",
   },
   {
     label: "Saved vs ICE",
-    value: "₱10,900",
-    note: "≈355 kg CO₂ avoided so far",
+    value: "₱14,600",
+    note: "≈540 kg CO₂ avoided so far",
   },
   {
     label: "Battery health",
     value: "99% SOH",
-    note: "after ~31 charge cycles",
+    note: "after ~46 charge cycles",
   },
 ] as const;
 
 const cumulative = [
   {
     mode: "HEV (fuel)",
-    distance: "1,919 km",
-    energy: "165.52 L",
-    efficiency: "8.6 L/100km",
-    costPerKm: "₱4.81",
+    distance: "2,428 km",
+    energy: "211.11 L",
+    efficiency: "8.7 L/100km",
+    costPerKm: "₱5.27",
   },
   {
     mode: "EV (electric)",
-    distance: "3,204 km",
-    energy: "562.0 kWh",
+    distance: "4,806 km",
+    energy: "843.7 kWh",
     efficiency: "5.7 km/kWh",
-    costPerKm: "₱2.51",
+    costPerKm: "₱2.58",
   },
   {
     mode: "Combined",
-    distance: "5,123 km",
+    distance: "7,234 km",
     energy: "—",
-    efficiency: "6.0 L/100km*",
-    costPerKm: "₱3.37",
+    efficiency: "5.8 L/100km*",
+    costPerKm: "₱3.48",
   },
 ] as const;
 
@@ -121,15 +121,15 @@ export default function NevMileage() {
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Case study · BYD Sealion 6 · Cavite, PH · Dec 2025 – Mar 2026
+            Case study · BYD Sealion 6 · Cavite, PH · Dec 2025 – Jun 2026
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            PHEV running cost — the first three months of tracked driving
+            PHEV running cost — the first six months of tracked driving
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
             Owned since September 2024; consistent refuel-by-refuel tracking
-            started in December 2025. This covers the 5,123 km logged so far
-            (Dec 2025 – Mar 2026) — a slice of the ~27,500 km lifetime
+            started in December 2025. This covers the 7,234 km logged so far
+            (Dec 2025 – Jun 2026) — a slice of the ~29,700 km lifetime
             odometer — with odometer- and meter-tracked efficiency,
             electric-vs-fuel running cost, usage split, and battery health for
             a BYD Sealion 6.
@@ -166,13 +166,13 @@ export default function NevMileage() {
           </p>
 
           <p className="mt-8 border-l-2 border-primary/40 pl-4 text-sm leading-relaxed text-muted-foreground">
-            The short version: 63% of the driving was electric, the combined
-            figure landed at 6.0 L/100km, and electric kilometers cost about
-            half what fuel kilometers do (₱2.51 vs ₱4.81/km). What surprised
-            me was how little the headline efficiency means on its own — the
-            real variable is the EV/HEV split, which is a function of charging
-            access and discipline, not the car. Your numbers will move with
-            where you can plug in, not your right foot. The home charging
+            The short version: 66% of the driving was electric, the combined
+            figure landed at 5.8 L/100km, and electric kilometers cost about
+            half what fuel kilometers do (₱2.58 vs ₱5.27/km). The headline
+            efficiency means little on its own — the real variable is the
+            EV/HEV split, which is a function of charging access and
+            discipline, not the car. Your numbers will move with where you can
+            plug in, not your right foot. The home charging
             behind this is solar-fed; that side is written up separately:{" "}
             <Link
               to="/solar-report/"
@@ -209,21 +209,21 @@ export default function NevMileage() {
           </h2>
           <p className="mt-3">
             The split between electric and fuel driving has been consistent
-            at roughly 63% EV cumulatively, rising to 72% in the most recent
-            tank. EV kilometers cost ₱2.51 each against ₱4.81 on fuel, so
-            every kilometer shifted onto electric saves about ₱2.30 at the
-            current tariff and ~₱55.75/L pump price.
+            at roughly 66% EV cumulatively, rising to 76% in the most recent
+            tank. EV kilometers cost ₱2.58 each against ₱5.27 on fuel, so
+            every kilometer shifted onto electric saves about ₱2.70 at the
+            current tariff and ~₱60.55/L pump price.
           </p>
           <p className="mt-3">
-            Combined consumption of 6.0 L/100km comfortably beats the 8–10
+            Combined consumption of 5.8 L/100km comfortably beats the 8–10
             L/100km benchmark for mid-size SUV PHEVs and undercuts a
-            comparable ICE SUV by roughly 38–45% on running cost. Fuel
-            efficiency holds steady at 8.3–8.6 L/100km and EV efficiency at
+            comparable ICE SUV by roughly 37–42% on running cost. Fuel
+            efficiency holds steady at 8.3–9.0 L/100km and EV efficiency at
             5.4–5.7 km/kWh — no anomalies in the tracked sessions.
           </p>
           <p className="mt-3">
-            Battery state of health is 99% after ~31 charge cycles, and the
-            next scheduled service lands at 40,000 km, roughly Q3–Q4 2026.{" "}
+            Battery state of health is 99% after ~46 charge cycles, and the
+            next scheduled service lands at 40,000 km — about 10,300 km away.{" "}
             <Link
               to="/nev-mileage/full-report#recommendations"
               className="underline underline-offset-4 hover:text-primary"
@@ -263,7 +263,7 @@ export default function NevMileage() {
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
             *Combined efficiency converts EV cost into equivalent fuel liters.
-            Total spend so far is ₱17,277 over 5,123 km.
+            Total spend so far is ₱25,200 over 7,234 km.
           </p>
           <p className="mt-6 text-sm">
             <Link
