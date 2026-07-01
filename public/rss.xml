@@ -5,8 +5,16 @@
     <link>https://blog.homestack.space/</link>
     <description>Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs.</description>
     <language>en</language>
-    <lastBuildDate>Fri, 19 Jun 2026 00:00:00 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 01 Jul 2026 00:00:00 +0800</lastBuildDate>
     <atom:link href="https://blog.homestack.space/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Residential 6.5 kWp solar performance — Cavite, Philippines</title>
+      <link>https://blog.homestack.space/solar-report/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/solar-report/</guid>
+      <description>Seven months of real generation, self-sufficiency, battery behavior, and bill impact from a 6.5 kWp / 14.3 kWh / 8 kW system, with monthly tariff math and ROI payback.</description>
+      <category>Home &amp; Energy</category>
+      <pubDate>Wed, 01 Jul 2026 00:00:00 +0800</pubDate>
+    </item>
     <item>
       <title>BYD Sealion 6 PHEV running cost — Cavite, Philippines</title>
       <link>https://blog.homestack.space/nev-mileage/</link>
@@ -14,14 +22,6 @@
       <description>7,234 km of odometer- and meter-tracked driving: electric-vs-fuel running cost, 66% EV usage split, combined 5.8 L/100km efficiency, and battery health.</description>
       <category>Home &amp; Energy</category>
       <pubDate>Fri, 19 Jun 2026 00:00:00 +0800</pubDate>
-    </item>
-    <item>
-      <title>Residential 6.5 kWp solar performance — Cavite, Philippines</title>
-      <link>https://blog.homestack.space/solar-report/</link>
-      <guid isPermaLink="true">https://blog.homestack.space/solar-report/</guid>
-      <description>Six months of real generation, self-sufficiency, battery behavior, and bill impact from a 6.5 kWp / 14.3 kWh / 8 kW system, with monthly tariff math and ROI payback.</description>
-      <category>Home &amp; Energy</category>
-      <pubDate>Mon, 01 Jun 2026 00:00:00 +0800</pubDate>
     </item>
     <item>
       <title>Multi-homing IPv6 over CGNAT on RouterOS</title>
