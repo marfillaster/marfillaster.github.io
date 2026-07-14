@@ -3,10 +3,10 @@ import type { MetaFunction } from "react-router";
 import { SiteShell } from "../components/site-shell";
 import postIndex from "virtual:post-index";
 
-const title = "Home-lab build logs — MikroTik, solar, EV · marfillaster";
+const title = "Home-lab build logs — MikroTik, solar, EV, home finance · marfillaster";
 const siteName = "marfillaster · notes";
 const description =
-  "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs — long-running experiments.";
+  "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, plug-in EV running costs, and home-finance field logs — long-running experiments.";
 const url = "https://blog.homestack.space/";
 
 export const meta: MetaFunction = () => [
@@ -34,8 +34,8 @@ export default function Index() {
           marfillaster · notes
         </p>
         <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          MikroTik RB5009, residential solar, and plug-in EV — home-lab build
-          logs.
+          MikroTik RB5009, residential solar, plug-in EV, and home finance —
+          build logs and field notes.
         </h1>
         <div className="mt-12 space-y-16">
           {sections.map((section) => {
