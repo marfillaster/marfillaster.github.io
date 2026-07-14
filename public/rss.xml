@@ -5,8 +5,16 @@
     <link>https://blog.homestack.space/</link>
     <description>Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs.</description>
     <language>en</language>
-    <lastBuildDate>Wed, 01 Jul 2026 00:00:00 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 14 Jul 2026 00:00:00 +0800</lastBuildDate>
     <atom:link href="https://blog.homestack.space/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>167 Days: A Chronicle of Refinancing a BDO Housing Loan to Pag-IBIG</title>
+      <link>https://blog.homestack.space/bdo-to-pagibig-refinancing/</link>
+      <guid isPermaLink="true">https://blog.homestack.space/bdo-to-pagibig-refinancing/</guid>
+      <description>A day-by-day account of moving a housing loan from BDO at 8.5% to Pag-IBIG at 4.5% — every document set, fee, venue, and hump across 167 days, with full amortization schedules and the loan-sizing mistake that ended in a ₱68,045.65 scramble.</description>
+      <category>Home &amp; Money</category>
+      <pubDate>Tue, 14 Jul 2026 00:00:00 +0800</pubDate>
+    </item>
     <item>
       <title>Residential 6.5 kWp solar performance — Cavite, Philippines</title>
       <link>https://blog.homestack.space/solar-report/</link>
