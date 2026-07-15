@@ -1,4 +1,4 @@
-**BYD Sealion 6** · *5 fill-ups tracked* · Dec 2025 – Jun 2026
+**BYD Sealion 6** · *7 fill-ups tracked* · Dec 2025 – Jul 2026
 
 > **Disclaimer:** Efficiency figures, cost calculations, and usage splits are derived from odometer and meter readings you provide. Accuracy depends on the accuracy of those inputs. Values are for personal tracking purposes and should not be used for warranty claims, tax filings, or official reporting without independent verification.
 >
@@ -8,76 +8,66 @@
 
 | | Distance | Fuel/Energy | Efficiency | Cost | Cost/km |
 |---|---:|---:|---:|---:|---:|
-| HEV | 509 km | 45.59 L | 9.0 L/100km | ₱3,556.33 | ₱6.99 |
-| EV | 1,602 km | 281.7 kWh | 5.7 km/kWh | ₱4,366.35 | ₱2.73 |
-| **Combined** | 2,111 km | — | 4.8 L/100km* | ₱7,922.68 | ₱3.75 |
+| HEV | 444 km | 41.97 L | 9.45 L/100km | ₱3,000.93 | ₱6.76 |
+| EV | 273 km | 17.00 kWh | 16.06 km/kWh | ₱273.70 | ₱1.00 |
+| **Combined** | 717 km | — | 6.39 L/100km* | ₱3,274.63 | ₱4.57 |
+
+**Usage:** 61.9% F / 38.1% EV (last) · 35.3% F / 64.7% EV (cumulative)
+
+*\* Combined efficiency: EV cost converted to equivalent fuel liters*
 
 ## Cumulative
 
 | | Distance | Fuel/Energy | Efficiency | Cost | Cost/km |
 |---|---:|---:|---:|---:|---:|
-| HEV | 2,428 km | 211.11 L | 8.7 L/100km | ₱12,783.79 | ₱5.27 |
-| EV | 4,806 km | 843.7 kWh | 5.7 km/kWh | ₱12,416.09 | ₱2.58 |
-| **Combined** | 7,234 km | — | 5.8 L/100km* | ₱25,199.88 | ₱3.48 |
-
-**Usage:** 24% F / 76% EV (last) · 34% F / 66% EV (cumulative)
+| HEV | 3,057 km | 270.38 L | 8.84 L/100km | ₱17,004.37 | ₱5.56 |
+| EV | 5,614 km | 991.70 kWh | 5.66 km/kWh | ₱14,798.89 | ₱2.64 |
+| **Combined** | 8,671 km | — | 5.83 L/100km* | ₱31,803.26 | ₱3.67 |
 
 *\* Combined efficiency: EV cost converted to equivalent fuel liters*
 
----
-
 ## Executive Summary
 
-**7,234 km tracked · ₱25,200 spent · 66% EV usage**
-
-Saving ~₱14,600 vs an equivalent ICE SUV · ~540 kg CO₂ avoided. EV share is climbing — 76% of the last interval vs 66% cumulative — pulling the blended figure down to 4.8 L/100km. Battery healthy at 99% SOH (~46 charge cycles). Next PMS milestone is 40,000 km — ~10,300 km away.
+- **8,671 km tracked · ₱31,803 spent · 64.7% EV** over the Dec 2025 – Jul 2026 window.
+- Saving an estimated **₱15,887 vs a comparable ICE SUV** over the tracked window, and roughly **1,665 kg CO2 avoided**. Extrapolated across the full 31,092 km lifetime odometer, that's roughly **₱56,968** — a rough estimate, since ~22,421 km of pre-tracking driving has no logged fuel/EV split (see Inferred Insights).
+- Fuel efficiency has stayed stable rather than trending up or down; EV share has climbed overall but dropped sharply in the most recent fill-up (a road trip shifted more distance to highway HEV driving); pump prices spiked in Jun–Jul 2026 from the Strait of Hormuz supply crisis; battery is healthy at 99% SOH (last checked Mar 2026); next PMS milestone is a few months out.
 
 ## AI Analysis
-
-### 1. Efficiency Trends
-- Combined consumption improved last interval: 4.8 L/100km vs 5.8 cumulative, driven by a higher 76% EV share.
-- EV side rock-steady at 5.7 km/kWh both last and cumulative — no drift as the odometer climbs to 29,655 km.
-- Fuel side ran slightly richer last interval (9.0 vs 8.7 L/100km cumulative), but on a small 509 km HEV sample it is within noise.
-- Trend is favorable: more electric driving keeps lowering the blended figure over time.
-
-### 2. Cost Optimization
-- EV is roughly half the cost per km: ₱2.58/km cumulative vs ₱5.27/km on fuel.
-- Both energy prices rose last interval — tariff stepped up to ₱15.5/kWh (from ₱14.5) and pump price to ~₱78/L (vs the ~₱60.55/L lifetime average), lifting EV cost/km to ₱2.73 and fuel cost/km to ₱6.99.
-- The widening fuel-vs-EV gap reinforces charging over refuelling wherever range allows; off-peak charging would compound the saving.
-
-### 3. Usage Patterns
-- EV share is trending up: 66% cumulative → 76% last interval. The electric majority is now structural, not occasional.
-- Of 7,234 km tracked, 4,806 km (66%) were electric — most daily driving is covered before the engine starts.
-
-### 4. Anomalies
-- The last interval (2026-03-08 → 2026-06-17) spans 101 days and 2,111 km — far longer than the earlier ~13–30 day, ~500–1,200 km intervals. It dominates recent averages.
-- Both fuel and electricity prices stepped up this interval; worth watching whether the tariff increase holds.
-
-### 5. Performance Comparison
-- Mid-size SUV PHEV benchmark: ~8.3–10 L/100km fuel, 5.5–6.5 km/kWh EV, ₱3–4/km combined. Your 5.7 km/kWh EV and ₱3.48/km combined sit comfortably inside the band.
-- Versus a pure ICE mid-size SUV (₱5–7/km), the PHEV is running well under half the running cost on the electric majority of trips — the source of the ~₱14,600 lifetime saving.
-
-### 6. Recommendations
-- Keep the EV share high; it is the single biggest lever on both cost and CO₂.
-- With energy prices rising, prioritise charging and off-peak tariffs over refuelling.
-- SOH was last measured 2026-03-07. Re-check by ~September 2026 (6-month cadence) to confirm the 99% reading holds.
-- Book the 40,000 km / annual PMS ahead of the milestone (~10,300 km away); acquired 2024-09, so the time-based service is also due.
+1. **Efficiency trends** — Session fuel efficiency has held in a narrow band across all 7 fill-ups (10.6–12.3 km/L, or 8.1–9.5 L/100km), with the two most recent sessions (Jul 2026) at the less-efficient end. No clear improving or declining trend — efficiency looks stable rather than degrading with mileage.
+2. **Cost optimization** — EV cost/km (₱2.64 cumulative) is roughly half fuel cost/km (₱5.56), so shifting a km from HEV to EV mode saves close to ₱2.90 at current tariffs and fuel prices. EV mode already carries 65% of cumulative distance; more EV share on short/urban trips is the biggest remaining lever.
+3. **Usage patterns** — EV share rose steadily from ~48% (first tracked session) to a peak of ~76% (Jun 2026), then dropped to 38% in the latest fill-up (Jul 16). This is explained: a road trip put a much larger share of the distance on the highway in HEV mode rather than local EV-charged driving — not a change in charging access or a logging issue.
+4. **Anomalies** — (a) Fuel price paid jumped from ~₱53–59/L (Dec 2025–Mar 2026) to ~₱70–78/L (Jun–Jul 2026), a ~30–40% increase. Explained: a regional pump price spike from the Strait of Hormuz supply crisis, not a data-entry issue. (b) A 101-day gap between the Mar 8 and Jun 17 fill-ups is well outside the ~3-week average seen in the other intervals. Explained: the car was in for radiator replacement during that window, so it wasn't being driven or refueled. (c) **EV efficiency swung sharply across the last two sessions** — 4.08 km/kWh on Jul 10, then 16.06 km/kWh on Jul 16 — well outside the 5.3–7.4 km/kWh range seen in every other session. Not fully explained yet: this may be a side effect of the same road trip (charging away from the tracked home meter, e.g. a public/fast charger or a host's outlet, would inflate EV km driven relative to the home plug-meter kWh reading), but that's inferred, not confirmed — worth checking whether any charging happened off the tracked meter around Jul 10–16.
+5. **Performance comparison** — Cumulative combined cost is ₱3.67/km, comfortably inside the ₱3–4/km PHEV benchmark for a mid-size SUV and well below the ₱5–7/km pure-ICE benchmark. EV-mode efficiency (5.66 km/kWh) sits just under the 5.5–7.0 km/kWh typical for this class, so there's some room to close that gap with driving style or route choice.
+6. **Recommendations** — EV share should recover now that the road trip is over; no action needed there. Pump prices are elevated for as long as the Hormuz crisis persists — the EV cost/km advantage is even larger while that holds, so leaning on EV charging is worth more right now than usual. Confirm whether any Jul 10–16 charging happened off the tracked home meter, to explain the EV-efficiency swing. Watch the odometer as it approaches the next PMS milestone (~40,000 km or ~Sep 2026).
 
 ## Inferred Insights
 
-| Metric | Value |
-|--------|-------|
-| Cumulative odometer | 29,655 km |
-| Days tracked | 177 days |
-| Daily average | ~41 km/day |
-| Projected annual | ~14,900 km |
-| Projected annual cost | ~₱52,000 |
-| Lifetime savings vs ICE | ~₱14,600 |
-| CO₂ avoided | ~540 kg |
-| Charge cycles used | ~46 (of 18.3 kWh battery) |
-| Avg fuel price | ₱60.55/L |
-| Days to next refuel | ~35 days (≈late July) |
-| Next PMS | 40,000 km (~10,300 km away) |
+**Time-based:**
+- Refuel cadence averaged ~31 days across the tracked period (13, 30, 26, 20, 101, 23, 6 days between fill-ups); excluding the 101-day outlier, the average tightens to ~20 days.
+- Daily average: ~42.1 km/day over the 206-day tracked window (Dec 22, 2025 – Jul 16, 2026).
+- Projected annual distance: ~15,360 km/year at the current pace.
+- Projected annual spend: ~₱56,350/year at current usage and prices.
+- Next refuel: likely within 1–3 weeks, given the last two intervals were short (23 and 6 days).
+
+**Savings & Environment:**
+- Savings vs ICE over the tracked window: ~₱15,887 over the 8,671 km actually logged, using a ₱5.50/km mid-size-SUV ICE benchmark.
+- Note: this is the *measured* figure — it only covers the tracked period, not the vehicle's full life. The 31,092 km lifetime odometer includes ~22,421 km driven before tracking started (Sep 2024 – Dec 2025), which has no logged fuel/EV split or cost data.
+- Estimated *lifetime* savings vs ICE: ~₱56,968 over the full 31,092 km odometer, extrapolating the tracked period's average cost/km (₱3.67) across the whole lifetime. This assumes the pre-tracking driving had a similar EV/fuel mix and pricing, which is unverified — treat it as a rough estimate, not a measured figure.
+- CO2 avoided: ~1,665 kg over the tracked period (grid ~0.5 kg CO2/kWh, fuel ~2.3 kg CO2/L); a lifetime figure isn't estimated here since the CO2 calculation depends on the EV/fuel km split, which isn't known for the untracked period.
+
+**Battery Health:**
+- Estimated charge cycles: ~54 full-equivalent cycles (991.7 kWh / 18.3 kWh pack).
+- SOH: 99% as of 2026-03-07 (~4 months old) — healthy, no action needed; a recheck around Sep 2026 would keep this current before it passes the 6-month mark.
+- A degradation-rate projection to 50k/100k km isn't possible yet — only one SOH reading exists, so there's no second point to derive a rate from.
+
+**Trends:**
+- EV usage: rising overall (48% → 76% across most sessions); the most recent fill-up broke the trend at 38%, explained by a road trip rather than a reversal.
+- Fuel price paid: rising, from ~₱53–59/L (Dec 2025–Mar 2026) to ~₱70–78/L (Jun–Jul 2026) — a regional spike from the Strait of Hormuz supply crisis.
+- Efficiency vs mileage: no meaningful correlation visible yet — fuel efficiency has stayed flat across the tracked mileage range; too early to call a degradation trend.
+
+**Predictions:**
+- Next refuel: roughly 6–23 days out, based on the two most recent intervals.
+- Next PMS milestone: the schedule calls for service every 20,000 km or 12 months following the second PMS. The second-PMS trigger (20,000 km, or 1 year after the Sep 2024 acquisition) has already passed, so it's assumed done; the next is then due around 40,000 km or ~Sep 2026, whichever comes first. At the current ~42 km/day pace, the odometer reaches 40,000 km around Feb 2027, so the Sep 2026 time-based trigger will likely land first — roughly 2 months out. (Inferred from mileage and acquisition date only; no service records are tracked here, so treat this as an estimate.)
 
 ---
 
