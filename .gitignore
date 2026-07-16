@@ -9,3 +9,5 @@ vite.config.d.ts
 .DS_Store
 __pycache__/
 *.pyc
+.dev.vars
+.wrangler/

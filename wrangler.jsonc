@@ -1,9 +1,23 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "blog",
+  "main": "./workers/app.ts",
   "compatibility_date": "2026-05-26",
   "assets": {
     "directory": "./build/client",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "GA_PROPERTY_ID": "535474441"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PAGE_VIEWS",
+      "id": "90321c43ce5e4817a332c0c639c474a2"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 18 * * *"]
   }
 }

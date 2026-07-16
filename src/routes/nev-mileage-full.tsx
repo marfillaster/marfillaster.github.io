@@ -2,6 +2,7 @@ import { MDXProvider } from "@mdx-js/react";
 import type { MetaFunction } from "react-router";
 import Post from "../content/nev-full-report.md";
 import { TableOfContents, mdxComponents } from "../components/doc";
+import { PageStats } from "../components/page-stats";
 import { SiteShell } from "../components/site-shell";
 import { ogVersion } from "../content/nev-og-version";
 
@@ -87,6 +88,7 @@ export default function NevMileageFull() {
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 15 May 2026</time>
+            <PageStats path="/nev-mileage/full-report" title={title} />
           </p>
           <p className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
             <a

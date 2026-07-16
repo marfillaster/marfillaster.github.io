@@ -10,6 +10,7 @@ import {
   mdxComponentsWithHeadingPrefix,
 } from "../components/doc";
 import { Comments } from "../components/comments";
+import { PageStats } from "../components/page-stats";
 import { ShareLinks } from "../components/share";
 import { SiteShell } from "../components/site-shell";
 
@@ -284,6 +285,7 @@ export function PostRoute({
           <p className="mt-2 text-sm text-muted-foreground">{description}</p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={postMeta.datePublished}>Published {displayDate}</time>
+            <PageStats path={postMeta.href} title={postMeta.title} />
           </p>
         </article>
 

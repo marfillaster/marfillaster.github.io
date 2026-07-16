@@ -2,6 +2,7 @@ import type { MetaFunction } from "react-router";
 import { Link } from "react-router";
 import { SiteShell } from "../components/site-shell";
 import { Comments } from "../components/comments";
+import { PageStats } from "../components/page-stats";
 import { ShareLinks } from "../components/share";
 
 const title =
@@ -118,6 +119,7 @@ export default function SolarReport() {
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 1 May 2026</time>
+            <PageStats path="/solar-report/" title={title} />
           </p>
 
           <ul className="mt-6 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
