@@ -68,6 +68,8 @@ export function TableOfContents({
 }: {
   items: ReadonlyArray<readonly [string, string]>;
 }) {
+  const half = Math.ceil(items.length / 2);
+  const columns = [items.slice(0, half), items.slice(half)];
   return (
     <nav
       aria-label="Table of contents"
@@ -76,21 +78,28 @@ export function TableOfContents({
       <p className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
         On this page
       </p>
-      <ol className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
-        {items.map(([href, label], idx) => (
-          <li key={href} className="flex gap-2">
-            <span className="font-mono text-xs tabular-nums text-muted-foreground">
-              {String(idx + 1).padStart(2, "0")}
-            </span>
-            <a
-              href={href}
-              className="hover:text-primary hover:underline underline-offset-4"
-            >
-              {label}
-            </a>
-          </li>
+      <div className="mt-3 grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+        {columns.map((column, colIdx) => (
+          <ol key={colIdx} className="space-y-1.5 text-sm">
+            {column.map(([href, label], i) => {
+              const idx = colIdx * half + i;
+              return (
+                <li key={href} className="flex gap-2">
+                  <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <a
+                    href={href}
+                    className="hover:text-primary hover:underline underline-offset-4"
+                  >
+                    {label}
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
         ))}
-      </ol>
+      </div>
     </nav>
   );
 }
