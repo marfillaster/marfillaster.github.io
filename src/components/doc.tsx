@@ -57,9 +57,9 @@ export function Ascii({ children }: { children: ReactNode }) {
 
 export function Rationale({ children }: { children: ReactNode }) {
   return (
-    <p className="border-l-2 border-primary/40 pl-3 text-sm italic leading-6 text-muted-foreground">
+    <div className="border-l-2 border-primary/40 pl-3 text-sm italic leading-6 text-muted-foreground [&_p]:m-0">
       {children}
-    </p>
+    </div>
   );
 }
 
