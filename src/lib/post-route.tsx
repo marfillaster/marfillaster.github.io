@@ -1,14 +1,9 @@
-import { MDXProvider } from "@mdx-js/react";
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useEffect } from "react";
 import type { MetaFunction } from "react-router";
 import postIndex from "virtual:post-index";
-import {
-  SeriesNav,
-  TableOfContents,
-  mdxComponents,
-  mdxComponentsWithHeadingPrefix,
-} from "../components/doc";
+import { SeriesNav, TableOfContents } from "../components/doc";
+import { useCodeCopy } from "../components/code-copy";
 import { Comments } from "../components/comments";
 import { PageStats } from "../components/page-stats";
 import { ShareLinks } from "../components/share";
@@ -37,7 +32,7 @@ export type HashRedirect = {
 };
 
 export type PostRouteConfig = {
-  post: ComponentType<Record<string, unknown>>;
+  html: string;
   postMeta: PostMetadata;
 };
 
@@ -258,7 +253,7 @@ function TabPanel({
 }
 
 export function PostRoute({
-  post: Post,
+  html,
   postMeta,
 }: PostRouteConfig) {
   const title = postMeta.hero?.title ?? postMeta.title;
@@ -267,9 +262,8 @@ export function PostRoute({
   const displayDate = postMeta.publishedLabel ?? formatPostDate(postMeta.datePublished);
   const seriesCurrent =
     postMeta.series === false ? undefined : postMeta.series?.current;
-  const components = postMeta.headingPrefix
-    ? mdxComponentsWithHeadingPrefix(postMeta.headingPrefix)
-    : mdxComponents;
+
+  useCodeCopy([postMeta.href]);
 
   return (
     <SiteShell>
@@ -294,9 +288,10 @@ export function PostRoute({
         {postMeta.toc.length > 0 ? <TableOfContents items={postMeta.toc} /> : null}
 
         <TabPanel href={postMeta.href} tabs={postMeta.tabs}>
-          <MDXProvider components={components}>
-            <Post />
-          </MDXProvider>
+          <article
+            className="typeset typeset-post"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
         </TabPanel>
 
         <ShareLinks url={absoluteUrl(postMeta.href)} title={postMeta.title} />

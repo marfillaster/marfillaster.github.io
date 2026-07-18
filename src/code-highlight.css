@@ -1,0 +1,49 @@
+/* Behavior-only CSS for server-rendered code blocks (Shiki output + copy
+   button). Visual theming of the figure chrome belongs to the site stylesheet /
+   typeset integration — keep colors and spacing tokens out of this file. */
+
+/* Dual-theme Shiki: light values inline, dark values via CSS variables,
+   switched by the `.dark` class on <html>. */
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: transparent !important;
+}
+
+.shiki {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  background-color: transparent !important;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+/* Line numbers, matching the old react-syntax-highlighter showLineNumbers. */
+.shiki code {
+  counter-reset: shiki-line;
+}
+
+.shiki .line::before {
+  counter-increment: shiki-line;
+  content: counter(shiki-line);
+  display: inline-block;
+  width: 2em;
+  margin-right: 1em;
+  text-align: right;
+  opacity: 0.45;
+}
+
+/* Copy button: swap copy/check icons via the `.copied` class set by
+   code-copy.tsx. */
+.code-copy .code-check-icon {
+  display: none;
+}
+
+.code-copy.copied .code-copy-icon {
+  display: none;
+}
+
+.code-copy.copied .code-check-icon {
+  display: inline;
+}

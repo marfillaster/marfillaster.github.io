@@ -1,4 +1,3 @@
-import type { ComponentType } from "react";
 import type { MetaFunction } from "react-router";
 import { useLocation } from "react-router";
 import {
@@ -10,7 +9,7 @@ import {
 const contentModules = import.meta.glob("../content/**/*.{md,mdx}", {
   eager: true,
   import: "default",
-}) as Record<string, ComponentType<Record<string, unknown>>>;
+}) as Record<string, string>;
 
 export const meta: MetaFunction = ({ location }) => {
   const post = findPostByPath(location.pathname);
@@ -29,14 +28,14 @@ export default function PostPage() {
     return null;
   }
 
-  const Post = contentModules[postMeta.contentModule];
-  if (!Post) {
-    throw new Error(`Missing MDX module for ${postMeta.contentModule}`);
+  const html = contentModules[postMeta.contentModule];
+  if (html === undefined) {
+    throw new Error(`Missing content module for ${postMeta.contentModule}`);
   }
 
   return (
     <PostRoute
-      post={Post}
+      html={html}
       postMeta={postMeta}
     />
   );

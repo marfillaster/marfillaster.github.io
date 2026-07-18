@@ -1,7 +1,7 @@
-import { MDXProvider } from "@mdx-js/react";
 import type { MetaFunction } from "react-router";
-import Post from "../content/full-report.md";
-import { TableOfContents, mdxComponents } from "../components/doc";
+import reportHtml from "../content/full-report.md";
+import { useCodeCopy } from "../components/code-copy";
+import { TableOfContents } from "../components/doc";
 import { PageStats } from "../components/page-stats";
 import { SiteShell } from "../components/site-shell";
 
@@ -74,6 +74,7 @@ const navItems = [
 ] as const;
 
 export default function SolarReportFull() {
+  useCodeCopy();
   return (
     <SiteShell>
       <div className="container max-w-[48rem] py-12 leading-relaxed">
@@ -111,9 +112,10 @@ export default function SolarReportFull() {
 
         <TableOfContents items={navItems} />
 
-        <MDXProvider components={mdxComponents}>
-          <Post />
-        </MDXProvider>
+        <article
+          className="typeset typeset-post"
+          dangerouslySetInnerHTML={{ __html: reportHtml }}
+        />
       </div>
     </SiteShell>
   );

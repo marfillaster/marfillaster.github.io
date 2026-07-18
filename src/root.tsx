@@ -1,6 +1,7 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import type { ReactNode } from "react";
 import type { LinksFunction, MetaFunction } from "react-router";
+import codeHighlight from "./code-highlight.css?url";
 import stylesheet from "./styles.css?url";
 
 const siteTitle = "Home-lab build logs — MikroTik, solar, EV · marfillaster";
@@ -15,6 +16,7 @@ const favicon =
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
+  { rel: "stylesheet", href: codeHighlight },
   { rel: "icon", href: favicon },
   {
     rel: "alternate",

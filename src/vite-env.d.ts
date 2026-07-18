@@ -1,15 +1,13 @@
 /// <reference types="vite/client" />
 
 declare module "*.mdx" {
-  import type { ComponentType } from "react";
-  const MDXComponent: ComponentType<Record<string, unknown>>;
-  export default MDXComponent;
+  const html: string;
+  export default html;
 }
 
 declare module "*.md" {
-  import type { ComponentType } from "react";
-  const MDXComponent: ComponentType<Record<string, unknown>>;
-  export default MDXComponent;
+  const html: string;
+  export default html;
 }
 
 declare module "virtual:post-index" {
