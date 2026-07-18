@@ -17,8 +17,15 @@ export const DOCUMENT_CACHE_CONTROL =
 
 const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 
+// Strong-format ETag on purpose: Cloudflare's front line removes weak ETags
+// from text/html responses it may transform, which silently killed the whole
+// 304 flow on the staged worker (XML kept its weak tag, HTML lost it). With
+// compression Cloudflare downgrades a strong ETag to weak on egress, which
+// the weak comparison below still matches. Byte-identity is near-true per
+// deploy (only hydration marker hashes vary), and the tag is never used for
+// Range/If-Match, so the strong format is safe.
 function documentEtag(versionId: string, pathname: string): string {
-  return `W/"${versionId}:${pathname}"`;
+  return `"${versionId}:${pathname}"`;
 }
 
 /** Weak comparison over an If-None-Match header (list or `*`). */
@@ -60,10 +67,18 @@ export function httpCaching(platform: Platform): Middleware {
     }
 
     // Query strings never change a document, so the cache keys on pathname
-    // only — no cache-fill from ?utm_* variants.
+    // only — no cache-fill from ?utm_* variants. The versionId rides along so
+    // caches.default can never serve a previous deploy's HTML (the zone purge
+    // in cf:deploy clears the outer edge cache; this covers the inner layer
+    // even if that purge fails).
     const cache = platform.httpCache;
     const cacheKey = cache
-      ? new Request(new URL(pathname, context.url.origin))
+      ? new Request(
+          new URL(
+            `${pathname}?rmxv=${encodeURIComponent(platform.versionId)}`,
+            context.url.origin,
+          ),
+        )
       : null;
     if (cache && cacheKey) {
       const hit = await cache.match(cacheKey);

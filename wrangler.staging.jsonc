@@ -1,0 +1,43 @@
+// Phase 5 staging worker (`blog-staging` on workers.dev) — the Remix app with
+// production-shaped bindings, deployed manually for pre-cutover verification:
+//   pnpm gen:remix-content && pnpm remix:assets \
+//     && wrangler deploy -c wrangler.staging.jsonc
+// Differences from the production target on purpose:
+//   - no cron trigger and no secrets set → resync always 401, GA client is
+//     the stub, so the real PAGE_VIEWS namespace is bound read-only
+// Delete the worker (`wrangler delete -c wrangler.staging.jsonc`) after
+// cutover.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blog-staging",
+  "main": "workers/remix-app.ts",
+  "compatibility_date": "2025-07-01",
+  // No nodejs_compat — the rendering path is Web-API only (see
+  // docs/remix3-spike-report.md).
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./.remix-assets",
+    "not_found_handling": "none"
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  },
+  // Real production namespace (see wrangler.jsonc) so staged pages show real
+  // view counts. Write paths are disabled per above.
+  "kv_namespaces": [
+    {
+      "binding": "PAGE_VIEWS",
+      "id": "90321c43ce5e4817a332c0c639c474a2"
+    }
+  ],
+  "vars": {
+    "GA_PROPERTY_ID": "535474441"
+  },
+  "rules": [
+    {
+      "type": "Text",
+      "globs": ["**/*.md", "**/*.mdx"],
+      "fallthrough": true
+    }
+  ]
+}

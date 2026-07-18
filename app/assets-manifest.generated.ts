@@ -3,7 +3,7 @@
 // the app layer (client-entries.ts, document.tsx) stays importable without a
 // prior asset build; `pnpm remix:assets` rewrites it.
 export const ASSET_MANIFEST: Record<string, string> = {
-  "boot": "/assets/entries/boot-FEKTF5XB.js",
+  "boot": "/assets/entries/boot-46HYPIKA.js",
   "code-highlight.css": "/assets/code-highlight-e2f9f068.css",
   "enhance": "/assets/entries/enhance-PJHD2U7B.js",
   "page-stats": "/assets/entries/page-stats-LFLS4LLO.js",

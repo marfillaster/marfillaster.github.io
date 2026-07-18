@@ -12,6 +12,8 @@
     "typecheck": "react-router typegen && tsc -b",
     "gen:remix-content": "node scripts/generate-remix-content.mjs",
     "remix:assets": "node scripts/build-remix-assets.mjs",
+    "cf:build": "pnpm gen:remix-content && pnpm remix:assets",
+    "cf:deploy": "wrangler deploy && node scripts/purge-zone.mjs",
     "dev:remix": "node --import remix/node-tsx server/node.ts",
     "dev:remix-workerd": "wrangler dev -c wrangler.remix.jsonc"
   },
