@@ -29,6 +29,12 @@ interface SchedulerContext {
 let cached: { router: ReturnType<typeof createApp>; platform: Platform } | null =
   null;
 
+// The Platform is built once per isolate but waitUntil needs the current
+// request's ExecutionContext; each fetch stamps it here before dispatching.
+// Under concurrency a background task may land on a newer request's context,
+// which only extends that request's lifetime — harmless.
+let currentCtx: SchedulerContext | null = null;
+
 function getApp(env: RemixEnv) {
   if (cached) {
     return cached;
@@ -54,6 +60,13 @@ function getApp(env: RemixEnv) {
     // workerd's CacheStorage carries a non-standard `default` cache; the DOM
     // lib this project compiles against doesn't know it.
     httpCache: (caches as unknown as { default?: Cache }).default ?? null,
+    waitUntil(promise) {
+      try {
+        currentCtx?.waitUntil(promise);
+      } catch {
+        promise.catch(() => {});
+      }
+    },
   };
 
   cached = { router: createApp(platform), platform };
@@ -61,7 +74,8 @@ function getApp(env: RemixEnv) {
 }
 
 export default {
-  fetch(request: Request, env: RemixEnv): Promise<Response> {
+  fetch(request: Request, env: RemixEnv, ctx: SchedulerContext): Promise<Response> {
+    currentCtx = ctx;
     return getApp(env).router.fetch(request);
   },
 

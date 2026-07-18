@@ -79,9 +79,15 @@ async function serveAsset(request: Request): Promise<Response | null> {
   }
 
   const body = readFileSync(filePath);
+  // Mirrors the _headers file Workers Assets serves in production: /assets/*
+  // is content-fingerprinted, everything else gets a modest TTL.
+  const cacheControl = pathname.startsWith("/assets/")
+    ? "public, max-age=31536000, immutable"
+    : "public, max-age=3600";
   return new Response(new Uint8Array(body), {
     headers: {
       "Content-Type": MIME[extname(filePath)] ?? "application/octet-stream",
+      "Cache-Control": cacheControl,
     },
   });
 }
@@ -116,6 +122,9 @@ const platform: Platform = {
     adminResyncToken: process.env.ADMIN_RESYNC_TOKEN,
   },
   httpCache: null,
+  waitUntil(promise) {
+    promise.catch((err) => console.error("waitUntil task failed", err));
+  },
 };
 
 const router = createApp(platform);

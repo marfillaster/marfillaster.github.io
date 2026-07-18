@@ -9,6 +9,7 @@
 import type { Handle, RemixNode } from "remix/ui";
 import type { MetaDescriptor } from "./head.ts";
 import { CLIENT_BOOT_SCRIPT, ENHANCE_SCRIPT } from "./client-entries.ts";
+import { ASSET_MANIFEST } from "./assets-manifest.generated.ts";
 
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
 
@@ -65,8 +66,8 @@ export function Document(handle: Handle<DocumentProps>) {
         <script innerHTML={gtagInit} />
         <script innerHTML={themeInit} />
         <HeadDescriptors descriptors={handle.props.descriptors} />
-        <link rel="stylesheet" href="/assets/styles.css" />
-        <link rel="stylesheet" href="/assets/code-highlight.css" />
+        <link rel="stylesheet" href={ASSET_MANIFEST["styles.css"]} />
+        <link rel="stylesheet" href={ASSET_MANIFEST["code-highlight.css"]} />
         <link rel="icon" href={favicon} />
         <link
           rel="alternate"

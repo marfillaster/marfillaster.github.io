@@ -14,7 +14,7 @@ export interface Platform {
 
   /**
    * Deploy/version identifier. `CF_VERSION_METADATA.id` on workerd; a git SHA
-   * or timestamp on Node. Reserved for ETag work in a later phase.
+   * or timestamp on Node. Keys the document ETags in app/http-caching.ts.
    */
   versionId: string;
 
@@ -37,10 +37,17 @@ export interface Platform {
   secrets: Secrets;
 
   /**
-   * Short-TTL HTTP response cache for the analytics API. `caches.default` on
-   * workerd; null on Node, where freshness is the point.
+   * HTTP response cache: short-TTL entries for the analytics API and
+   * version-keyed rendered documents (app/http-caching.ts). `caches.default`
+   * on workerd; null on Node, where freshness is the point.
    */
   httpCache: Cache | null;
+
+  /**
+   * Extend the request lifetime past the response for background work such as
+   * edge-cache writes. `ctx.waitUntil` on workerd; fire-and-forget on Node.
+   */
+  waitUntil(promise: Promise<unknown>): void;
 }
 
 export interface ViewsStore {
