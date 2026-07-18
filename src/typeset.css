@@ -1,0 +1,741 @@
+/*
+ * shadcn/typeset
+ * https://ui.shadcn.com/docs/typeset
+ *
+ * Base system vendored verbatim from shadcn-ui/ui
+ * (apps/v4/app/(app)/(typeset)/typeset.css) — "one CSS file you own". Site
+ * presets and Shiki dual-theme wiring live below it; edit those, not this
+ * block, when the base system gets a formal upgrade.
+ */
+
+@layer components {
+  .typeset {
+    --typeset-font-body: inherit;
+    --typeset-font-heading: var(--font-heading);
+    --typeset-font-mono: var(--font-mono);
+    --typeset-size: 1em;
+    --typeset-leading: 1.75;
+    --typeset-flow: 1.25em;
+  }
+}
+
+@layer components {
+  .typeset {
+    font-family: var(--typeset-font-body);
+    font-size: calc(var(--typeset-size) * 1.125);
+    line-height: var(--typeset-leading);
+    color: var(--color-foreground, currentColor);
+    overflow-wrap: break-word;
+    margin-trim: block-start;
+
+    @media (min-width: 48rem), print {
+      font-size: var(--typeset-size);
+    }
+
+    --typeset-muted: var(
+      --color-muted-foreground,
+      color-mix(in oklab, currentColor 60%, transparent)
+    );
+    --typeset-rule: var(
+      --color-border,
+      color-mix(in oklab, currentColor 20%, transparent)
+    );
+  }
+
+  .typeset
+    *:not(
+      :where(
+        .not-typeset,
+        [data-not-typeset],
+        .not-typeset *,
+        [data-not-typeset] *
+      )
+    ) {
+    /* Paragraphs. */
+    &:where(p) {
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+    }
+
+    /* Headings. */
+    &:where(h1, h2, h3, h4, h5, h6) {
+      color: var(--color-foreground, currentColor);
+      font-family: var(--typeset-font-heading);
+      font-weight: 600;
+      margin-block-end: 0;
+    }
+    &:where(h1) {
+      font-size: 1.75em;
+      line-height: 1.3;
+      margin-block-start: var(--typeset-flow);
+    }
+    &:where(h2) {
+      font-size: 1.25em;
+      line-height: 1.4;
+      margin-block-start: calc(var(--typeset-flow) * 1.4);
+    }
+    &:where(h3) {
+      font-size: 1.125em;
+      line-height: 1.45;
+      margin-block-start: var(--typeset-flow);
+    }
+    &:where(h4) {
+      font-size: 1em;
+      line-height: 1.5;
+      margin-block-start: var(--typeset-flow);
+    }
+    &:where(h5) {
+      font-size: 0.875em;
+      line-height: 1.5;
+      font-weight: 500;
+      color: var(--typeset-muted);
+      margin-block-start: calc(var(--typeset-flow) / 0.875);
+    }
+    &:where(h6) {
+      font-size: 0.8125em;
+      line-height: 1.5;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--typeset-muted);
+      margin-block-start: calc(var(--typeset-flow) / 0.8125);
+    }
+    /* Anchors. */
+    &:where([id]) {
+      scroll-margin-block-start: var(--typeset-flow);
+    }
+
+    /* Headings own the space below them. */
+    &:where(h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + *) {
+      margin-block-start: 1em;
+    }
+    &:where(:is(h1, h2, h3, h4) :is(code)) {
+      font-size: 0.9em;
+    }
+
+    /* Links. */
+    &:where(a) {
+      color: inherit;
+      font-weight: 500;
+      text-decoration-line: underline;
+      text-decoration-color: color-mix(in oklab, currentColor 30%, transparent);
+    }
+    &:where(a:hover) {
+      text-decoration-color: currentColor;
+    }
+    &:where(a:focus-visible) {
+      outline: 2px solid var(--color-ring, currentColor);
+      outline-offset: 2px;
+      border-radius: 0.125em;
+    }
+    &:where(:is(h1, h2, h3, h4, h5, h6) :is(a)) {
+      font-weight: inherit;
+    }
+
+    /* Inline semantics. */
+    &:where(strong, b) {
+      font-weight: 600;
+    }
+    &:where(:is(h1, h2, h3, h4) :is(strong, b)) {
+      font-weight: 600;
+    }
+    &:where(mark) {
+      background-color: color-mix(
+        in oklab,
+        oklch(0.86 0.17 95) 40%,
+        transparent
+      );
+      color: inherit;
+      padding: 0.05em 0.15em;
+      border-radius: 0.2em;
+    }
+    &:where(abbr[title]) {
+      text-decoration-line: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 0.2em;
+      cursor: help;
+    }
+    &:where(del, s) {
+      color: var(--typeset-muted);
+      text-decoration-line: line-through;
+    }
+    &:where(sup, sub) {
+      font-size: 0.75em;
+      line-height: 0;
+      position: relative;
+      vertical-align: baseline;
+    }
+    &:where(sup) {
+      top: -0.5em;
+    }
+    &:where(sub) {
+      bottom: -0.25em;
+    }
+    &:where(sup a) {
+      text-decoration-line: none;
+      font-weight: 500;
+    }
+
+    /* Lists. */
+    &:where(ul) {
+      list-style-type: disc;
+    }
+    &:where(ol) {
+      list-style-type: decimal;
+    }
+    &:where(ul ul) {
+      list-style-type: circle;
+    }
+    &:where(ul ul ul) {
+      list-style-type: square;
+    }
+    &:where(ol[type="a" i]) {
+      list-style-type: lower-alpha;
+    }
+    &:where(ol[type="i" i]) {
+      list-style-type: lower-roman;
+    }
+    &:where(ol[type="A" s]) {
+      list-style-type: upper-alpha;
+    }
+    &:where(ol[type="I" s]) {
+      list-style-type: upper-roman;
+    }
+    &:where(ul, ol) {
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+      padding-inline-start: 1.5em;
+    }
+    &:where(li) {
+      margin-block-start: 0.5em;
+      padding-inline-start: 0.4em;
+    }
+    &:where(li > p, li > ul, li > ol) {
+      margin-block-start: 0.5em;
+    }
+    &:where(ul > li)::marker {
+      color: var(--typeset-muted);
+    }
+    &:where(ol > li)::marker {
+      color: var(--typeset-muted);
+    }
+
+    /* GFM task lists. */
+    &:where(ul.contains-task-list) {
+      list-style-type: none;
+      padding-inline-start: 0.25em;
+    }
+    &:where(li.task-list-item > input[type="checkbox"]) {
+      margin-inline-end: 0.5em;
+      vertical-align: -0.1em;
+      accent-color: var(--color-primary, currentColor);
+    }
+
+    /* Disclosures. */
+    &:where(details) {
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+    }
+    &:where(summary) {
+      cursor: pointer;
+      font-weight: 500;
+    }
+    &:where(summary)::marker {
+      color: var(--typeset-muted);
+    }
+
+    /* Keyboard keys. */
+    &:where(kbd) {
+      font-family: inherit;
+      font-size: 0.85em;
+      font-weight: 500;
+      border: 1px solid var(--typeset-rule);
+      border-block-end-width: 2px;
+      border-radius: min(calc(var(--radius, 0.5em) * 0.6), 0.35em);
+      padding: 0.0625em 0.35em;
+    }
+
+    /* Definition lists. */
+    &:where(dl) {
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+    }
+    &:where(dt) {
+      font-weight: 500;
+      margin-block-start: 1em;
+    }
+    &:where(dt + dt) {
+      margin-block-start: 0.25em;
+    }
+    &:where(dd) {
+      margin-block-start: 0.25em;
+      margin-inline-start: 0;
+      padding-inline-start: 1em;
+      color: var(--typeset-muted);
+    }
+
+    /* Inline code. */
+    &:where(:not(pre) > code) {
+      background-color: var(
+        --color-muted,
+        color-mix(in oklab, currentColor 8%, transparent)
+      );
+      font-family: var(--typeset-font-mono);
+      font-size: 0.85em;
+      border-radius: min(calc(var(--radius, 0.5em) * 0.6), 0.35em);
+      padding: 0.125em 0.3em;
+    }
+
+    /* Code blocks. */
+    &:where(pre) {
+      background-color: var(
+        --color-muted,
+        color-mix(in oklab, currentColor 8%, transparent)
+      );
+      font-family: var(--typeset-font-mono);
+      font-size: 0.875em;
+      line-height: 1.5;
+      tab-size: 2;
+      direction: ltr;
+      border-radius: var(--radius, 0.5em);
+      padding: 0.75em 1em;
+      overflow-x: auto;
+      margin-block-start: calc(var(--typeset-flow) / 0.875);
+      margin-block-end: 0;
+    }
+    &:where(pre code) {
+      background-color: transparent;
+      font-family: inherit;
+      font-size: inherit;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    /* Blockquote. */
+    &:where(blockquote) {
+      border-inline-start: 2px solid var(--typeset-rule);
+      padding-inline-start: 1em;
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+      margin-inline: 0;
+    }
+
+    /* Dividers. */
+    &:where(hr) {
+      border: 0;
+      border-block-start: 1px solid var(--typeset-rule);
+      margin-block-start: calc(var(--typeset-flow) * 2.4);
+      margin-block-end: 0;
+    }
+    &:where(hr + h1, hr + h2, hr + h3, hr + h4) {
+      margin-block-start: var(--typeset-flow);
+    }
+
+    /* GFM footnotes. */
+    &:where(.footnotes, [data-footnotes]) {
+      margin-block-start: calc(var(--typeset-flow) * 2);
+      border-block-start: 1px solid var(--typeset-rule);
+      padding-block-start: var(--typeset-flow);
+      font-size: 0.875em;
+      color: var(--typeset-muted);
+    }
+
+    /* Math. */
+    &:where(math[display="block"]) {
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-block: 0.25em;
+    }
+
+    /* Media. */
+    &:where(img, video) {
+      border-radius: var(--radius, 0.5em);
+      max-width: 100%;
+      height: auto;
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+    }
+    &:where(p img) {
+      margin-block-start: 0;
+    }
+    &:where(figure) {
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+      margin-inline: 0;
+    }
+    &:where(figcaption, caption) {
+      color: var(--typeset-muted);
+      font-size: 0.875em;
+      text-align: center;
+      margin-block-start: calc(0.75em / 0.875);
+    }
+    &:where(caption) {
+      caption-side: bottom;
+    }
+
+    /* Tables. Separators sit on cells, not tr:last-child: append-safe.
+       Bare tables stay real tables (keep their semantics) and wrap to fit. */
+    &:where(table) {
+      max-width: 100%;
+      font-size: 1em;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-block-end: 1px solid var(--typeset-rule);
+      margin-block-start: var(--typeset-flow);
+      margin-block-end: 0;
+    }
+
+    /* Horizontal scroll for any wide block. Wrap it and the wrapper owns the
+       flow margin. Tables shrink to fit, so widen the table to make it scroll
+       instead of compress. */
+    &:where(.typeset-scroll) {
+      overflow-x: auto;
+      margin-block-start: var(--typeset-flow);
+    }
+    &:where(.typeset-scroll > *) {
+      margin-block-start: 0;
+    }
+    &:where(.typeset-scroll table) {
+      width: max-content;
+      max-width: none;
+    }
+    &:where(thead th) {
+      font-weight: 500;
+      text-align: start;
+      white-space: nowrap;
+      padding: 0.65em 1em;
+    }
+    &:where(:is(tbody, tfoot) :is(td, th)) {
+      padding: 0.75em 1em;
+      text-align: start;
+      vertical-align: top;
+      border-block-start: 1px solid var(--typeset-rule);
+    }
+    &:where(tbody th, tfoot th) {
+      font-weight: 500;
+    }
+    &:where(th:first-child, td:first-child) {
+      padding-inline-start: 0;
+    }
+    &:where(th[align="center"], td[align="center"]) {
+      text-align: center;
+    }
+    &:where(th[align="right"], td[align="right"]) {
+      text-align: end;
+    }
+
+    /* Blocks inside list items keep the list's tighter rhythm. */
+    &:where(li > blockquote, li > table, li > figure) {
+      margin-block-start: 0.5em;
+    }
+    &:where(li > pre) {
+      margin-block-start: calc(0.5em / 0.875);
+    }
+
+    @media print {
+      &:where(pre, table, blockquote, figure) {
+        break-inside: avoid;
+      }
+      &:where(h1, h2, h3, h4) {
+        break-after: avoid;
+      }
+    }
+
+    /* Forced colors strips the code background, so give it a border. */
+    @media (forced-colors: active) {
+      &:where(:not(pre) > code) {
+        border: 1px solid;
+      }
+    }
+  }
+
+  /* First child adds no space above. Last so it wins ties. */
+  .typeset
+    > :where(:first-child):not(
+      :where(
+        .not-typeset,
+        [data-not-typeset],
+        .not-typeset *,
+        [data-not-typeset] *
+      )
+    ),
+  .typeset
+    > :where(:first-child)
+    > :where(:first-child):not(
+      :where(
+        .not-typeset,
+        [data-not-typeset],
+        .not-typeset *,
+        [data-not-typeset] *
+      )
+    ),
+  .typeset
+    :where(
+      li > :first-child,
+      blockquote > :first-child,
+      td > :first-child,
+      th > :first-child,
+      dd > :first-child,
+      figure > :first-child,
+      figure > picture > img
+    ):not(
+      :where(
+        .not-typeset,
+        [data-not-typeset],
+        .not-typeset *,
+        [data-not-typeset] *
+      )
+    ) {
+    margin-block-start: 0;
+  }
+}
+
+/*
+ * -----------------------------------------------------------------------
+ * typeset-post — this site's preset.
+ *
+ * Tuned to the reading feel `src/components/doc.tsx`'s hand-rolled MDX
+ * component map produces today: sans body (no serif reading mode), a
+ * restrained vertical rhythm (headings get real air, paragraphs stay
+ * tight), muted-foreground secondary text, and a 70ch measure supplied by
+ * the surrounding layout via `max-w-reading` (typeset itself never sets a
+ * max-width — see the shadcn docs).
+ *
+ * The class names below (`.rationale`, `.series-nav*`, `.code-snippet*`,
+ * `.code-copy`, `.ascii`, `.code-plain`, `.table-scroll`) match the static
+ * HTML the markdown renderer emits (src/lib/render-markdown.ts on
+ * phase0-renderer) — this file owns their visual chrome only. Shiki's own
+ * dual-theme color switching and line-number counters live in that
+ * branch's src/code-highlight.css and are intentionally not duplicated
+ * here; as unlayered CSS it also wins over anything conflicting declared
+ * in this @layer components file, by design.
+ * -----------------------------------------------------------------------
+ */
+@layer components {
+  .typeset-post {
+    --typeset-font-body: var(--font-sans);
+    --typeset-font-heading: var(--font-sans);
+    --typeset-font-mono: var(--font-mono);
+    --typeset-size: 1em;
+    --typeset-leading: 1.65;
+    --typeset-flow: 0.9em;
+  }
+
+  /* Section headings get outsized breathing room relative to flow, echoing
+     doc.tsx's H2 (mt-16) / H3 (mt-10) / H4 (mt-6) treatment. Ids now sit
+     directly on h2/h3/h4 (no wrapping <section>/<div>), so scroll-margin
+     goes on the headings themselves — sized to clear SiteShell's sticky
+     header, same as the old `scroll-mt-20`. */
+  .typeset-post :where(h2, h3, h4) {
+    scroll-margin-top: 5rem;
+  }
+  .typeset-post :where(h2) {
+    margin-block-start: calc(var(--typeset-flow) * 4.4);
+    font-size: 1.375em;
+    letter-spacing: -0.01em;
+  }
+  .typeset-post :where(h3) {
+    margin-block-start: calc(var(--typeset-flow) * 3.1);
+    font-size: 1.125em;
+    letter-spacing: -0.01em;
+  }
+  .typeset-post :where(h4) {
+    margin-block-start: calc(var(--typeset-flow) * 2);
+    font-size: 0.9em;
+  }
+  .typeset-post :where(h1 + *, h2 + *, h3 + *, h4 + *) {
+    margin-block-start: var(--typeset-flow);
+  }
+
+  /* Lists and tables read a size down from body copy, matching the
+     `text-sm` doc.tsx puts on UL/OL/TABLE today. */
+  .typeset-post :where(ul, ol) {
+    font-size: 0.875em;
+  }
+  .typeset-post :where(table) {
+    font-size: 0.875em;
+  }
+  .typeset-post :where(thead th) {
+    color: var(--typeset-muted);
+    font-weight: 500;
+  }
+
+  /* Links pick up the site's primary-teal hover instead of a generic
+     underline-thickens treatment. */
+  .typeset-post :where(a):hover {
+    color: var(--color-primary);
+    text-decoration-color: currentColor;
+  }
+
+  /* Muted, smaller blockquotes — doc.tsx renders `<Blockquote>` as
+     text-sm text-muted-foreground rather than full-size body text. */
+  .typeset-post :where(blockquote) {
+    font-size: 0.875em;
+    color: var(--typeset-muted);
+  }
+
+  /* Horizontal rules get the wide `my-12` gap doc.tsx's <HR> uses to mark a
+     hard section break. */
+  .typeset-post :where(hr) {
+    margin-block-start: calc(var(--typeset-flow) * 5.3);
+  }
+
+  /* Renderer contract: every table is wrapped in `.table-scroll` (not the
+     base system's own `.typeset-scroll` name) — mirror those same three
+     rules under it so wide tables scroll instead of compressing. Consider
+     renaming the wrapper to `typeset-scroll` at integration to drop this
+     adapter and use the base system's rule directly. */
+  .typeset-post :where(.table-scroll) {
+    overflow-x: auto;
+    margin-block-start: var(--typeset-flow);
+  }
+  .typeset-post :where(.table-scroll > *) {
+    margin-block-start: 0;
+  }
+  .typeset-post :where(.table-scroll table) {
+    width: max-content;
+    max-width: none;
+  }
+
+  /* Rationale asides: primary-tinted rule, italic, muted — carries over
+     doc.tsx's <Rationale> treatment. Renderer emits `<aside class="rationale">`. */
+  .typeset-post .rationale {
+    margin-block-start: var(--typeset-flow);
+    border-inline-start: 2px solid
+      color-mix(in oklab, var(--color-primary, currentColor) 40%, transparent);
+    padding-inline-start: 1em;
+    font-size: 0.875em;
+    font-style: italic;
+    line-height: 1.6;
+    color: var(--typeset-muted);
+  }
+  .typeset-post .rationale :where(p) {
+    margin-block-start: 0;
+  }
+
+  /* Series navigation — static HTML from render-markdown.ts's
+     seriesNavHtml(), matching doc.tsx's old <SeriesNav> box: muted card,
+     mono eyebrow label, numbered rows with a muted trailing note. Suppress
+     the default `.typeset` <ol> bullet/decimal styling since `.series-nav-num`
+     supplies its own numbering. */
+  .typeset-post .series-nav {
+    margin-block-start: calc(var(--typeset-flow) * 3.5);
+    border: 1px solid var(--typeset-rule);
+    border-radius: var(--radius, 0.5em);
+    background-color: color-mix(in oklab, var(--color-muted, currentColor) 30%, transparent);
+    padding: 1em;
+    font-size: 0.875em;
+  }
+  .typeset-post .series-nav-label {
+    margin-block-start: 0;
+    font-family: var(--typeset-font-mono);
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--typeset-muted);
+  }
+  .typeset-post .series-nav :where(ol) {
+    margin-block-start: 0.75em;
+    list-style: none;
+    padding-inline-start: 0;
+  }
+  .typeset-post .series-nav :where(li) {
+    margin-block-start: 0.375em;
+    padding-inline-start: 0;
+    display: flex;
+    gap: 0.5em;
+  }
+  .typeset-post .series-nav-num {
+    font-family: var(--typeset-font-mono);
+    font-size: 0.75em;
+    color: var(--typeset-muted);
+  }
+  .typeset-post .series-nav-note {
+    color: var(--typeset-muted);
+  }
+  .typeset-post .series-nav-current {
+    font-weight: 600;
+  }
+
+  /* ASCII/diagram fences: plain, tight, monospace — same idea as doc.tsx's
+     old <Ascii> block (border, muted background, small text). */
+  .typeset-post :where(.ascii) {
+    margin-block-start: var(--typeset-flow);
+    border: 1px solid var(--typeset-rule);
+    border-radius: var(--radius, 0.5em);
+    background-color: color-mix(in oklab, var(--color-muted, currentColor) 65%, transparent);
+    padding: 1em;
+    font-family: var(--typeset-font-mono);
+    font-size: 0.75em;
+    line-height: 1.4;
+  }
+
+  /* Unhighlighted fences (language not registered with Shiki) — same base
+     `pre` look, plus a border so it doesn't read as unstyled. */
+  .typeset-post :where(.code-plain) {
+    border: 1px solid var(--typeset-rule);
+  }
+
+  /* Highlighted code figure chrome (the <figure class="code-snippet">
+     wrapping Shiki output). The header/meta/title/lang/copy-button colors,
+     borders and spacing below are this file's job; the `.shiki` body's own
+     theme colors and line numbers are code-highlight.css's job — see the
+     block comment above. */
+  .typeset-post .code-snippet {
+    margin-block-start: var(--typeset-flow);
+    overflow: hidden;
+    border: 1px solid var(--typeset-rule);
+    border-radius: var(--radius, 0.5em);
+    background-color: var(--color-card, var(--color-background));
+  }
+  .typeset-post .code-snippet-header {
+    display: flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75em;
+    border-block-end: 1px solid var(--typeset-rule);
+    background-color: color-mix(in oklab, var(--color-muted, currentColor) 50%, transparent);
+    padding: 0.5em 1em;
+  }
+  .typeset-post .code-snippet-meta {
+    min-width: 0;
+  }
+  .typeset-post .code-snippet-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875em;
+    font-weight: 500;
+    color: var(--color-foreground);
+  }
+  .typeset-post .code-snippet-lang {
+    font-size: 0.75em;
+    color: var(--typeset-muted);
+  }
+
+  /* Copy button — ghost icon-button chrome, matching src/components/ui/button.tsx's
+     `variant="ghost" size="icon"`. Icon swap on `.copied` is code-copy.tsx's job. */
+  .typeset-post .code-copy {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-md, 0.375em);
+    color: var(--typeset-muted);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .typeset-post .code-copy:hover {
+    background-color: var(--color-accent, var(--color-muted));
+    color: var(--color-accent-foreground, var(--color-foreground));
+  }
+  .typeset-post .code-copy svg {
+    display: inline-block;
+  }
+}
