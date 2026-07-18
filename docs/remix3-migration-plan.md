@@ -257,9 +257,13 @@ than an embedded third-party widget:
   its own short-TTL cache entry that the POST handler purges on successful
   write. A client entry injects the fragment into the post page; with JS off,
   the same handler serves it as a standalone page linked from the post.
-- **Moderation**: admin bearer-token endpoints (same pattern as
-  `/api/analytics/resync`) for hide/delete; rows store an IP hash + timestamp
-  for abuse tracing, nothing else.
+- **Moderation: accept by default, hide-only.** A comment that passes Turnstile
+  publishes immediately — no queue, no approval step. The single moderation
+  action is an admin bearer-token hide endpoint (same pattern as
+  `/api/analytics/resync`): a hidden comment keeps its row (a `hidden` flag) so
+  the thread structure under it survives, and renders as a "comment hidden"
+  stub. No delete — hiding is reversible and D1 rows are cheap. Rows store an
+  IP hash + timestamp for abuse tracing, nothing else.
 - **Giscus transition**: Giscus stays through cutover; a one-time script imports
   the existing GitHub Discussions threads into D1 (author, body, thread
   structure), then the widget goes away.
@@ -346,9 +350,9 @@ reaches RC/stable unless the spike is done purely to de-risk.
 - **Deploy pipeline change** — the Cloudflare Git integration must run
   `wrangler deploy`; test on a preview Worker before switching production.
 - **First-party comments carry an ongoing moderation duty** — Turnstile +
-  honeypot + rate limits stop bots, not motivated humans. The hide/delete
-  endpoints and IP-hash tracing are the minimum; expect occasional manual
-  cleanup. D1 needs a periodic export (`wrangler d1 export` on the cron) so
+  honeypot + rate limits stop bots, not motivated humans, and accept-by-default
+  means anything that slips through is live until noticed. The hide endpoint
+  and IP-hash tracing are the whole toolkit; expect occasional manual cleanup. D1 needs a periodic export (`wrangler d1 export` on the cron) so
   comment data has a backup outside Cloudflare.
 - **The Reddit mirror depends on a third-party API** — Reddit has changed API
   terms abruptly before. The feature degrades to absence when fetches fail, and
