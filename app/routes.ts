@@ -14,4 +14,7 @@ export const routes = route({
   solarReportFull: get("/solar-report/full-report"),
   nevMileage: get("/nev-mileage"),
   nevMileageFull: get("/nev-mileage/full-report"),
+  // Analytics API (merged from the production worker in Phase 3).
+  analyticsPageviews: get("/api/analytics/pageviews"),
+  analyticsResync: get("/api/analytics/resync"),
 });

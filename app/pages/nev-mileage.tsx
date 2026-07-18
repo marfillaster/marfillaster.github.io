@@ -4,7 +4,8 @@
 import type { Handle } from "remix/ui";
 import { ogVersion } from "../../src/content/nev-og-version.ts";
 import type { MetaDescriptor } from "../head.ts";
-import { Comments, ShareLinks, SiteShell } from "../components.tsx";
+import { Comments, SiteShell } from "../components.tsx";
+import { ShareLinks } from "../interactive.tsx";
 
 const title =
   "BYD Sealion 6 PHEV mileage & running-cost report — Cavite, Philippines (Dec 2025–Jul 2026)";

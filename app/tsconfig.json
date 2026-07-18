@@ -27,6 +27,7 @@
     "../workers/remix-app.ts",
     "../workers/remix-content.generated.ts",
     "../workers/remix-env.d.ts",
+    "../workers/ga4.ts",
     "../src/lib/render-markdown.ts",
     "../src/lib/series.ts",
     "../src/lib/post-meta.d.mts",

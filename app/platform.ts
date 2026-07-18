@@ -23,4 +23,33 @@ export interface Platform {
    * asset at that path. Workers Assets on workerd; disk reads on Node.
    */
   assets(request: Request): Promise<Response | null>;
+
+  /**
+   * Page-view counters keyed by normalized path. KV on workerd; an in-memory
+   * map (seeded with plausible numbers) on the Node dev adapter.
+   */
+  views: ViewsStore;
+
+  /**
+   * Runtime secrets. Bindings/vars on workerd; process.env on Node. All
+   * optional — handlers degrade (stub GA, 401 resync) when absent.
+   */
+  secrets: Secrets;
+
+  /**
+   * Short-TTL HTTP response cache for the analytics API. `caches.default` on
+   * workerd; null on Node, where freshness is the point.
+   */
+  httpCache: Cache | null;
+}
+
+export interface ViewsStore {
+  get(path: string): Promise<number>;
+  put(path: string, views: number): Promise<void>;
+}
+
+export interface Secrets {
+  gaServiceAccountKey?: string;
+  gaPropertyId?: string;
+  adminResyncToken?: string;
 }
