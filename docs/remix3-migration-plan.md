@@ -1,10 +1,12 @@
 # Remix 3 migration plan
 
-Status: Phases 0–4 done (Phase 4: 2026-07-19); Phase 1 spike GO
-(`docs/remix3-spike-report.md`). Phase 0 is live in production; the full Remix
-app (Phases 2–4) is merged and dormant behind dev-only adapters until Phase 5
-cutover. Proceeding on the pinned beta by explicit decision. Remaining: Phases
-5 (cutover), 6 (comments + Reddit mirror).
+Status: Phases 0–5 done (Phase 5 cutover: 2026-07-19). **The Remix 3 app is
+live in production** — worker `blog` deployed directly via `wrangler deploy`
+(Git-integration build/deploy commands still to be switched to `pnpm cf:build`
+/ `pnpm cf:deploy` in the dashboard, plus purge env vars; until then pushes to
+main fail CI harmlessly and deploys are manual). Phase 1 spike GO
+(`docs/remix3-spike-report.md`). Remaining: RR7 cleanup (plan §7 Phase 5 tail)
+and Phase 6 (comments + Reddit mirror).
 Written 2026-07-18 against Remix `3.0.0-beta.5`.
 
 ## Context
@@ -334,7 +336,12 @@ gate on the spike.
   `scripts/seo-parity.mjs` sweep 22/22 clean.
 - **Phase 5 — cutover**: switch the Cloudflare Git integration to
   `wrangler deploy` (plus the Tailwind CLI pass); verify; retire the React
-  Router build.
+  Router build. Done 2026-07-19 (staged on `blog-staging` first, then direct
+  `wrangler deploy` to `blog`; dashboard build-command switch pending). Found
+  in staging: remix/ui `run()` intercepts link clicks via the Navigation API
+  with no frame support — suppressed in `app/client/boot.ts`; Cloudflare
+  strips ETags from HTML (strong-format tags + inner cache key now
+  version-keyed). RR7 deletion still pending as cleanup.
 - **Phase 6 — comments and discussions** (post-cutover; new functionality, not
   porting): D1 schema + thread renderer, Turnstile-gated form, moderation
   endpoints, Giscus import and removal, mirrored Reddit discussions.

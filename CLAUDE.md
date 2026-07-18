@@ -12,7 +12,7 @@ RouterOS / VyOS / bird config snippets are tested on live hardware. Don't "corre
 Lead with the fact. No "the thing that surprised me" framing; no "Proven, not assumed:" flourishes.
 
 ## Build & deploy
-`npm run build` (prerenders to `build/client`). Pushing `main` auto-deploys via Cloudflare → https://blog.homestack.space. `local/` is gitignored scratch — never commit it.
+**Production is the Remix 3 worker** (`wrangler.jsonc`, name `blog`, live SSR + edge caching) as of the 2026-07-19 Phase 5 cutover — see `docs/remix3-migration-plan.md`. Deploy: `pnpm cf:build && wrangler deploy` (manual until the Cloudflare Git-integration commands are switched to `pnpm cf:build` / `pnpm cf:deploy`; until then pushing `main` fails CI harmlessly and does NOT deploy). After content changes run `pnpm gen:remix-content` (rss.xml/sitemap.xml render at runtime from frontmatter). The RR7 build (`pnpm build`) still exists pending cleanup and must stay green. `local/` is gitignored scratch — never commit it.
 
 ## RSS feed
 `public/rss.xml`, the homepage post list, and post routes are generated from YAML frontmatter in `src/content/*.mdx` through `scripts/post-metadata.mjs` / `virtual:post-index`. `feed: true` posts appear in RSS/homepage and get a shared route; `feed: false` + `route: true` posts get only a shared route. Whenever blog content is added, renamed, or materially updated, update the matching frontmatter title/description/date fields and run `pnpm rss` before committing. TSX-only summary pages use metadata-only MDX sidecars and are excluded from the shared post route in `src/routes.ts`. `pnpm build` also regenerates the feed.
