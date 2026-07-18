@@ -8,6 +8,7 @@
 import { createRouter } from "remix/router";
 import { renderWith } from "remix/render-middleware";
 import { createHtmlResponse } from "remix/response/html";
+import { createRedirectResponse } from "remix/response/redirect";
 import { renderToStream } from "remix/ui/server";
 import type { RemixNode } from "remix/ui";
 import type { Platform } from "./platform.ts";
@@ -33,6 +34,7 @@ import { buildRssXml } from "./rss.ts";
 import { buildSitemapXml } from "./sitemap.ts";
 import { resolveClientEntry } from "./client-entries.ts";
 import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
+import { httpCaching } from "./http-caching.ts";
 
 // Hrefs served by dedicated page components rather than the shared post page
 // (mirrors customHrefs in the RR7 src/routes.ts).
@@ -54,7 +56,7 @@ export function createApp(platform: Platform) {
   }) => renderNode(input.node, input.init));
 
   const router = createRouter({
-    middleware: [render],
+    middleware: [httpCaching(platform), render],
     async defaultHandler({ request }) {
       const asset = await platform.assets(request);
       if (asset && asset.status !== 404) {
@@ -65,10 +67,20 @@ export function createApp(platform: Platform) {
         <Document descriptors={notFoundDescriptors}>
           <NotFoundPage />
         </Document>,
-        { status: 404 },
+        { status: 404, headers: { "Cache-Control": "no-store" } },
       );
     },
   });
+
+  // 301 to the canonical form (report summaries and posts end in a slash,
+  // full-report pages don't — matching each page's rel=canonical).
+  const redirectTo =
+    (target: string) =>
+    ({ url }: { url: URL }) =>
+      createRedirectResponse(`${target}${url.search}`, {
+        status: 301,
+        headers: { "Cache-Control": "public, max-age=86400" },
+      });
 
   function page(descriptors: MetaDescriptor[], node: RemixNode) {
     return renderNode(<Document descriptors={descriptors}>{node}</Document>);
@@ -103,11 +115,11 @@ export function createApp(platform: Platform) {
     },
   });
 
-  // Trailing-slash aliases for the fixed pages (the prerendered site serves
-  // /solar-report/ etc. as directory indexes). Phase 4 turns these into
-  // canonical redirects.
-  router.get("/solar-report/", () => page(solarReportDescriptors, <SolarReportPage />));
-  router.get("/nev-mileage/", () => page(nevMileageDescriptors, <NevMileagePage />));
+  // Non-canonical twins of the fixed pages.
+  router.get("/solar-report", redirectTo("/solar-report/"));
+  router.get("/nev-mileage", redirectTo("/nev-mileage/"));
+  router.get("/solar-report/full-report/", redirectTo("/solar-report/full-report"));
+  router.get("/nev-mileage/full-report/", redirectTo("/nev-mileage/full-report"));
 
   // Shared post routes, derived from frontmatter exactly like src/routes.ts.
   for (const post of data.routablePosts) {
@@ -115,14 +127,13 @@ export function createApp(platform: Platform) {
       continue;
     }
 
-    const handler = () =>
+    router.get(`/${post.routePath}/`, () =>
       page(
         postMetaDescriptors(post),
         <PostPage post={post} html={data.postHtml(post)} />,
-      );
-
-    router.get(`/${post.routePath}`, handler);
-    router.get(`/${post.routePath}/`, handler);
+      ),
+    );
+    router.get(`/${post.routePath}`, redirectTo(`/${post.routePath}/`));
   }
 
   return router;

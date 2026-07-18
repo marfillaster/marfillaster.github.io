@@ -1,10 +1,10 @@
 # Remix 3 migration plan
 
-Status: Phases 0–3 done (2026-07-18); Phase 1 spike GO
+Status: Phases 0–4 done (Phase 4: 2026-07-19); Phase 1 spike GO
 (`docs/remix3-spike-report.md`). Phase 0 is live in production; the full Remix
-app (Phases 2–3) is merged and dormant behind dev-only adapters until Phase 5
+app (Phases 2–4) is merged and dormant behind dev-only adapters until Phase 5
 cutover. Proceeding on the pinned beta by explicit decision. Remaining: Phases
-4 (caching/redirects/404/SEO), 5 (cutover), 6 (comments + Reddit mirror).
+5 (cutover), 6 (comments + Reddit mirror).
 Written 2026-07-18 against Remix `3.0.0-beta.5`.
 
 ## Context
@@ -327,7 +327,11 @@ gate on the spike.
 - **Phase 3 — port interactivity** (table above) and merge the analytics API +
   cron into the Remix router.
 - **Phase 4 — caching (version-keyed ETag/304 + edge cache + deploy purge),
-  redirects, 404, SEO parity.**
+  redirects, 404, SEO parity.** Done 2026-07-19: `app/http-caching.ts`
+  middleware, `Platform.waitUntil`, canonical trailing-slash 301s,
+  fingerprinted client assets (`app/assets-manifest.generated.ts` +
+  `_headers`), `scripts/purge-zone.mjs` (unwired until Phase 5),
+  `scripts/seo-parity.mjs` sweep 22/22 clean.
 - **Phase 5 — cutover**: switch the Cloudflare Git integration to
   `wrangler deploy` (plus the Tailwind CLI pass); verify; retire the React
   Router build.

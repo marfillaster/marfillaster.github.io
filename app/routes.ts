@@ -6,13 +6,16 @@
 
 import { get, route } from "remix/routes";
 
+// Paths are the canonical forms (matching each page's rel=canonical): report
+// summaries end in a slash, full-report pages don't. The non-canonical twins
+// 301 to these in app.tsx.
 export const routes = route({
   home: get("/"),
   rss: get("/rss.xml"),
   sitemap: get("/sitemap.xml"),
-  solarReport: get("/solar-report"),
+  solarReport: get("/solar-report/"),
   solarReportFull: get("/solar-report/full-report"),
-  nevMileage: get("/nev-mileage"),
+  nevMileage: get("/nev-mileage/"),
   nevMileageFull: get("/nev-mileage/full-report"),
   // Analytics API (merged from the production worker in Phase 3).
   analyticsPageviews: get("/api/analytics/pageviews"),
