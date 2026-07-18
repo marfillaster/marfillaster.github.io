@@ -67,10 +67,18 @@ export function httpCaching(platform: Platform): Middleware {
     }
 
     // Query strings never change a document, so the cache keys on pathname
-    // only — no cache-fill from ?utm_* variants.
+    // only — no cache-fill from ?utm_* variants. The versionId rides along so
+    // caches.default can never serve a previous deploy's HTML (the zone purge
+    // in cf:deploy clears the outer edge cache; this covers the inner layer
+    // even if that purge fails).
     const cache = platform.httpCache;
     const cacheKey = cache
-      ? new Request(new URL(pathname, context.url.origin))
+      ? new Request(
+          new URL(
+            `${pathname}?rmxv=${encodeURIComponent(platform.versionId)}`,
+            context.url.origin,
+          ),
+        )
       : null;
     if (cache && cacheKey) {
       const hit = await cache.match(cacheKey);
