@@ -306,7 +306,12 @@ gate on the spike.
   app bundled by Wrangler, one SSR route + one `clientEntry`, deployed to a
   scratch Worker, with the same app code also running under the Node adapter.
   Verifies the beta runs on Workers at all, pins the JSX-runtime/bundling
-  configuration, and measures bundle size with unified + Shiki included. If it fails, hold at Phase 0 until Remix
+  configuration, and measures bundle size with unified + Shiki included.
+  **Done 2026-07-18: GO** — see `docs/remix3-spike-report.md` (no
+  `nodejs_compat` needed, byte-identical Node/workerd output, hydration
+  verified, worker bundle ~212 KiB gzip incl. unified+Shiki,
+  `jsxImportSource: "remix/ui"`, precompiled client entries via Workers
+  Assets). If it fails, hold at Phase 0 until Remix
   ships Workers support or stable 3.0.
 - **Phase 2 — port the app shell and routes**: define the `Platform` interface
   and both adapters (`server/worker.ts`, `server/node.ts`), then the document
