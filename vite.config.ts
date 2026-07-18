@@ -1,4 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import YAML from "yaml";
 import { renderMarkdown } from "./src/lib/render-markdown";
@@ -21,6 +22,7 @@ function frontmatterHeadingPrefix(source: string): string | undefined {
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     {
       name: "post-index-frontmatter",
       resolveId(id) {
