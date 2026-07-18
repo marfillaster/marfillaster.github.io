@@ -130,7 +130,12 @@ anything workerd- or Node-specific:
     no-op on Node, where freshness is the point)
   - `versionId: string` — deploy version for ETags (`CF_VERSION_METADATA.id` on
     workerd; git SHA or `Date.now()` on Node)
-  - `secrets` — GA service account, resync token (bindings vs `process.env`)
+  - `comments: CommentsStore` — threaded comments (D1 on workerd; `node:sqlite`
+    on Node — same SQLite semantics on both sides)
+  - `challenge: { verify(token, ip) }` — bot check (Turnstile `siteverify` on
+    workerd; auto-pass stub on Node dev)
+  - `secrets` — GA service account, resync token, Turnstile secret (bindings vs
+    `process.env`)
 - **`server/worker.ts` — workerd adapter.** Maps `Env` bindings into `Platform`,
   exports `fetch` and `scheduled`. This is the only file that knows about
   Cloudflare. Bundled by Wrangler at deploy.
@@ -202,7 +207,7 @@ Each is small and self-contained; none needs React:
 |---|---|---|
 | Theme toggle | `useTheme` in `doc.tsx` | `clientEntry()` component; same localStorage + `matchMedia` + `.dark`-class logic |
 | Page stats | `page-stats.tsx` fetch | client entry fetching `/api/analytics/pageviews` (endpoint unchanged) |
-| Giscus | `comments.tsx` | client entry injecting the script; MutationObserver theme sync unchanged |
+| Giscus | `comments.tsx` | client entry injecting the script — interim only; replaced by first-party threaded comments (section 6) |
 | Code copy | `code-snippet.tsx` | progressive-enhancement script over Shiki's server-rendered `<pre>` |
 | Share/copy link | `share.tsx` | client entry (clipboard API) |
 | Variant tabs | `VariantTabs` in `src/lib/post-route.tsx` | client entry over server-rendered panels |
@@ -222,7 +227,66 @@ and keep working.
 - `rss.xml` and `sitemap.xml` are served by the router (section 2); `robots.txt`
   and the GA gtag snippet are unchanged.
 
-## 6. Sequencing
+## 6. First-party threaded comments (replaces Giscus)
+
+Once the Worker is a real request/response app, comments become a route rather
+than an embedded third-party widget:
+
+- **Reddit-style threading.** Comments form a tree: `parent_id` adjacency rows
+  in **D1** (SQLite — the right store for relational thread data; KV is not),
+  assembled server-side into nested HTML. Depth caps at 6 levels; deeper replies
+  flatten behind a "continue this thread" permalink, the same device Reddit
+  uses. Root comments sort newest-first, replies chronologically. Collapsible
+  subtrees and per-comment permalinks are progressive enhancement over
+  server-rendered `<details>`-based markup, so threads read fine with JS off.
+  Voting is out of scope initially — "reddit-style" here means the nested,
+  collapsible thread model; scores later are a column and a sort change, not a
+  redesign.
+- **No accounts.** Display name + body. Bodies are markdown-lite rendered
+  through the same unified pipeline with `rehype-sanitize` (strict schema:
+  links, code, emphasis; no images or raw HTML).
+- **Cloudflare Turnstile gates every write.** The form embeds the Turnstile
+  widget; the POST handler verifies the token server-side (`siteverify` with the
+  client IP) before touching D1. Honeypot field and a per-IP KV rate limit back
+  it up.
+- **Remix `form()` pairs the GET and POST** at the same URL — the exact pattern
+  the framework is designed around, and the first place the blog uses Remix's
+  mutation model rather than just its rendering.
+- **The immutable post cache stays immutable.** Post HTML remains version-keyed;
+  comments live at `GET /comments/<post-slug>` — a server-rendered fragment with
+  its own short-TTL cache entry that the POST handler purges on successful
+  write. A client entry injects the fragment into the post page; with JS off,
+  the same handler serves it as a standalone page linked from the post.
+- **Moderation**: admin bearer-token endpoints (same pattern as
+  `/api/analytics/resync`) for hide/delete; rows store an IP hash + timestamp
+  for abuse tracing, nothing else.
+- **Giscus transition**: Giscus stays through cutover; a one-time script imports
+  the existing GitHub Discussions threads into D1 (author, body, thread
+  structure), then the widget goes away.
+
+### Mirrored Reddit discussions
+
+When an article has been shared on Reddit, the post page surfaces the actual
+Reddit thread alongside first-party comments:
+
+- **Discovery**: `reddit.com/api/info.json?url=<article-url>` lists every
+  submission linking to the article; each submission's `<permalink>.json`
+  returns its full comment tree. Both are plain fetches from the Worker.
+- **Auth**: Reddit throttles anonymous datacenter traffic, so the Worker uses a
+  registered Reddit app with the client-credentials OAuth flow
+  (`oauth.reddit.com`, credentials in `Platform.secrets`) — reliable and well
+  within free rate limits at blog traffic. If the fetch fails, the section
+  simply doesn't render.
+- **Rendering**: read-only. The same server-side thread renderer that lays out
+  first-party comments consumes the Reddit tree (score-sorted, as Reddit
+  presents it), with each comment deep-linking to Reddit and a "reply on
+  Reddit" link on the thread header. One renderer, two sources.
+- **Caching**: mirrored threads are third-party data, not version-keyed —
+  cached in the Cache API with a 30-minute TTL, refreshed lazily on request.
+  Discovery results (which threads exist per article) cache for 24 hours in KV,
+  since new shares are rare and a miss only delays the section's appearance.
+
+## 7. Sequencing
 
 Phases 0–1 are low-risk and worth doing before Remix 3 stabilizes; phases 2+
 gate on the spike.
@@ -253,11 +317,14 @@ gate on the spike.
 - **Phase 5 — cutover**: switch the Cloudflare Git integration to
   `wrangler deploy` (plus the Tailwind CLI pass); verify; retire the React
   Router build.
+- **Phase 6 — comments and discussions** (post-cutover; new functionality, not
+  porting): D1 schema + thread renderer, Turnstile-gated form, moderation
+  endpoints, Giscus import and removal, mirrored Reddit discussions.
 
 **Timing:** execute Phase 0 whenever convenient; hold Phases 1+ until Remix 3
 reaches RC/stable unless the spike is done purely to de-risk.
 
-## 7. Risks
+## 8. Risks
 
 - **Beta churn** — pin exact beta versions; expect API breakage before 3.0
   stable; re-verify the spike at RC.
@@ -278,8 +345,16 @@ reaches RC/stable unless the spike is done purely to de-risk.
   Rationale-heavy) side by side during Phase 0.
 - **Deploy pipeline change** — the Cloudflare Git integration must run
   `wrangler deploy`; test on a preview Worker before switching production.
+- **First-party comments carry an ongoing moderation duty** — Turnstile +
+  honeypot + rate limits stop bots, not motivated humans. The hide/delete
+  endpoints and IP-hash tracing are the minimum; expect occasional manual
+  cleanup. D1 needs a periodic export (`wrangler d1 export` on the cron) so
+  comment data has a backup outside Cloudflare.
+- **The Reddit mirror depends on a third-party API** — Reddit has changed API
+  terms abruptly before. The feature degrades to absence when fetches fail, and
+  nothing else depends on it.
 
-## 8. Verification (for the eventual implementation)
+## 9. Verification (for the eventual implementation)
 
 - **HTML parity diff**: a script fetches every route from the old prerendered
   build and the new SSR Worker (`wrangler dev`), normalizes, and diffs
@@ -291,3 +366,10 @@ reaches RC/stable unless the spike is done purely to de-risk.
   changes the ETag and serves fresh HTML.
 - `/rss.xml` byte-identical to the current generated file; sitemap URLs
   unchanged; Lighthouse/SEO spot-check on two posts.
+- Comments (Phase 6): post → verify Turnstile rejection without a token and
+  acceptance with one; reply nesting renders at depth 1–6 and flattens past the
+  cap; fragment cache purges on write (new comment visible immediately, post
+  HTML ETag unchanged); sanitize check — a comment containing `<script>` and an
+  image renders inert; JS-off page shows the full thread and form.
+- Reddit mirror: article with a known share shows the thread score-sorted;
+  unknown article shows nothing; discovery cache hit rate visible in logs.
