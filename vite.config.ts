@@ -1,4 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
+import tailwindcss from "@tailwindcss/vite";
 import mdx from "@mdx-js/rollup";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
@@ -13,6 +14,7 @@ const resolvedVirtualPostIndexId = `\0${virtualPostIndexId}`;
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     {
       name: "post-index-frontmatter",
       resolveId(id) {
