@@ -1,6 +1,11 @@
 # Remix 3 migration plan
 
-Status: planned, not started. Written 2026-07-18 against Remix `3.0.0-beta.5`.
+Status: Phases 0–3 done (2026-07-18); Phase 1 spike GO
+(`docs/remix3-spike-report.md`). Phase 0 is live in production; the full Remix
+app (Phases 2–3) is merged and dormant behind dev-only adapters until Phase 5
+cutover. Proceeding on the pinned beta by explicit decision. Remaining: Phases
+4 (caching/redirects/404/SEO), 5 (cutover), 6 (comments + Reddit mirror).
+Written 2026-07-18 against Remix `3.0.0-beta.5`.
 
 ## Context
 
