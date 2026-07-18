@@ -1,15 +1,24 @@
+// Production worker `blog` (blog.homestack.space) — the Remix 3 app, live SSR
+// with version-keyed edge caching (Phase 5 cutover; docs/remix3-migration-plan.md).
+// Deployed by the Cloudflare Git integration on push to main:
+//   build:  pnpm cf:build   (content module + fingerprinted assets)
+//   deploy: pnpm cf:deploy  (wrangler deploy + zone purge)
+// Secrets GA_SERVICE_ACCOUNT_KEY + ADMIN_RESYNC_TOKEN live on the worker and
+// persist across deploys (`wrangler secret put`).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "blog",
-  "main": "./workers/app.ts",
-  "compatibility_date": "2026-05-26",
+  "main": "workers/remix-app.ts",
+  "compatibility_date": "2025-07-01",
+  // No nodejs_compat — the rendering path is Web-API only (see
+  // docs/remix3-spike-report.md).
   "assets": {
-    "directory": "./build/client",
-    "not_found_handling": "404-page",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "directory": "./.remix-assets",
+    "not_found_handling": "none"
   },
-  "vars": {
-    "GA_PROPERTY_ID": "535474441"
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
   },
   "kv_namespaces": [
     {
@@ -17,7 +26,17 @@
       "id": "90321c43ce5e4817a332c0c639c474a2"
     }
   ],
+  "vars": {
+    "GA_PROPERTY_ID": "535474441"
+  },
   "triggers": {
     "crons": ["0 18 * * *"]
-  }
+  },
+  "rules": [
+    {
+      "type": "Text",
+      "globs": ["**/*.md", "**/*.mdx"],
+      "fallthrough": true
+    }
+  ]
 }
