@@ -12,3 +12,6 @@ __pycache__/
 .dev.vars
 .wrangler/
 .remix-assets/
+
+# Working artifacts (handoffs, drafts) — never committed
+/tmp/
