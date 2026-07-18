@@ -1,0 +1,146 @@
+// -----------------------------------------------------------------------------
+// createApp(platform): the whole application as a fetch router. The render
+// middleware (renderWith) installs context.render, which turns a document
+// tree into an HTML Response — the pattern the framework's types are built
+// around (see docs/remix3-spike-report.md).
+// -----------------------------------------------------------------------------
+
+import { createRouter } from "remix/router";
+import { renderWith } from "remix/render-middleware";
+import { createHtmlResponse } from "remix/response/html";
+import { renderToString } from "remix/ui/server";
+import type { RemixNode } from "remix/ui";
+import type { Platform } from "./platform.ts";
+import { createAppData } from "./post-index.ts";
+import { routes } from "./routes.ts";
+import { Document } from "./document.tsx";
+import type { MetaDescriptor } from "./head.ts";
+import { HomePage, homeDescriptors } from "./pages/home.tsx";
+import { PostPage } from "./pages/post.tsx";
+import { NevMileagePage, nevMileageDescriptors } from "./pages/nev-mileage.tsx";
+import {
+  NevMileageFullPage,
+  nevMileageFullDescriptors,
+} from "./pages/nev-mileage-full.tsx";
+import { SolarReportPage, solarReportDescriptors } from "./pages/solar-report.tsx";
+import {
+  SolarReportFullPage,
+  solarReportFullDescriptors,
+} from "./pages/solar-report-full.tsx";
+import { SiteShell } from "./components.tsx";
+import { postMetaDescriptors } from "./site.ts";
+import { buildRssXml } from "./rss.ts";
+import { buildSitemapXml } from "./sitemap.ts";
+
+// Hrefs served by dedicated page components rather than the shared post page
+// (mirrors customHrefs in the RR7 src/routes.ts).
+const customHrefs = new Set(["/nev-mileage/", "/solar-report/"]);
+
+export function createApp(platform: Platform) {
+  const data = createAppData(platform);
+
+  const render = renderWith(() => async (input: {
+    node: RemixNode;
+    init?: ResponseInit;
+  }) => createHtmlResponse(await renderToString(input.node), input.init));
+
+  const router = createRouter({
+    middleware: [render],
+    async defaultHandler({ request }) {
+      const asset = await platform.assets(request);
+      if (asset && asset.status !== 404) {
+        return asset;
+      }
+
+      const html = await renderToString(
+        <Document descriptors={notFoundDescriptors}>
+          <NotFoundPage />
+        </Document>,
+      );
+      return createHtmlResponse(html, { status: 404 });
+    },
+  });
+
+  function page(descriptors: MetaDescriptor[], node: RemixNode) {
+    return renderToString(
+      <Document descriptors={descriptors}>{node}</Document>,
+    ).then((html) => createHtmlResponse(html));
+  }
+
+  router.map(routes, {
+    actions: {
+      home: () => page(homeDescriptors, <HomePage index={data.index} />),
+      rss: () =>
+        new Response(buildRssXml(data.feedItems), {
+          headers: { "Content-Type": "application/rss+xml; charset=utf-8" },
+        }),
+      sitemap: () =>
+        new Response(buildSitemapXml(data.routablePosts), {
+          headers: { "Content-Type": "application/xml; charset=utf-8" },
+        }),
+      solarReport: () => page(solarReportDescriptors, <SolarReportPage />),
+      solarReportFull: () =>
+        page(
+          solarReportFullDescriptors,
+          <SolarReportFullPage html={data.contentHtml("full-report.md")} />,
+        ),
+      nevMileage: () => page(nevMileageDescriptors, <NevMileagePage />),
+      nevMileageFull: () =>
+        page(
+          nevMileageFullDescriptors,
+          <NevMileageFullPage html={data.contentHtml("nev-full-report.md")} />,
+        ),
+    },
+  });
+
+  // Trailing-slash aliases for the fixed pages (the prerendered site serves
+  // /solar-report/ etc. as directory indexes). Phase 4 turns these into
+  // canonical redirects.
+  router.get("/solar-report/", () => page(solarReportDescriptors, <SolarReportPage />));
+  router.get("/nev-mileage/", () => page(nevMileageDescriptors, <NevMileagePage />));
+
+  // Shared post routes, derived from frontmatter exactly like src/routes.ts.
+  for (const post of data.routablePosts) {
+    if (customHrefs.has(post.href)) {
+      continue;
+    }
+
+    const handler = () =>
+      page(
+        postMetaDescriptors(post),
+        <PostPage post={post} html={data.postHtml(post)} />,
+      );
+
+    router.get(`/${post.routePath}`, handler);
+    router.get(`/${post.routePath}/`, handler);
+  }
+
+  return router;
+}
+
+const notFoundDescriptors: MetaDescriptor[] = [
+  { title: "Page not found · marfillaster · notes" },
+  { name: "robots", content: "noindex" },
+];
+
+function NotFoundPage() {
+  return () => (
+    <SiteShell>
+      <div className="container max-w-[48rem] py-16 leading-relaxed">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          404
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+          Page not found
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          The page you're looking for doesn't exist.{" "}
+          <a href="/" className="underline underline-offset-4 hover:text-primary">
+            Back to the homepage
+          </a>
+          .
+        </p>
+      </div>
+    </SiteShell>
+  );
+}

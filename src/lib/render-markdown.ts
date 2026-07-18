@@ -25,7 +25,7 @@ import themeOneDark from "shiki/themes/one-dark-pro.mjs";
 import themeOneLight from "shiki/themes/one-light.mjs";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
-import { SERIES } from "./series";
+import { SERIES } from "./series.ts";
 
 export type RenderOptions = {
   headingPrefix?: string;
