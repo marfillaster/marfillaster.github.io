@@ -19,9 +19,10 @@ What Remix 3 is (from <https://guides.remix.run/start-here/>):
   rendering via `renderToStream()`/`renderToString()`; interactivity via
   `clientEntry()`, `on(...)`, and `handle.update()`. React libraries do not carry
   over.
-- **No bundler** (a runtime TS loader for Node plus an asset server), **no MDX
-  support**, **no prerender/SSG**, and no published migration path from React
-  Router 7.
+- **Runtime-focused, no bundler.** In Node, `remix/node-tsx` runs TS/JSX source
+  directly; client assets are compiled **on demand** by its asset server
+  (`createAssetServer()`), not by an upfront build. There is no MDX support, no
+  prerender/SSG, and no published migration path from React Router 7.
 
 What makes the migration tractable here:
 
@@ -36,83 +37,159 @@ What makes the migration tractable here:
   Web-API-only (fetch, Web Crypto, KV, Cache API) and ports into a Remix 3 router
   unchanged in substance.
 
+## 0. The no-build principle, and what is irreducible on Workers
+
+The plan follows Remix 3's runtime-first philosophy: **the Worker is the
+renderer**. Content ships as source in the deploy artifact and everything —
+post HTML, RSS, sitemap, ETags — is produced on demand and edge-cached. There is
+no content build, no generated modules, no precomputed manifests.
+
+Two ahead-of-time steps remain, and they are platform constraints rather than
+framework choices:
+
+1. **Wrangler's esbuild bundling.** workerd executes a pre-bundled JS artifact;
+   it has no filesystem and no loader hooks, so `remix/node-tsx` and the
+   on-demand asset server cannot run there. Any framework deployed to Workers
+   goes through this step. It is one `wrangler deploy` (or `wrangler dev`, which
+   bundles transparently on save) — there is no separate build pipeline to
+   maintain. A fully build-free Remix 3 process needs a long-running Node server
+   with source on disk; the runtime-decoupled layering below keeps exactly that
+   available as the **local dev loop and a portability escape hatch** (a VPS
+   could host the same app), while production stays on Cloudflare (KV, cron,
+   edge cache).
+2. **One Tailwind CSS pass.** Tailwind's class scanning is ahead-of-time by
+   design in every deployment model. It is a single CLI invocation in the deploy
+   command. `typeset.css` itself is a **static checked-in file** — generated once
+   in the typeset builder, not per deploy.
+
+Everything else the earlier draft of this plan placed at build time (markdown
+compilation, Shiki highlighting, ETag computation, RSS generation) moves to
+runtime below.
+
 ## 1. Target architecture
 
 One Cloudflare Worker replaces the current static-assets-plus-API Worker:
 
 - **Remix 3 router as the Worker fetch handler.** `app/routes.ts` defines typed
-  routes: the homepage, every routable post (generated from `readRoutablePosts()`
-  in `scripts/post-metadata.mjs`, exactly as `src/routes.ts` does today), the four
-  report routes, and the two API routes (`/api/analytics/pageviews`,
+  routes: the homepage, every routable post (derived from the same frontmatter
+  logic as today's `src/routes.ts`), the four report routes, `/rss.xml`,
+  `/sitemap.xml`, and the two API routes (`/api/analytics/pageviews`,
   `/api/analytics/resync`). The `scheduled` cron handler stays beside the fetch
   handler.
-- **Wrangler/esbuild bundles the Worker.** Remix 3's `remix/node-tsx` loader is
-  Node-only; on workerd the standard Wrangler build compiles TS/JSX instead, with
-  `jsxImportSource` pointed at Remix's JSX runtime (exact module name pinned
-  during the Phase 1 spike).
-- **Static assets stay on Workers Assets** (`build/client`): images, fonts,
-  `rss.xml`, `robots.txt`, `sitemap.xml`, compiled CSS, and the compiled
-  client-entry JS. Unmatched routes fall through to a Remix-rendered 404 — the
-  `__spa-fallback.html → 404.html` copy in `react-router.config.ts` goes away.
+- **Content ships as source.** `src/content/*.mdx` files are included in the
+  bundle as text modules (Wrangler `rules`, `type: "Text"`). The frontmatter
+  parsing, validation, and TOC extraction in `scripts/post-metadata.mjs` run
+  in-Worker over those modules at startup (plain JS + `yaml`, already
+  framework-free) instead of at build time.
+- **Workers Assets carries only true static files**: images, fonts,
+  `robots.txt`, the Tailwind CSS output, `typeset.css`, and the compiled
+  client-entry JS. `rss.xml` and `sitemap.xml` become rendered routes (below),
+  so `scripts/generate-rss.mjs` and the `pnpm rss` build step are retired.
+  Unmatched routes get a Remix-rendered 404 — the `__spa-fallback.html →
+  404.html` copy in `react-router.config.ts` goes away.
 - **Aggressive CDN caching with ETag revalidation.** Content only changes on
-  deploy, so caching is keyed to the build:
-  - **HTML routes**: each route's ETag is computed at build time as a hash of
-    (build ID + compiled route content) and shipped in the route manifest. The
-    Worker checks `If-None-Match` first and answers `304 Not Modified` without
-    rendering. Response headers: `ETag` plus
+  deploy, so caching keys on the deploy version — obtained **at runtime** from
+  the version-metadata binding (`env.CF_VERSION_METADATA.id`), so no build step
+  computes anything:
+  - **HTML routes**: `ETag: W/"<version-id>:<path>"`. The Worker checks
+    `If-None-Match` first and answers `304 Not Modified` without rendering —
+    the ETag derives from the version binding, not from rendered output.
+    Response headers: `ETag` plus
     `Cache-Control: public, max-age=0, must-revalidate, s-maxage=31536000` —
     browsers always revalidate (cheap 304s), the Cloudflare edge caches
     indefinitely. The fetch handler backs this with the Cache API
-    (`caches.default`) keyed on URL, so a page renders once per colo per deploy.
-  - **Invalidation on deploy**: new build ID → new ETags; the deploy step purges
-    the zone cache via the Cloudflare API, so stale edge copies die immediately
-    rather than waiting out `s-maxage`.
-  - **Static assets**: compiled CSS/JS are content-fingerprinted →
-    `Cache-Control: public, max-age=31536000, immutable`. Non-fingerprinted files
-    (`rss.xml`, `sitemap.xml`, images) get modest `max-age` plus the ETags
-    Workers Assets already emits.
+    (`caches.default`), so a route renders once per colo per deploy.
+  - **Invalidation on deploy**: new version ID → new ETags; the deploy step
+    purges the zone cache via the Cloudflare API, so stale edge copies die
+    immediately rather than waiting out `s-maxage`.
+  - **Static assets**: fingerprinted CSS/JS →
+    `Cache-Control: public, max-age=31536000, immutable`. Non-fingerprinted
+    files (images) get modest `max-age` plus the ETags Workers Assets already
+    emits.
   - **API responses** (`/api/analytics/pageviews`) keep their existing short-TTL
-    Cache API pattern — live data, not build-keyed.
+    Cache API pattern — live data, not version-keyed.
 
-## 2. Content pipeline (replaces MDX-as-React)
+### Runtime decoupling: application layer vs runtime adapters
 
-Authoring stays in `src/content/*.mdx` with unchanged frontmatter;
-`scripts/post-metadata.mjs` remains the single source of truth (plain `.mjs` +
-`yaml`, already framework-free, including TOC extraction).
+Remix 3 describes an app as "a fetch handler behind a runtime adapter"; this
+plan enforces that as a hard layering rule so the application never imports
+anything workerd- or Node-specific:
 
-- **Build-time markdown → HTML** via unified (remark-parse, remark-frontmatter,
-  remark-gfm, rehype-slug — the same plugins used today), emitting one HTML
-  fragment per post (and per heading-prefixed variant flavor) into a generated
-  module the Worker imports. Post routes inject the fragment into the Remix
-  document component.
+- **`app/` — pure application.** Router, routes, document components, the
+  markdown renderer, post index, analytics handlers. Depends only on Web APIs
+  (Request/Response, URL, Web Crypto, streams) plus a small injected `Platform`
+  interface. No `Env` bindings, no `node:` imports, no `import.meta`
+  filesystem tricks.
+- **`Platform` interface — the ports.** Everything runtime-specific the app
+  needs, defined by the app and implemented by adapters:
+  - `content(): Map<path, string>` — post source (text modules on workerd; `fs`
+    reads on Node)
+  - `views: { get(path), put(path, n) }` — pageview store (KV on workerd;
+    in-memory or a JSON file on Node)
+  - `cache: CacheStorage | null` — edge cache (`caches.default` on workerd;
+    no-op on Node, where freshness is the point)
+  - `versionId: string` — deploy version for ETags (`CF_VERSION_METADATA.id` on
+    workerd; git SHA or `Date.now()` on Node)
+  - `secrets` — GA service account, resync token (bindings vs `process.env`)
+- **`server/worker.ts` — workerd adapter.** Maps `Env` bindings into `Platform`,
+  exports `fetch` and `scheduled`. This is the only file that knows about
+  Cloudflare. Bundled by Wrangler at deploy.
+- **`server/node.ts` — Node adapter.** `node --import remix/node-tsx server.ts`:
+  the genuinely no-build path — source on disk, instant restart, no Wrangler in
+  the loop. Serves static assets from disk. Used for local dev and available as
+  a self-hosting fallback (e.g. a VPS) if Cloudflare ever stops fitting.
+- **Dev workflow**: day-to-day iteration on the Node adapter (no build at all);
+  `wrangler dev` before deploys to exercise the real bindings; `remix test`
+  drives the app layer directly in Node with a stub `Platform` — no server, no
+  bundler.
+
+## 2. Content pipeline (runtime rendering, replaces MDX-as-React)
+
+Authoring stays in `src/content/*.mdx` with unchanged frontmatter. Rendering
+happens **in the Worker, on first request per route per deploy**, then lives in
+the edge cache:
+
+- **Markdown → HTML at runtime** via unified (remark-parse, remark-frontmatter,
+  remark-gfm, rehype-slug — the same plugins used today), bundled into the
+  Worker. The renderer is a pure function (markdown string → HTML string) with
+  no I/O, so it runs identically in the Worker, in tests, and — during the
+  transition — at build time under the current React Router stack (see
+  Phase 0).
 - **`<Rationale>` and `<SeriesNav>`** — the only components in prose, both
-  static — are handled by a small rehype step that expands those elements to
-  their static HTML. Rationale is a styled aside; SeriesNav renders from the
-  series table currently in `doc.tsx`, which moves to a data module.
-- **Syntax highlighting moves to build time with Shiki**, replacing
-  `react-syntax-highlighter` entirely — no client-side highlighting JS, and dual
-  light/dark themes via Shiki's CSS-variable theme matching the existing `.dark`
-  class toggle. The `rehype-mdx-code-props` `title` behavior is re-implemented as
-  a rehype handler for fence meta.
+  static — are expanded by a small rehype step. Rationale is a styled aside;
+  SeriesNav renders from the series table currently in `doc.tsx`, which moves to
+  a data module.
+- **Syntax highlighting via Shiki with its JavaScript regex engine** (no WASM,
+  workerd-safe), bundled with only the three languages registered today (bash,
+  ini, javascript) to keep the Worker artifact small. This replaces
+  `react-syntax-highlighter` entirely; dual light/dark themes via Shiki's
+  CSS-variable theme matching the existing `.dark` class toggle. The
+  `rehype-mdx-code-props` `title` behavior is re-implemented as a rehype handler
+  for fence meta.
+- **RSS and sitemap become routes** rendered from the same in-Worker post index,
+  cached with the same version-keyed strategy. Output must stay byte-compatible
+  with today's `public/rss.xml` (same +0800 date formatting).
+- Heading-prefixed variant flavors (VyOS/CHR) render on demand per variant route,
+  passing the prefix into the rehype-slug step.
 - This drops `@mdx-js/*`, `react-syntax-highlighter`, and the per-element React
   styling — the largest React coupling in the repo.
-- Why compile to HTML rather than compile MDX to Remix JSX: MDX emits
+- Why render to HTML rather than compile MDX to Remix JSX: MDX emits
   props-taking function components, Remix render functions take zero arguments,
-  and only two static components are used in prose — build-time HTML avoids
-  betting on beta JSX-interop semantics for no functional gain.
+  and only two static components are used in prose — direct HTML rendering
+  avoids betting on beta JSX-interop semantics for no functional gain.
 
 ## 3. Typography: shadcn typeset + Tailwind v4
 
-- Generate `typeset.css` from the typeset builder using the site's existing
-  `sans`/`serif` stacks and teal-primary tokens; import it after Tailwind; wrap
-  post HTML in `<article class="typeset typeset-post">`. This replaces the entire
+- Generate `typeset.css` **once** from the typeset builder using the site's
+  existing `sans`/`serif` stacks and teal-primary tokens, and check it in as a
+  static asset; import it after Tailwind; wrap post HTML in
+  `<article class="typeset typeset-post">`. This replaces the entire
   `mdxComponents`/`mdxComponentsWithHeadingPrefix` styling map in `doc.tsx`.
 - **Tailwind v3 → v4** as part of the move: typeset and current shadcn tokens
-  target v4, and v4's standalone CLI needs no Vite/PostCSS — which fits Remix 3's
-  no-bundler model. Migrate the HSL-triplet tokens in `src/styles.css` to v4
-  `@theme` full-color tokens; keep the `.dark` class strategy. Site-chrome
-  components keep their utility classes; the CLI scans source for class names at
-  build time.
+  target v4, and v4's standalone CLI needs no Vite/PostCSS. Its single CLI pass
+  is one of the two irreducible ahead-of-time steps (section 0). Migrate the
+  HSL-triplet tokens in `src/styles.css` to v4 `@theme` full-color tokens; keep
+  the `.dark` class strategy.
 - Tune typeset's three control variables (`--typeset-size`, `--typeset-leading`,
   `--typeset-flow`) to match the current reading measure (`maxWidth: 70ch`,
   1180px container).
@@ -142,35 +219,40 @@ and keep working.
   `postMetaDescriptors`/`articleStructuredData`/`breadcrumbStructuredData` in
   `src/lib/post-route.tsx` — the data-building logic moves verbatim; only the
   React Router meta-array wrapper changes.
-- `scripts/generate-rss.mjs`, `sitemap.xml`, `robots.txt`, and the GA gtag
-  snippet are unchanged.
+- `rss.xml` and `sitemap.xml` are served by the router (section 2); `robots.txt`
+  and the GA gtag snippet are unchanged.
 
 ## 6. Sequencing
 
 Phases 0–1 are low-risk and worth doing before Remix 3 stabilizes; phases 2+
 gate on the spike.
 
-- **Phase 0 — de-React the content pipeline (on the current stack).** Build the
-  unified+Shiki markdown→HTML pipeline and swap the post route to render
-  compiled HTML. Adopt Tailwind v4 + typeset, deleting the `mdxComponents` map.
-  The blog still ships on React Router 7, but the content layer becomes
-  framework-neutral. Independently shippable and valuable even if Remix 3 is
-  never adopted.
+- **Phase 0 — extract a framework-neutral renderer (on the current stack).**
+  Build the unified+Shiki renderer as a pure function and call it from the
+  existing build under React Router 7 (prerender keeps working unchanged).
+  Adopt Tailwind v4 + typeset, deleting the `mdxComponents` map. The same
+  renderer function later moves into the Worker unmodified — only the call site
+  changes from build time to request time. Independently shippable and valuable
+  even if Remix 3 is never adopted.
 - **Phase 1 — spike: Remix 3 beta on workerd (go/no-go gate).** Minimal Remix 3
   app bundled by Wrangler, one SSR route + one `clientEntry`, deployed to a
-  scratch Worker. Verifies the beta runs on Workers at all, and pins the
-  JSX-runtime/bundling configuration. If it fails, hold at Phase 0 until Remix
+  scratch Worker, with the same app code also running under the Node adapter.
+  Verifies the beta runs on Workers at all, pins the JSX-runtime/bundling
+  configuration, and measures bundle size with unified + Shiki included. If it fails, hold at Phase 0 until Remix
   ships Workers support or stable 3.0.
-- **Phase 2 — port the app shell and routes**: document component, `SiteShell`,
-  homepage sections, post routes consuming the Phase 0 pipeline, report routes
-  (static tables — mechanical JSX conversion).
+- **Phase 2 — port the app shell and routes**: define the `Platform` interface
+  and both adapters (`server/worker.ts`, `server/node.ts`), then the document
+  component, `SiteShell`, homepage sections, post routes calling the Phase 0
+  renderer at request time, report routes (static tables — mechanical JSX
+  conversion), RSS/sitemap routes. Day-to-day porting happens on the no-build
+  Node adapter.
 - **Phase 3 — port interactivity** (table above) and merge the analytics API +
   cron into the Remix router.
-- **Phase 4 — caching (ETag/304 + edge cache + deploy purge), redirects, 404,
-  SEO parity.**
-- **Phase 5 — cutover**: switch the Cloudflare Git integration's build/deploy
-  command to the new build + `wrangler deploy`; verify; retire the React Router
-  build.
+- **Phase 4 — caching (version-keyed ETag/304 + edge cache + deploy purge),
+  redirects, 404, SEO parity.**
+- **Phase 5 — cutover**: switch the Cloudflare Git integration to
+  `wrangler deploy` (plus the Tailwind CLI pass); verify; retire the React
+  Router build.
 
 **Timing:** execute Phase 0 whenever convenient; hold Phases 1+ until Remix 3
 reaches RC/stable unless the spike is done purely to de-risk.
@@ -181,13 +263,21 @@ reaches RC/stable unless the spike is done purely to de-risk.
   stable; re-verify the spike at RC.
 - **Remix-on-workerd is undocumented territory** — the Phase 1 gate exists for
   this; the guides only demonstrate Node.
+- **Worker bundle size** — unified + Shiki grammars + all post source now live
+  in the Worker artifact. With three grammars and the JS regex engine this
+  should sit well under the 10 MB (gzipped 3 MB) Workers limits, but measure in
+  the Phase 1 spike.
+- **First-request render latency** — each route renders once per colo per
+  deploy; subsequent requests are edge hits. Acceptable at blog traffic levels;
+  a post-deploy warm-up fetch of the top routes is an easy option if it ever
+  matters.
 - **SSR replaces free static serving** — mitigated by the edge caching above;
   the Worker already runs KV + cron for analytics.
 - **Typeset visual regression risk** — the hand-tuned per-element styles are
   replaced wholesale; compare representative posts (code-heavy, table-heavy,
   Rationale-heavy) side by side during Phase 0.
-- **Deploy pipeline change** — the Cloudflare Git integration must run the new
-  build command; test on a preview Worker before switching production.
+- **Deploy pipeline change** — the Cloudflare Git integration must run
+  `wrangler deploy`; test on a preview Worker before switching production.
 
 ## 8. Verification (for the eventual implementation)
 
@@ -199,5 +289,5 @@ reaches RC/stable unless the spike is done purely to de-risk.
 - Caching behavior: first request renders (MISS + `ETag`), repeat request is an
   edge HIT, `curl -H 'If-None-Match: <etag>'` returns 304, and a redeploy
   changes the ETag and serves fresh HTML.
-- `rss.xml` byte-identical; sitemap URLs unchanged; Lighthouse/SEO spot-check on
-  two posts.
+- `/rss.xml` byte-identical to the current generated file; sitemap URLs
+  unchanged; Lighthouse/SEO spot-check on two posts.
