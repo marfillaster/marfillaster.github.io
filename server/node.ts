@@ -86,10 +86,36 @@ async function serveAsset(request: Request): Promise<Response | null> {
   });
 }
 
+// In-memory page-view store. Unset paths get a stable pseudo-random count so
+// dev pages show plausible stats without credentials or state.
+function pseudoViews(path: string): number {
+  let hash = 0;
+  for (const char of path) {
+    hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  }
+  return 40 + (Math.abs(hash) % 860);
+}
+
+const viewsStore = new Map<string, number>();
+
 const platform: Platform = {
   content: loadContent,
   versionId: gitVersionId(),
   assets: serveAsset,
+  views: {
+    async get(path) {
+      return viewsStore.get(path) ?? pseudoViews(path);
+    },
+    async put(path, views) {
+      viewsStore.set(path, views);
+    },
+  },
+  secrets: {
+    gaServiceAccountKey: process.env.GA_SERVICE_ACCOUNT_KEY,
+    gaPropertyId: process.env.GA_PROPERTY_ID,
+    adminResyncToken: process.env.ADMIN_RESYNC_TOKEN,
+  },
+  httpCache: null,
 };
 
 const router = createApp(platform);

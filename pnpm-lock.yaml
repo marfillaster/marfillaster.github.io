@@ -99,6 +99,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
+      esbuild:
+        specifier: ^0.27.7
+        version: 0.27.7
       remark-frontmatter:
         specifier: ^5.0.0
         version: 5.0.0

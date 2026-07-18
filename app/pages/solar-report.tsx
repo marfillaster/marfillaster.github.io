@@ -2,7 +2,8 @@
 
 import type { Handle } from "remix/ui";
 import type { MetaDescriptor } from "../head.ts";
-import { Comments, ShareLinks, SiteShell } from "../components.tsx";
+import { Comments, SiteShell } from "../components.tsx";
+import { ShareLinks } from "../interactive.tsx";
 
 const title =
   "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Jun 2026)";

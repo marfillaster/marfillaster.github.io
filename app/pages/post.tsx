@@ -8,11 +8,11 @@ import type { PostMeta } from "../../src/lib/post-meta.mjs";
 import {
   Comments,
   SeriesNav,
-  ShareLinks,
   SiteShell,
   TableOfContents,
   VariantTabs,
 } from "../components.tsx";
+import { PageStats, ShareLinks } from "../interactive.tsx";
 import { absoluteUrl, formatPostDate } from "../site.ts";
 
 export interface PostPageProps {
@@ -35,6 +35,15 @@ export function PostPage(handle: Handle<PostPageProps>) {
 
     return (
       <SiteShell>
+        {post.redirects ? (
+          // Legacy hash redirects are applied by the enhance script — the
+          // fragment never reaches the server, so this stays client-side.
+          <script
+            type="application/json"
+            id="hash-redirects"
+            innerHTML={JSON.stringify(post.redirects)}
+          />
+        ) : null}
         <div className="container max-w-[48rem] py-12 leading-relaxed">
           <article>
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -46,6 +55,7 @@ export function PostPage(handle: Handle<PostPageProps>) {
             <p className="mt-2 text-sm text-muted-foreground">{description}</p>
             <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
               <time dateTime={post.datePublished}>Published {displayDate}</time>
+              <PageStats path={post.href} title={post.title} />
             </p>
           </article>
 

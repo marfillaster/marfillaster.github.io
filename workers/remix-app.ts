@@ -1,38 +1,74 @@
 // -----------------------------------------------------------------------------
-// workerd adapter for the Remix app (Phase 2: dev-only via
-// `pnpm dev:remix-workerd`; never deployed until cutover). The only file that
-// knows about Cloudflare bindings. Analytics API + cron stay in workers/app.ts
-// (the production worker) until Phase 3 merges them.
+// workerd adapter for the Remix app (dev-only via `pnpm dev:remix-workerd`;
+// never deployed until cutover). The only file that knows about Cloudflare
+// bindings. Phase 3 merged the analytics API + cron here; the production
+// worker (workers/app.ts) keeps serving them live until Phase 5.
 // -----------------------------------------------------------------------------
 
 import { createApp } from "../app/app.tsx";
+import { createGaClient, syncViewsForDate } from "../app/analytics.ts";
 import type { Platform } from "../app/platform.ts";
 import { CONTENT } from "./remix-content.generated.ts";
 
 interface RemixEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
   CF_VERSION_METADATA?: { id: string };
+  PAGE_VIEWS: {
+    get(key: string): Promise<string | null>;
+    put(key: string, value: string): Promise<void>;
+  };
+  GA_PROPERTY_ID?: string;
+  GA_SERVICE_ACCOUNT_KEY?: string;
+  ADMIN_RESYNC_TOKEN?: string;
 }
 
-let router: ReturnType<typeof createApp> | null = null;
+interface SchedulerContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
 
-function getRouter(env: RemixEnv) {
-  if (router) {
-    return router;
+let cached: { router: ReturnType<typeof createApp>; platform: Platform } | null =
+  null;
+
+function getApp(env: RemixEnv) {
+  if (cached) {
+    return cached;
   }
 
   const platform: Platform = {
     content: () => new Map(CONTENT),
     versionId: env.CF_VERSION_METADATA?.id ?? "workerd-dev",
     assets: (request) => env.ASSETS.fetch(request),
+    views: {
+      async get(path) {
+        return Number((await env.PAGE_VIEWS.get(path)) ?? "0");
+      },
+      async put(path, views) {
+        await env.PAGE_VIEWS.put(path, String(views));
+      },
+    },
+    secrets: {
+      gaServiceAccountKey: env.GA_SERVICE_ACCOUNT_KEY,
+      gaPropertyId: env.GA_PROPERTY_ID,
+      adminResyncToken: env.ADMIN_RESYNC_TOKEN,
+    },
+    // workerd's CacheStorage carries a non-standard `default` cache; the DOM
+    // lib this project compiles against doesn't know it.
+    httpCache: (caches as unknown as { default?: Cache }).default ?? null,
   };
 
-  router = createApp(platform);
-  return router;
+  cached = { router: createApp(platform), platform };
+  return cached;
 }
 
 export default {
   fetch(request: Request, env: RemixEnv): Promise<Response> {
-    return getRouter(env).fetch(request);
+    return getApp(env).router.fetch(request);
+  },
+
+  scheduled(_event: unknown, env: RemixEnv, ctx: SchedulerContext): void {
+    const { platform } = getApp(env);
+    ctx.waitUntil(
+      syncViewsForDate(platform, createGaClient(platform), "yesterday", "yesterday"),
+    );
   },
 };

@@ -8,6 +8,7 @@
 
 import type { Handle, RemixNode } from "remix/ui";
 import type { MetaDescriptor } from "./head.ts";
+import { CLIENT_BOOT_SCRIPT, ENHANCE_SCRIPT } from "./client-entries.ts";
 
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
 
@@ -16,7 +17,7 @@ const favicon =
 
 const gtagInit = `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${GA_MEASUREMENT_ID}');`;
 
-const themeInit = `(function(){try{var s=localStorage.getItem("theme");var d=s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d);}catch(e){}})();`;
+const themeInit = `(function(){try{var s=localStorage.getItem("theme");var d=s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#0c0a09":"#fafaf9");}catch(e){}})();`;
 
 export interface DocumentProps {
   descriptors: MetaDescriptor[];
@@ -56,6 +57,7 @@ export function Document(handle: Handle<DocumentProps>) {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#fafaf9" />
         <script
           async
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
@@ -73,7 +75,11 @@ export function Document(handle: Handle<DocumentProps>) {
           href="/rss.xml"
         />
       </head>
-      <body>{handle.props.children}</body>
+      <body>
+        {handle.props.children}
+        <script type="module" src={CLIENT_BOOT_SCRIPT} />
+        <script type="module" src={ENHANCE_SCRIPT} />
+      </body>
     </html>
   );
 }

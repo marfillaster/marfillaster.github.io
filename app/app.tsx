@@ -8,7 +8,7 @@
 import { createRouter } from "remix/router";
 import { renderWith } from "remix/render-middleware";
 import { createHtmlResponse } from "remix/response/html";
-import { renderToString } from "remix/ui/server";
+import { renderToStream } from "remix/ui/server";
 import type { RemixNode } from "remix/ui";
 import type { Platform } from "./platform.ts";
 import { createAppData } from "./post-index.ts";
@@ -31,6 +31,8 @@ import { SiteShell } from "./components.tsx";
 import { postMetaDescriptors } from "./site.ts";
 import { buildRssXml } from "./rss.ts";
 import { buildSitemapXml } from "./sitemap.ts";
+import { resolveClientEntry } from "./client-entries.ts";
+import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
 
 // Hrefs served by dedicated page components rather than the shared post page
 // (mirrors customHrefs in the RR7 src/routes.ts).
@@ -38,11 +40,18 @@ const customHrefs = new Set(["/nev-mileage/", "/solar-report/"]);
 
 export function createApp(platform: Platform) {
   const data = createAppData(platform);
+  const ga = createGaClient(platform);
 
-  const render = renderWith(() => async (input: {
+  // Client entries require the streaming renderer: renderToString has no
+  // resolveClientEntry hook, so every document render goes through
+  // renderToStream (SiteShell's ThemeToggle is an entry on every page).
+  const renderNode = (node: RemixNode, init?: ResponseInit) =>
+    createHtmlResponse(renderToStream(node, { resolveClientEntry }), init);
+
+  const render = renderWith(() => (input: {
     node: RemixNode;
     init?: ResponseInit;
-  }) => createHtmlResponse(await renderToString(input.node), input.init));
+  }) => renderNode(input.node, input.init));
 
   const router = createRouter({
     middleware: [render],
@@ -52,19 +61,17 @@ export function createApp(platform: Platform) {
         return asset;
       }
 
-      const html = await renderToString(
+      return renderNode(
         <Document descriptors={notFoundDescriptors}>
           <NotFoundPage />
         </Document>,
+        { status: 404 },
       );
-      return createHtmlResponse(html, { status: 404 });
     },
   });
 
   function page(descriptors: MetaDescriptor[], node: RemixNode) {
-    return renderToString(
-      <Document descriptors={descriptors}>{node}</Document>,
-    ).then((html) => createHtmlResponse(html));
+    return renderNode(<Document descriptors={descriptors}>{node}</Document>);
   }
 
   router.map(routes, {
@@ -90,6 +97,9 @@ export function createApp(platform: Platform) {
           nevMileageFullDescriptors,
           <NevMileageFullPage html={data.contentHtml("nev-full-report.md")} />,
         ),
+      analyticsPageviews: ({ request }) =>
+        handlePageviews(request, platform, ga),
+      analyticsResync: ({ request }) => handleResync(request, platform, ga),
     },
   });
 
