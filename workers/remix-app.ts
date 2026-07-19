@@ -30,9 +30,6 @@ interface RemixEnv {
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   COMMENT_IP_SALT?: string;
-  REDDIT_CLIENT_ID?: string;
-  REDDIT_CLIENT_SECRET?: string;
-  REDDIT_USER_AGENT?: string;
 }
 
 interface D1Result<row> {
@@ -207,11 +204,6 @@ function getApp(env: RemixEnv) {
         return localComments || Boolean(request.headers.get("Cf-Access-Jwt-Assertion"));
       },
     },
-    transient: {
-      get: (key) => env.PAGE_VIEWS.get(key),
-      put: (key, value, expirationTtl) =>
-        env.PAGE_VIEWS.put(key, value, { expirationTtl }),
-    },
     turnstileSiteKey: localComments ? undefined : env.TURNSTILE_SITE_KEY,
     secrets: {
       gaServiceAccountKey: env.GA_SERVICE_ACCOUNT_KEY,
@@ -219,11 +211,6 @@ function getApp(env: RemixEnv) {
       adminResyncToken: env.ADMIN_RESYNC_TOKEN,
       turnstileSecretKey: env.TURNSTILE_SECRET_KEY,
       commentIpSalt: env.COMMENT_IP_SALT,
-      redditClientId: env.REDDIT_CLIENT_ID,
-      redditClientSecret: env.REDDIT_CLIENT_SECRET,
-      redditUserAgent:
-        env.REDDIT_USER_AGENT ??
-        "web:blog.homestack.space:v1 (by /u/marfillaster)",
     },
     // workerd's CacheStorage carries a non-standard `default` cache; the DOM
     // lib this project compiles against doesn't know it.

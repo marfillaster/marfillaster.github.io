@@ -1,5 +1,4 @@
 import type { Element, Root } from "hast";
-import rehypeParse from "rehype-parse";
 import rehypeSanitize from "rehype-sanitize";
 import type { Options as SanitizeOptions } from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
@@ -54,18 +53,6 @@ export function renderCommentMarkdown(source: string): string {
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype)
-    .use(rehypeSanitize, commentSchema)
-    .use(markUserLinks)
-    .use(rehypeStringify)
-    .processSync(source);
-
-  return String(file);
-}
-
-/** Sanitize Reddit's pre-rendered body_html through the identical allowlist. */
-export function sanitizeCommentHtml(source: string): string {
-  const file = unified()
-    .use(rehypeParse, { fragment: true })
     .use(rehypeSanitize, commentSchema)
     .use(markUserLinks)
     .use(rehypeStringify)

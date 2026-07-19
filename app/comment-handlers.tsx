@@ -14,14 +14,13 @@ import {
 import { Document } from "./document.tsx";
 import {
   COMMENTS_CACHE_CONTROL,
+  CommentBody,
   CommentsFragment,
   CommentsPage,
-  RedditThread,
+  type CommentFormValues,
   commentsDescriptors,
 } from "./pages/comments.tsx";
 import type { CommentRow, Platform } from "./platform.ts";
-import { getRedditMirror } from "./reddit.ts";
-import { absoluteUrl } from "./site.ts";
 
 type RenderNode = (node: RemixNode, init?: ResponseInit) => Response;
 
@@ -59,6 +58,39 @@ function cacheKeys(origin: string, postSlug: string): Request[] {
   );
 }
 
+async function fragmentBody(response: Response): Promise<string> {
+  return (await response.text())
+    .replace(/^<!DOCTYPE html>/, "")
+    .replace(/<!-- rmx:flush fragment -->\s*$/, "");
+}
+
+async function commentView(
+  platform: Platform,
+  post: PostMeta,
+  replyId: string | null,
+  threadId: string | null,
+) {
+  const rows = await platform.comments.listThread(post.href);
+  const fullThread = assembleThread(normalizeFirstPartyComments(rows));
+  const selectedRoot = threadId
+    ? findThreadRoot(fullThread, threadId)
+    : undefined;
+  const comments = selectedRoot ? [selectedRoot] : fullThread;
+  const reply = replyId
+    ? rows.find(
+        (row) =>
+          row.id === replyId &&
+          !row.hidden &&
+          (commentDepth(rows, row.id) ?? MAX_COMMENT_DEPTH) < MAX_COMMENT_DEPTH,
+      )
+    : undefined;
+
+  return {
+    comments,
+    replyTo: reply ? { id: reply.id, author: reply.author } : undefined,
+  };
+}
+
 export async function purgeCommentCache(
   platform: Platform,
   origin: string,
@@ -93,32 +125,12 @@ export async function handleCommentsGet(
     if (hit) return hit;
   }
 
-  const rows = await platform.comments.listThread(post.href);
-  const fullThread = assembleThread(normalizeFirstPartyComments(rows));
-  const selectedRoot = threadId ? findThreadRoot(fullThread, threadId) : undefined;
-  const comments = selectedRoot ? [selectedRoot] : fullThread;
-  const reply = replyId
-    ? rows.find(
-        (row) =>
-          row.id === replyId &&
-          !row.hidden &&
-          (commentDepth(rows, row.id) ?? MAX_COMMENT_DEPTH) < MAX_COMMENT_DEPTH,
-      )
-    : undefined;
-  const replyTo = reply ? { id: reply.id, author: reply.author } : undefined;
-  const reddit = await getRedditMirror(
+  const { comments, replyTo } = await commentView(
     platform,
-    post.href,
-    absoluteUrl(post.href),
-    url.origin,
+    post,
+    replyId,
+    threadId,
   );
-  const redditNode = reddit ? (
-    <RedditThread
-      comments={reddit.comments}
-      commentsPath={commentRoutePath(post.href)}
-      submissionUrl={reddit.submissionUrl}
-    />
-  ) : undefined;
 
   const props = {
     postSlug: post.href,
@@ -126,7 +138,6 @@ export async function handleCommentsGet(
     replyTo,
     returnTo: fragment ? post.href : commentRoutePath(post.href),
     turnstileSiteKey: platform.turnstileSiteKey,
-    reddit: redditNode,
   };
 
   const rendered = fragment
@@ -140,11 +151,7 @@ export async function handleCommentsGet(
           />
         </Document>,
       );
-  const body = fragment
-    ? (await rendered.text())
-        .replace(/^<!DOCTYPE html>/, "")
-        .replace(/<!-- rmx:flush fragment -->\s*$/, "")
-    : rendered.body;
+  const body = fragment ? await fragmentBody(rendered) : rendered.body;
   const response = new Response(body, rendered);
   response.headers.set("Cache-Control", COMMENTS_CACHE_CONTROL);
 
@@ -164,14 +171,65 @@ export async function handleCommentsPost(
   routeSlug: string,
   posts: PostMeta[],
   platform: Platform,
+  renderNode: RenderNode,
 ): Promise<Response> {
   if (!platform.comments.enabled) return noStore(404, "Comments are not enabled.");
   const post = findPost(posts, routeSlug);
   if (!post) return noStore(404, "Article not found.");
 
   const form = await request.formData();
+  const preview = value(form, "intent") === "preview";
+  const url = new URL(request.url);
+  const fragment = url.searchParams.get("fragment") === "1";
+  const formValues: CommentFormValues = {
+    author: value(form, "author"),
+    body: value(form, "body"),
+    parentId: value(form, "parent_id"),
+    returnTo: value(form, "return_to"),
+  };
+
+  const renderPreview = async (bodyHtml: string): Promise<Response> => {
+    if (fragment) {
+      const rendered = renderNode(<CommentBody bodyHtml={bodyHtml} />);
+      return new Response(await fragmentBody(rendered), {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    const view = await commentView(
+      platform,
+      post,
+      formValues.parentId || null,
+      null,
+    );
+    const rendered = renderNode(
+      <Document descriptors={commentsDescriptors(post.title)}>
+        <CommentsPage
+          postSlug={post.href}
+          comments={view.comments}
+          replyTo={view.replyTo}
+          returnTo={commentRoutePath(post.href)}
+          turnstileSiteKey={platform.turnstileSiteKey}
+          formValues={formValues}
+          previewHtml={bodyHtml}
+          postTitle={post.title}
+          postHref={post.href}
+        />
+      </Document>,
+    );
+    const response = new Response(rendered.body, rendered);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  };
+
   if (value(form, "website")) {
-    return new Response("Thanks.", { headers: { "Cache-Control": "no-store" } });
+    return preview
+      ? renderPreview("")
+      : new Response("Thanks.", { headers: { "Cache-Control": "no-store" } });
   }
 
   const ip = request.headers.get("CF-Connecting-IP") ?? "127.0.0.1";
@@ -182,6 +240,14 @@ export async function handleCommentsPost(
   const ipHash = await hashCommentIp(ip, salt);
   if (await platform.rateLimit.hit(`comments:${ipHash}`)) {
     return noStore(429, "Too many comments. Try again later.");
+  }
+
+  if (preview) {
+    if (formValues.body.length > 4000) {
+      return noStore(413, "Comment must not exceed 4000 characters.");
+    }
+    const bodyMd = formValues.body.trim();
+    return renderPreview(bodyMd ? renderCommentMarkdown(bodyMd) : "");
   }
 
   const challengeToken = value(form, "cf-turnstile-response");

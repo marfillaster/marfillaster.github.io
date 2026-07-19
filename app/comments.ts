@@ -7,10 +7,7 @@ export interface ThreadComment {
   author: string;
   bodyHtml: string;
   createdAt: string;
-  score?: number;
-  permalink?: string;
   hidden: boolean;
-  hiddenReason?: "moderated" | "unavailable";
   children: ThreadComment[];
 }
 
@@ -26,14 +23,10 @@ export function normalizeFirstPartyComments(rows: CommentRow[]): FlatThreadComme
     bodyHtml: row.bodyHtml,
     createdAt: row.createdAt,
     hidden: row.hidden,
-    hiddenReason: row.hidden ? "moderated" : undefined,
   }));
 }
 
-export function assembleThread(
-  comments: FlatThreadComment[],
-  rootOrder: "newest" | "score" = "newest",
-): ThreadComment[] {
+export function assembleThread(comments: FlatThreadComment[]): ThreadComment[] {
   const nodes = new Map<string, ThreadComment>();
   for (const comment of comments) {
     nodes.set(comment.id, { ...comment, children: [] });
@@ -56,13 +49,10 @@ export function assembleThread(
     node.children.sort(chronological);
   }
 
-  roots.sort((a, b) => {
-    if (rootOrder === "score") {
-      const score = (b.score ?? 0) - (a.score ?? 0);
-      if (score !== 0) return score;
-    }
-    return b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id);
-  });
+  roots.sort(
+    (a, b) =>
+      b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id),
+  );
 
   return roots;
 }

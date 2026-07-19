@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "hast-util-to-string": "^3.0.1",
-    "rehype-parse": "^9.0.1",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",

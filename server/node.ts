@@ -186,7 +186,6 @@ function createCommentsStore(): CommentsStore {
 }
 
 const rateHits = new Map<string, { count: number; resetAt: number }>();
-const transient = new Map<string, { value: string; expiresAt: number }>();
 
 const platform: Platform = {
   content: loadContent,
@@ -222,31 +221,10 @@ const platform: Platform = {
       return true;
     },
   },
-  transient: {
-    async get(key) {
-      const entry = transient.get(key);
-      if (!entry || entry.expiresAt <= Date.now()) {
-        transient.delete(key);
-        return null;
-      }
-      return entry.value;
-    },
-    async put(key, value, expirationTtl) {
-      transient.set(key, {
-        value,
-        expiresAt: Date.now() + expirationTtl * 1000,
-      });
-    },
-  },
   secrets: {
     gaServiceAccountKey: process.env.GA_SERVICE_ACCOUNT_KEY,
     gaPropertyId: process.env.GA_PROPERTY_ID,
     adminResyncToken: process.env.ADMIN_RESYNC_TOKEN,
-    redditClientId: process.env.REDDIT_CLIENT_ID,
-    redditClientSecret: process.env.REDDIT_CLIENT_SECRET,
-    redditUserAgent:
-      process.env.REDDIT_USER_AGENT ??
-      "web:blog.homestack.space:v1 (by /u/marfillaster)",
     commentIpSalt: process.env.COMMENT_IP_SALT ?? "comments-local-dev",
   },
   httpCache: null,

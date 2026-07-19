@@ -1,4 +1,5 @@
-import type { Handle, RemixNode } from "remix/ui";
+import type { Handle } from "remix/ui";
+import { ASSET_MANIFEST } from "../assets-manifest.generated.ts";
 import type { MetaDescriptor } from "../head.ts";
 import {
   MAX_COMMENT_DEPTH,
@@ -27,6 +28,15 @@ function formatCommentDate(value: string): string {
       });
 }
 
+export function CommentBody(handle: Handle<{ bodyHtml: string }>) {
+  return () => (
+    <div
+      className="typeset mt-3 max-w-none text-sm"
+      innerHTML={handle.props.bodyHtml}
+    />
+  );
+}
+
 interface CommentItemProps {
   comment: ThreadComment;
   depth: number;
@@ -37,7 +47,7 @@ interface CommentItemProps {
 function CommentItem(handle: Handle<CommentItemProps>) {
   return () => {
     const { comment, depth, commentsPath, allowReplies } = handle.props;
-    const permalink = comment.permalink ?? `${commentsPath}#c-${comment.id}`;
+    const permalink = `${commentsPath}#c-${comment.id}`;
     const canRenderChildren = depth < MAX_COMMENT_DEPTH;
 
     return (
@@ -45,7 +55,6 @@ function CommentItem(handle: Handle<CommentItemProps>) {
         <details open className="group py-3">
           <summary className="cursor-pointer list-none text-xs text-muted-foreground marker:hidden">
             <span className="font-medium text-foreground">{comment.author}</span>
-            {comment.score === undefined ? null : ` · ${comment.score} points`}
             {" · "}
             <time dateTime={comment.createdAt}>
               {formatCommentDate(comment.createdAt)} UTC
@@ -61,15 +70,10 @@ function CommentItem(handle: Handle<CommentItemProps>) {
 
           {comment.hidden ? (
             <p className="mt-2 text-sm italic text-muted-foreground">
-              {comment.hiddenReason === "unavailable"
-                ? "This comment is unavailable."
-                : "This comment was hidden by a moderator."}
+              This comment was hidden by a moderator.
             </p>
           ) : (
-            <div
-              className="typeset mt-3 max-w-none text-sm"
-              innerHTML={comment.bodyHtml}
-            />
+            <CommentBody bodyHtml={comment.bodyHtml} />
           )}
 
           {allowReplies && !comment.hidden && depth < MAX_COMMENT_DEPTH ? (
@@ -99,7 +103,6 @@ function CommentItem(handle: Handle<CommentItemProps>) {
               <p className="mt-3 text-xs text-muted-foreground">
                 <a
                   href={
-                    comment.children[0].permalink ??
                     `${commentsPath}?thread=${encodeURIComponent(comment.children[0].id)}#c-${comment.children[0].id}`
                   }
                   className="underline underline-offset-4 hover:text-foreground"
@@ -151,19 +154,39 @@ interface CommentFormProps {
   replyTo?: { id: string; author: string };
   returnTo: string;
   turnstileSiteKey?: string;
+  values?: CommentFormValues;
+}
+
+export interface CommentFormValues {
+  author: string;
+  body: string;
+  parentId: string;
+  returnTo: string;
 }
 
 export function CommentForm(handle: Handle<CommentFormProps>) {
   return () => {
-    const { postSlug, replyTo, returnTo, turnstileSiteKey } = handle.props;
+    const { postSlug, replyTo, returnTo, turnstileSiteKey, values } =
+      handle.props;
     const action = commentRoutePath(postSlug);
+    const parentId = values?.parentId ?? replyTo?.id ?? "";
     return (
-      <form id="comment-form" method="post" action={action} className="mt-8 border-t pt-6">
+      <form
+        id="comment-form"
+        method="post"
+        action={action}
+        className="mt-8 border-t pt-6"
+        data-comment-composer
+      >
         <h2 className="text-lg font-semibold tracking-tight">
           {replyTo ? `Reply to ${replyTo.author}` : "Add a comment"}
         </h2>
-        <input type="hidden" name="parent_id" value={replyTo?.id ?? ""} />
-        <input type="hidden" name="return_to" value={returnTo} />
+        <input type="hidden" name="parent_id" value={parentId} />
+        <input
+          type="hidden"
+          name="return_to"
+          value={values?.returnTo ?? returnTo}
+        />
         <div className="absolute -left-[10000px]" aria-hidden>
           <label>
             Website
@@ -177,19 +200,55 @@ export function CommentForm(handle: Handle<CommentFormProps>) {
             minlength={2}
             maxlength={40}
             required
+            value={values?.author ?? ""}
             className="mt-2 block w-full rounded-md border bg-background px-3 py-2 text-sm"
           />
         </label>
-        <label className="mt-4 block text-sm font-medium">
-          Comment
-          <textarea
-            name="body"
-            maxlength={4000}
-            rows={6}
-            required
-            className="mt-2 block w-full rounded-md border bg-background px-3 py-2 text-sm"
+        <div className="mt-4">
+          <span className="block text-sm font-medium">Comment</span>
+          <div
+            className="mt-2 flex border-b"
+            role="tablist"
+            aria-label="Comment editor"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-comment-tab="write"
+              className="border-b-2 border-foreground px-3 py-2 text-sm font-medium text-foreground"
+            >
+              Write
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-comment-tab="preview"
+              className="border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Preview
+            </button>
+          </div>
+          <label className="block" data-comment-write-pane>
+            <span className="sr-only">Comment markdown</span>
+            <textarea
+              name="body"
+              maxlength={4000}
+              rows={6}
+              required
+              value={values?.body ?? ""}
+              className="mt-3 block w-full rounded-md border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <div
+            role="tabpanel"
+            aria-live="polite"
+            data-comment-preview-pane
+            className="min-h-36 py-3"
+            hidden
           />
-        </label>
+        </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Markdown links, lists, quotes, emphasis, and code are supported.
         </p>
@@ -202,12 +261,23 @@ export function CommentForm(handle: Handle<CommentFormProps>) {
         ) : (
           <input type="hidden" name="cf-turnstile-response" value="node-dev" />
         )}
-        <button
-          type="submit"
-          className="mt-4 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
-        >
-          Post comment
-        </button>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
+          >
+            Post comment
+          </button>
+          <button
+            type="submit"
+            name="intent"
+            value="preview"
+            formnovalidate
+            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            Preview
+          </button>
+        </div>
       </form>
     );
   };
@@ -219,7 +289,8 @@ export interface CommentsFragmentProps {
   replyTo?: { id: string; author: string };
   returnTo: string;
   turnstileSiteKey?: string;
-  reddit?: RemixNode;
+  formValues?: CommentFormValues;
+  previewHtml?: string;
 }
 
 export function CommentsFragment(handle: Handle<CommentsFragmentProps>) {
@@ -227,6 +298,26 @@ export function CommentsFragment(handle: Handle<CommentsFragmentProps>) {
     const path = commentRoutePath(handle.props.postSlug);
     return (
       <div data-first-party-comments>
+        {handle.props.previewHtml === undefined ? null : (
+          <section
+            className="mt-8 rounded-md border bg-muted/30 p-4"
+            aria-labelledby="comment-preview-heading"
+          >
+            <h2
+              id="comment-preview-heading"
+              className="text-sm font-semibold tracking-tight"
+            >
+              Comment preview
+            </h2>
+            {handle.props.previewHtml ? (
+              <CommentBody bodyHtml={handle.props.previewHtml} />
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Nothing to preview.
+              </p>
+            )}
+          </section>
+        )}
         <ThreadList
           comments={handle.props.comments}
           commentsPath={path}
@@ -237,8 +328,8 @@ export function CommentsFragment(handle: Handle<CommentsFragmentProps>) {
           replyTo={handle.props.replyTo}
           returnTo={handle.props.returnTo}
           turnstileSiteKey={handle.props.turnstileSiteKey}
+          values={handle.props.formValues}
         />
-        {handle.props.reddit}
       </div>
     );
   };
@@ -265,6 +356,7 @@ export function CommentsPage(
           </a>
         </p>
         <CommentsFragment {...handle.props} />
+        <script type="module" src={ASSET_MANIFEST.comments} />
         {handle.props.turnstileSiteKey ? (
           <script
             async
@@ -274,34 +366,5 @@ export function CommentsPage(
         ) : null}
       </div>
     </SiteShell>
-  );
-}
-
-export function RedditThread(
-  handle: Handle<{
-    comments: ThreadComment[];
-    commentsPath: string;
-    submissionUrl: string;
-  }>,
-) {
-  return () => (
-    <section className="mt-10 border-t pt-8" aria-labelledby="reddit-comments-heading">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="reddit-comments-heading" className="text-lg font-semibold tracking-tight">
-          Discussion on Reddit
-        </h2>
-        <a
-          href={handle.props.submissionUrl}
-          rel="nofollow ugc"
-          className="text-xs underline underline-offset-4 text-muted-foreground hover:text-foreground"
-        >
-          Reply on Reddit
-        </a>
-      </div>
-      <ThreadList
-        comments={handle.props.comments}
-        commentsPath={handle.props.commentsPath}
-      />
-    </section>
   );
 }

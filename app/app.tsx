@@ -137,7 +137,13 @@ export function createApp(platform: Platform) {
     ),
   );
   router.post("/comments/:slug", ({ request, params }) =>
-    handleCommentsPost(request, params.slug, data.routablePosts, platform),
+    handleCommentsPost(
+      request,
+      params.slug,
+      data.routablePosts,
+      platform,
+      renderNode,
+    ),
   );
   router.post("/api/comments/hide", ({ request }) =>
     handleCommentModeration(request, platform),

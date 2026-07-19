@@ -42,9 +42,6 @@ export interface Platform {
   /** Cloudflare Access in production; unconditional in local Node dev. */
   moderation: ModerationGate;
 
-  /** Short-lived KV data used by Reddit discovery and OAuth token caching. */
-  transient: TransientStore;
-
   /** Public Turnstile widget key. Undefined in the auto-pass Node adapter. */
   turnstileSiteKey?: string;
 
@@ -87,9 +84,6 @@ export interface Secrets {
   gaPropertyId?: string;
   adminResyncToken?: string;
   turnstileSecretKey?: string;
-  redditClientId?: string;
-  redditClientSecret?: string;
-  redditUserAgent?: string;
   commentIpSalt?: string;
 }
 
@@ -124,9 +118,4 @@ export interface RateLimiter {
 
 export interface ModerationGate {
   authorized(request: Request): boolean;
-}
-
-export interface TransientStore {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string, expirationTtl: number): Promise<void>;
 }

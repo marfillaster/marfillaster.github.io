@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHtmlResponse } from "remix/response/html";
 import { renderToStream } from "remix/ui/server";
-import { renderCommentMarkdown, sanitizeCommentHtml } from "../app/comment-markdown.ts";
+import { renderCommentMarkdown } from "../app/comment-markdown.ts";
 import {
   MAX_COMMENT_DEPTH,
   assembleThread,
@@ -12,7 +12,9 @@ import {
   handleCommentsGet,
   handleCommentsPost,
 } from "../app/comment-handlers.tsx";
-import { normalizeRedditThread } from "../app/reddit.ts";
+
+const renderNode = (node, init) =>
+  createHtmlResponse(renderToStream(node), init);
 
 function row(overrides = {}) {
   return {
@@ -29,10 +31,19 @@ function row(overrides = {}) {
   };
 }
 
-function memoryPlatform({ limited = false, challenge = true, moderator = true } = {}) {
+function memoryPlatform({
+  limited = false,
+  challenge = true,
+  moderator = true,
+  cache = false,
+} = {}) {
   const rows = [];
+  let verifications = 0;
+  let cacheCalls = 0;
   return {
     rows,
+    get verifications() { return verifications; },
+    get cacheCalls() { return cacheCalls; },
     platform: {
       content: () => new Map(),
       versionId: "test",
@@ -48,12 +59,22 @@ function memoryPlatform({ limited = false, challenge = true, moderator = true } 
         },
         get: async (id) => rows.find((item) => item.id === id) ?? null,
       },
-      challenge: { verify: async () => challenge },
+      challenge: {
+        verify: async () => {
+          verifications += 1;
+          return challenge;
+        },
+      },
       rateLimit: { hit: async () => limited },
       moderation: { authorized: () => moderator },
-      transient: { get: async () => null, put: async () => {} },
       secrets: { commentIpSalt: "test-salt" },
-      httpCache: null,
+      httpCache: cache
+        ? {
+            match: async () => { cacheCalls += 1; return undefined; },
+            put: async () => { cacheCalls += 1; },
+            delete: async () => { cacheCalls += 1; return true; },
+          }
+        : null,
       waitUntil: (promise) => void promise,
       autoEncodesBody: false,
     },
@@ -68,12 +89,6 @@ assert.match(unsafe, /<strong>safe<\/strong>/);
 assert.doesNotMatch(unsafe, /script|img|javascript:/i);
 assert.match(unsafe, /href="https:\/\/example.com"/);
 assert.match(unsafe, /rel="nofollow ugc"/);
-
-const redditHtml = sanitizeCommentHtml(
-  '<div class="md"><p>hello <a href="javascript:alert(1)">bad</a></p><img src="x"><script>x</script></div>',
-);
-assert.match(redditHtml, /<p>hello <a rel="nofollow ugc">bad<\/a><\/p>/);
-assert.doesNotMatch(redditHtml, /javascript:|img|script|<div/i);
 
 const roots = assembleThread([
   { id: "old", parentId: null, author: "a", bodyHtml: "", createdAt: "2026-01-01T00:00:00Z", hidden: false },
@@ -99,6 +114,7 @@ let response = await handleCommentsPost(
   "article",
   posts,
   invalidChallenge.platform,
+  renderNode,
 );
 assert.equal(response.status, 403);
 
@@ -111,6 +127,7 @@ response = await handleCommentsPost(
   "article",
   posts,
   honeypot.platform,
+  renderNode,
 );
 assert.equal(response.status, 200);
 assert.equal(honeypot.rows.length, 0);
@@ -124,8 +141,116 @@ response = await handleCommentsPost(
   "article",
   posts,
   rateLimited.platform,
+  renderNode,
 );
 assert.equal(response.status, 429);
+
+const previewOnly = memoryPlatform({ challenge: false, cache: true });
+const previewDraft =
+  "**safe** `code` <script>alert(1)</script> " +
+  "![pixel](https://bad.example/x.png) [bad](javascript:alert(1)) " +
+  "[good](https://example.com)";
+response = await handleCommentsPost(
+  new Request("https://example.com/comments/article?fragment=1", {
+    method: "POST",
+    body: new URLSearchParams({
+      intent: "preview",
+      author: "K<em>en",
+      body: previewDraft,
+      parent_id: "unvalidated-parent",
+      return_to: "/article/",
+    }),
+  }),
+  "article",
+  posts,
+  previewOnly.platform,
+  renderNode,
+);
+assert.equal(response.status, 200);
+assert.equal(response.headers.get("Cache-Control"), "no-store");
+assert.match(response.headers.get("Content-Type"), /^text\/html/);
+const previewFragment = await response.text();
+assert.match(previewFragment, /class="typeset mt-3 max-w-none text-sm"/);
+assert.match(previewFragment, /<strong>safe<\/strong> <code>code<\/code>/);
+assert.match(previewFragment, /href="https:\/\/example.com"/);
+assert.doesNotMatch(previewFragment, /<script|<img|javascript:/i);
+assert.equal(previewOnly.rows.length, 0);
+assert.equal(previewOnly.verifications, 0);
+assert.equal(previewOnly.cacheCalls, 0);
+
+const publishedCopy = memoryPlatform();
+response = await handleCommentsPost(
+  new Request("https://example.com/comments/article", {
+    method: "POST",
+    body: new URLSearchParams({ author: "Ken", body: previewDraft }),
+  }),
+  "article",
+  posts,
+  publishedCopy.platform,
+  renderNode,
+);
+assert.equal(response.status, 303);
+assert.equal(
+  previewFragment,
+  `<div class="typeset mt-3 max-w-none text-sm">${publishedCopy.rows[0].bodyHtml}</div>`,
+);
+
+response = await handleCommentsPost(
+  new Request("https://example.com/comments/article?fragment=1", {
+    method: "POST",
+    body: new URLSearchParams({
+      intent: "preview",
+      website: "bot",
+      body: "discarded",
+    }),
+  }),
+  "article",
+  posts,
+  memoryPlatform({ limited: true, challenge: false }).platform,
+  renderNode,
+);
+assert.equal(response.status, 200);
+assert.equal(
+  await response.text(),
+  '<div class="typeset mt-3 max-w-none text-sm"></div>',
+);
+
+response = await handleCommentsPost(
+  new Request("https://example.com/comments/article?fragment=1", {
+    method: "POST",
+    body: new URLSearchParams({ intent: "preview", body: "x".repeat(4001) }),
+  }),
+  "article",
+  posts,
+  memoryPlatform().platform,
+  renderNode,
+);
+assert.equal(response.status, 413);
+
+response = await handleCommentsPost(
+  new Request("https://example.com/comments/article", {
+    method: "POST",
+    body: new URLSearchParams({
+      intent: "preview",
+      author: '"><img src=x onerror=alert(1)>',
+      body: "safe **draft** </textarea><script>alert(1)</script>",
+      parent_id: '"><script>alert(2)</script>',
+      return_to: '"><script>alert(3)</script>',
+    }),
+  }),
+  "article",
+  posts,
+  memoryPlatform().platform,
+  renderNode,
+);
+assert.equal(response.status, 200);
+assert.equal(response.headers.get("Cache-Control"), "no-store");
+const previewPage = await response.text();
+assert.match(previewPage, /Comment preview/);
+assert.match(previewPage, /safe <strong>draft<\/strong>/);
+assert.doesNotMatch(previewPage, /<\/textarea><script>alert\(1\)|<img src=x/i);
+assert.match(previewPage, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+assert.match(previewPage, /name="parent_id" value="&quot;&gt;&lt;script/);
 
 const accepted = memoryPlatform();
 response = await handleCommentsPost(
@@ -142,6 +267,7 @@ response = await handleCommentsPost(
   "article",
   posts,
   accepted.platform,
+  renderNode,
 );
 assert.equal(response.status, 303);
 assert.match(response.headers.get("Location"), /^\/article\/#c-/);
@@ -154,7 +280,7 @@ response = await handleCommentsGet(
   "article",
   posts,
   accepted.platform,
-  (node, init) => createHtmlResponse(renderToStream(node), init),
+  renderNode,
 );
 assert.equal(response.status, 200);
 const fragment = await response.text();
@@ -179,7 +305,7 @@ response = await handleCommentsGet(
   "article",
   posts,
   deepThread.platform,
-  (node, init) => createHtmlResponse(renderToStream(node), init),
+  renderNode,
 );
 const capped = await response.text();
 assert.match(capped, /Continue this thread/);
@@ -191,7 +317,7 @@ response = await handleCommentsGet(
   "article",
   posts,
   deepThread.platform,
-  (node, init) => createHtmlResponse(renderToStream(node), init),
+  renderNode,
 );
 assert.match(await response.text(), /id="c-deep-7"/);
 
@@ -207,6 +333,7 @@ response = await handleCommentsPost(
   "article",
   posts,
   deepThread.platform,
+  renderNode,
 );
 assert.equal(response.status, 400);
 
@@ -219,31 +346,5 @@ response = await handleCommentModeration(
   accepted.platform,
 );
 assert.equal(response.status, 401);
-
-const reddit = normalizeRedditThread([
-  { data: { children: [] } },
-  {
-    data: {
-      children: [
-        {
-          kind: "t1",
-          data: {
-            id: "one",
-            author: "redditor",
-            body: "hello",
-            body_html: "<div><p>hello</p></div>",
-            created_utc: 1,
-            score: 9,
-            permalink: "/r/test/comments/x/one/",
-            replies: "",
-          },
-        },
-      ],
-    },
-  },
-]);
-assert.equal(reddit[0].id, "reddit-one");
-assert.equal(reddit[0].score, 9);
-assert.equal(reddit[0].bodyHtml, "<p>hello</p>");
 
 console.log("comments verification passed");
