@@ -1,11 +1,11 @@
 // Port of src/routes/nev-mileage.tsx (PHEV report summary). Meta and copy
-// unchanged; Link → <a>, PageStats absent until Phase 3.
+// unchanged; Link → <a>.
 
 import type { Handle } from "remix/ui";
 import { ogVersion } from "../../src/content/nev-og-version.ts";
 import type { MetaDescriptor } from "../head.ts";
 import { Comments, SiteShell } from "../components.tsx";
-import { ShareLinks } from "../interactive.tsx";
+import { PageStats, ShareLinks } from "../interactive.tsx";
 
 const title =
   "BYD Sealion 6 PHEV mileage & running-cost report — Cavite, Philippines (Dec 2025–Jul 2026)";
@@ -138,6 +138,7 @@ export function NevMileagePage(_: Handle) {
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 15 May 2026</time>
+            <PageStats path="/nev-mileage/" title={title} />
           </p>
 
           <ul className="mt-6 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">

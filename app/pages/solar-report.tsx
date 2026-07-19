@@ -3,7 +3,7 @@
 import type { Handle } from "remix/ui";
 import type { MetaDescriptor } from "../head.ts";
 import { Comments, SiteShell } from "../components.tsx";
-import { ShareLinks } from "../interactive.tsx";
+import { PageStats, ShareLinks } from "../interactive.tsx";
 
 const title =
   "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Jun 2026)";
@@ -119,6 +119,7 @@ export function SolarReportPage(_: Handle) {
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 1 May 2026</time>
+            <PageStats path="/solar-report/" title={title} />
           </p>
 
           <ul className="mt-6 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">

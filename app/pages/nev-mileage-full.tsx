@@ -5,6 +5,7 @@ import type { Handle } from "remix/ui";
 import { ogVersion } from "../../src/content/nev-og-version.ts";
 import type { MetaDescriptor } from "../head.ts";
 import { SiteShell, TableOfContents } from "../components.tsx";
+import { PageStats } from "../interactive.tsx";
 
 const title =
   "Full BYD Sealion 6 PHEV mileage report — Cavite, Philippines (Dec 2025–Mar 2026)";
@@ -88,6 +89,7 @@ export function NevMileageFullPage(handle: Handle<{ html: string }>) {
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
             <time dateTime={datePublished}>Published 15 May 2026</time>
+            <PageStats path="/nev-mileage/full-report" title={title} />
           </p>
           <p className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
             <a
