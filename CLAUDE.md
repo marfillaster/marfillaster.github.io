@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-React Router blog (prerendered) — the "MikroTik RB5009 home network behind CGNAT" series plus solar/PHEV reports. Feed posts live in `src/content/*.mdx` and route through the shared `src/routes/post.tsx` renderer using frontmatter. **This repo is public — never commit real addresses, keys, or private infra.**
+Remix 3 blog (live SSR on a Cloudflare Worker, version-keyed edge caching) — the "MikroTik RB5009 home network behind CGNAT" series plus solar/PHEV reports. Feed posts live in `src/content/*.mdx` (markdown rendered at request time by `src/lib/render-markdown.ts`); the app layer is `app/` behind the `Platform` port with Node (`server/node.ts`) and workerd (`workers/remix-app.ts`) adapters — see `docs/remix3-migration-plan.md`. **This repo is public — never commit real addresses, keys, or private infra.**
 
 ## Addresses in content
 Examples only in documentation ranges: IPv6 `2001:db8::/32` (RFC 3849); IPv4 `192.0.2.0/24` / `198.51.100.0/24` / `203.0.113.0/24` (RFC 5737). Never real GUAs, VPS IPs, or prefixes.
@@ -12,13 +12,13 @@ RouterOS / VyOS / bird config snippets are tested on live hardware. Don't "corre
 Lead with the fact. No "the thing that surprised me" framing; no "Proven, not assumed:" flourishes.
 
 ## Build & deploy
-**Production is the Remix 3 worker** (`wrangler.jsonc`, name `blog`, live SSR + edge caching) as of the 2026-07-19 Phase 5 cutover — see `docs/remix3-migration-plan.md`. Deploy: `pnpm cf:build && wrangler deploy` (manual until the Cloudflare Git-integration commands are switched to `pnpm cf:build` / `pnpm cf:deploy`; until then pushing `main` fails CI harmlessly and does NOT deploy). After content changes run `pnpm gen:remix-content` (rss.xml/sitemap.xml render at runtime from frontmatter). The RR7 build (`pnpm build`) still exists pending cleanup and must stay green. `local/` is gitignored scratch — never commit it.
+Pushing `main` auto-deploys via Workers Builds: build `pnpm cf:build` (regenerates the committed `workers/remix-content.generated.ts` + fingerprinted `.remix-assets/` + `app/assets-manifest.generated.ts`), deploy `pnpm cf:deploy` (`wrangler deploy` + zone purge) → https://blog.homestack.space (worker `blog`, `wrangler.jsonc`). Dev loops: `pnpm remix:assets && pnpm dev:remix` (Node, no build) or `pnpm dev:remix-workerd` (workerd via `wrangler.remix.jsonc`, never deployed). `local/` is gitignored scratch — never commit it.
 
-## RSS feed
-`public/rss.xml`, the homepage post list, and post routes are generated from YAML frontmatter in `src/content/*.mdx` through `scripts/post-metadata.mjs` / `virtual:post-index`. `feed: true` posts appear in RSS/homepage and get a shared route; `feed: false` + `route: true` posts get only a shared route. Whenever blog content is added, renamed, or materially updated, update the matching frontmatter title/description/date fields and run `pnpm rss` before committing. TSX-only summary pages use metadata-only MDX sidecars and are excluded from the shared post route in `src/routes.ts`. `pnpm build` also regenerates the feed.
+## Content, RSS, routes
+The homepage post list, post routes, `/rss.xml`, and `/sitemap.xml` all render at request time from YAML frontmatter in `src/content/*.mdx` (`app/post-index.ts` → `src/lib/post-meta.mjs`). `feed: true` posts appear in RSS/homepage and get a shared route; `feed: false` + `route: true` posts get only a shared route. Whenever content is added, renamed, or materially updated: update the frontmatter title/description/date fields and run `pnpm gen:remix-content` before committing (CI build regenerates too, but the file is committed). TSX-only summary pages (`app/pages/`) use metadata-only MDX sidecars.
 
 ## CHR/VyOS variant of a post
-Mirror an existing `*-vyos` / `*-chr` flavor in content only: add frontmatter with `feed: false`, `route: true`, the variant `href`, `headingPrefix` (`vyos-` or `chr-`), dependencies, and shared `tabs`. The generated shared `src/routes/post.tsx` route handles rendering.
+Mirror an existing `*-vyos` / `*-chr` flavor in content only: add frontmatter with `feed: false`, `route: true`, the variant `href`, `headingPrefix` (`vyos-` or `chr-`), dependencies, and shared `tabs`. The shared post page (`app/pages/post.tsx`) handles rendering.
 
 ## Commits
 Subject prefix `blog: …`.

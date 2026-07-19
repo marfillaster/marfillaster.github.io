@@ -1,11 +1,8 @@
 node_modules/
-build/
 dist/
 local/
 .react-router/
 *.tsbuildinfo
-vite.config.js
-vite.config.d.ts
 .DS_Store
 __pycache__/
 *.pyc

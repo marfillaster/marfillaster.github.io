@@ -16,14 +16,14 @@ from generate_og_image import render as render_og_image  # noqa: E402
 
 DEFAULT_SOURCE = Path.home() / "solar-skills" / "data" / "solar-analysis.md"
 REPO_ROOT = Path(__file__).resolve().parents[4]
-# Output targets in the React Router site layout:
+# Output targets in the Remix site layout:
 #   - src/content/full-report.md  → markdown source with `\<` escapes; imported
-#     by the React Router /solar-report/full-report route via the MDX plugin.
+#     by the /solar-report/full-report route at request time.
 #   - public/solar-report/full-report.md → raw (unescaped) markdown served as
 #     the download link from both the summary and the full-report routes.
 #   - public/solar-report/og-image.png → OG image for /solar-report.
 #   The summary page (/solar-report) and the rendered full-report page
-#   (/solar-report/full-report) are both prerendered by React Router; this
+#   (/solar-report/full-report) are both rendered by the worker at request time; this
 #   script does not emit HTML.
 MDX_PATH = REPO_ROOT / "src" / "content" / "full-report.md"
 RAW_REPORT_PATH = REPO_ROOT / "public" / "solar-report" / "full-report.md"
@@ -806,7 +806,7 @@ _DATA_SOURCE_BULLET_RE = re.compile(
 def linkify_data_sources(markdown: str) -> str:
     """Turn each `data/X.csv` mention in the Data Sources section into a
     markdown link pointing at the absolute /solar-report/data/X.csv URL so it
-    works when rendered by the React Router /solar-report/full-report route."""
+    works when rendered by the /solar-report/full-report route."""
 
     def _sub(match: re.Match[str]) -> str:
         name = match.group("name")
@@ -889,9 +889,9 @@ def build_site(source: Path, repo_root: Path) -> list[str]:
     period_long, _period_short = parse_report_period(markdown)
 
     # build_summary_page() still runs only to validate that the report has
-    # every field the React Router summary expects; its HTML output is no
-    # longer written to disk (React Router renders the summary from the
-    # markdown directly via src/routes/solar-report.tsx).
+    # every field the summary page expects; its HTML output is no
+    # longer written to disk (Remix renders the summary from the
+    # markdown directly via app/pages/solar-report.tsx).
     build_summary_page(sections, period_long, _period_short)
 
     # The MDX consumed by /solar-report/full-report uses absolute links so the
@@ -930,9 +930,9 @@ def main() -> None:
         raise SystemExit(f"Source report not found: {source}")
     if not (repo_root / "package.json").exists():
         raise SystemExit(f"package.json not found in repo root: {repo_root}")
-    if not (repo_root / "src" / "routes" / "solar-report.tsx").exists():
+    if not (repo_root / "app" / "pages" / "solar-report.tsx").exists():
         raise SystemExit(
-            f"src/routes/solar-report.tsx not found in repo root: {repo_root}"
+            f"app/pages/solar-report.tsx not found in repo root: {repo_root}"
         )
 
     copied = build_site(source, repo_root)
@@ -945,7 +945,7 @@ def main() -> None:
         for name in copied:
             print(f"  - {name}")
     print(f"Source report: {source}")
-    print("Run `pnpm build` to regenerate the React Router pages.")
+    print("Run `pnpm gen:remix-content` to refresh the worker content module.")
 
 
 if __name__ == "__main__":

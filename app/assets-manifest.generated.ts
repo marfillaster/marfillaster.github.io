@@ -8,6 +8,6 @@ export const ASSET_MANIFEST: Record<string, string> = {
   "enhance": "/assets/entries/enhance-PJHD2U7B.js",
   "page-stats": "/assets/entries/page-stats-LFLS4LLO.js",
   "share-links": "/assets/entries/share-links-T3QIINDD.js",
-  "styles.css": "/assets/styles-412b2793.css",
+  "styles.css": "/assets/styles-d5d55774.css",
   "theme-toggle": "/assets/entries/theme-toggle-ILFGFSWD.js"
 };

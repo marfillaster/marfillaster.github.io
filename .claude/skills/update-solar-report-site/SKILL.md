@@ -5,7 +5,7 @@ description: Regenerate the /solar-report content of the blog.homestack.space bl
 
 # Update Solar Report Site
 
-Regenerate the `/solar-report` markdown source with the bundled script instead of hand-editing the generated files. The site is a React Router app (sister blog at blog.homestack.space); this skill regenerates only the solar inputs and lets `pnpm build` produce the final HTML.
+Regenerate the `/solar-report` markdown source with the bundled script instead of hand-editing the generated files. The site is a Remix app (sister blog at blog.homestack.space); this skill regenerates only the solar inputs and lets `pnpm gen:remix-content` produce the final HTML.
 
 ## Workflow
 
@@ -26,10 +26,10 @@ python3 .codex/skills/update-solar-report-site/scripts/update_site.py \
   --repo-root /absolute/path/to/marfillaster.github.io
 ```
 
-3. Build the site so the React Router routes pick up the new markdown:
+3. Regenerate the committed worker content module so the deployed app picks up the new markdown:
 
 ```bash
-pnpm build
+pnpm gen:remix-content
 ```
 
 4. Review the diff for:
@@ -39,8 +39,8 @@ pnpm build
    - `public/solar-report/data/*.csv` (one per file referenced in the Data Sources section)
 
 5. Synthesize the hand-shaped summary React to match the regenerated report. The script does **not** write these files — update them yourself, keeping the existing JSX structure, classes, and component layout intact and changing only the data and copy:
-   - `src/routes/solar-report.tsx` — refresh `headlineMetrics` (annual bill cut + %, simple payback, year-1 generation, CO₂ avoided), `monthlyBills` (one row per month in the report, including the newest month), `systemChips`, every period/date string (`datePublished`, `dateModified`, the "Dec 2025 – Apr 2026" eyebrow, the "Published …" line, the "N months in" copy), the `meta` title + description, the `structuredData` dates, and the prose under "What the data shows" and the monthly-bill caption. Take every figure from the report sections — never invent numbers.
-   - `src/routes/solar-report-full.tsx` — refresh the same period/date strings, `meta` title + description, and `navItems` if the section anchors changed.
+   - `app/pages/solar-report.tsx` — refresh `headlineMetrics` (annual bill cut + %, simple payback, year-1 generation, CO₂ avoided), `monthlyBills` (one row per month in the report, including the newest month), `systemChips`, every period/date string (`datePublished`, `dateModified`, the "Dec 2025 – Apr 2026" eyebrow, the "Published …" line, the "N months in" copy), the `meta` title + description, the `structuredData` dates, and the prose under "What the data shows" and the monthly-bill caption. Take every figure from the report sections — never invent numbers.
+   - `app/pages/solar-report-full.tsx` — refresh the same period/date strings, `meta` title + description, and `navItems` if the section anchors changed.
    - `src/content/solar-report-summary.mdx` — update its frontmatter: the `eyebrow` period stamp, `dateModified`, and any numbers cited in `description`.
    Follow the blog writing style: lead with the fact; do **not** use "the thing that surprised me" / "what surprised me" framing.
 
@@ -66,9 +66,9 @@ The generator requires these report sections:
 - `Battery Health`
 - `Annual Projection`
 
-`Alerts` is **optional** — a report with no anomalies omits the section entirely, and the generator degrades to a "No anomalies flagged this period" state instead of aborting. When `Alerts` is absent, drop the `#alerts` entry from `navItems` in `src/routes/solar-report-full.tsx` during synthesis (step 5) so the table of contents has no dead anchor.
+`Alerts` is **optional** — a report with no anomalies omits the section entirely, and the generator degrades to a "No anomalies flagged this period" state instead of aborting. When `Alerts` is absent, drop the `#alerts` entry from `navItems` in `app/pages/solar-report-full.tsx` during synthesis (step 5) so the table of contents has no dead anchor.
 
-The script validates section presence in-memory; the React Router routes consume the markdown directly. The full-report page mounts the entire markdown via the blog's MDX components, so any section heading present in the report becomes a deep-linkable anchor automatically.
+The script validates section presence in-memory; the app routes consume the markdown directly. The full-report page mounts the entire markdown via the blog's MDX components, so any section heading present in the report becomes a deep-linkable anchor automatically.
 
 ## Frontmatter
 
@@ -83,7 +83,7 @@ The block is read from `src/content/full-report.md` (the source of truth, fallin
 
 | Output | Purpose |
 |---|---|
-| `src/content/full-report.md` | Markdown imported by the `/solar-report/full-report` React Router route. `<` is auto-escaped to `\<` for MDX 3 safety; Data Sources bullets are linkified to absolute `/solar-report/data/<file>.csv` URLs so they resolve when rendered. The hand-maintained frontmatter block is preserved, with `dateModified`/`eyebrow` refreshed. |
+| `src/content/full-report.md` | Markdown imported by the `/solar-report/full-report` app route. `<` is auto-escaped to `\<` for MDX 3 safety; Data Sources bullets are linkified to absolute `/solar-report/data/<file>.csv` URLs so they resolve when rendered. The hand-maintained frontmatter block is preserved, with `dateModified`/`eyebrow` refreshed. |
 | `public/solar-report/full-report.md` | Raw (unescaped) markdown served as the download link on both `/solar-report` and `/solar-report/full-report`. Data Sources entries keep their original relative `data/<file>.csv` paths so the file remains portable when downloaded. Carries the same refreshed frontmatter block as the MDX target. |
 | `public/solar-report/og-image.png` | OpenGraph image used by `/solar-report` and `/solar-report/full-report`. |
 | `public/solar-report/data/*.csv` | Source CSVs cited by the Data Sources section, copied verbatim from the source directory so the linkified bullets resolve to a downloadable file. |

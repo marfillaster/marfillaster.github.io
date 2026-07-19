@@ -7,9 +7,9 @@ lives at $PHEV_TRACKER_DATA_DIR/phev_log.csv when that env var is set (the
 phev-tracker skill's data-dir override), else ~/.local/share/phev-tracker/phev_log.csv.
 
 This script only regenerates the markdown inputs + OG image + copied data file
-under /nev-mileage. The summary route (src/routes/nev-mileage.tsx) is
+under /nev-mileage. The summary route (app/pages/nev-mileage.tsx) is
 hand-shaped and is NOT regenerated here; update it by hand when headline
-numbers change. `pnpm build` produces the final HTML.
+numbers change. `pnpm gen:remix-content` produces the final HTML.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ DEFAULT_SOURCE = Path.home() / "phev-tracker" / "report.md"
 DEFAULT_DATA = default_data_path()
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
-# Output targets in the React Router site layout:
+# Output targets in the Remix site layout:
 #   - src/content/nev-full-report.md → markdown with `\<` escapes; imported by
 #     the /nev-mileage/full-report route via the MDX plugin. The Data Sources
 #     bullet is linkified to the absolute /nev-mileage/data/ URL.
@@ -308,9 +308,9 @@ def main() -> None:
         raise SystemExit(f"Source report not found: {source}")
     if not (repo_root / "package.json").exists():
         raise SystemExit(f"package.json not found in repo root: {repo_root}")
-    if not (repo_root / "src" / "routes" / "nev-mileage.tsx").exists():
+    if not (repo_root / "app" / "pages" / "nev-mileage.tsx").exists():
         raise SystemExit(
-            f"src/routes/nev-mileage.tsx not found in repo root: {repo_root}"
+            f"app/pages/nev-mileage.tsx not found in repo root: {repo_root}"
         )
 
     copied = build_site(source, data_csv, repo_root)
@@ -320,7 +320,7 @@ def main() -> None:
     if copied:
         print(f"Copied refuel log into {DATA_DEST}")
     print(f"Source report: {source}")
-    print("Run `pnpm build` to regenerate the React Router pages.")
+    print("Run `pnpm gen:remix-content` to refresh the worker content module.")
 
 
 if __name__ == "__main__":

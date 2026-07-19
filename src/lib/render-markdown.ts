@@ -1,11 +1,10 @@
 // -----------------------------------------------------------------------------
-// Pure markdown → HTML renderer. No I/O, no framework imports — the same
-// function runs at build time under React Router today and can run at request
-// time inside a Worker later. Mirrors the behavior of the retired
-// MDX-as-React pipeline: GFM, heading ids (must stay in lockstep with the TOC
-// slugs computed by scripts/post-metadata.mjs), fence-meta titles, h1
-// suppression, and static expansion of the two in-prose components
-// (<Rationale>, <SeriesNav />).
+// Pure markdown → HTML renderer. No I/O, no framework imports — runs at
+// request time inside the Worker and under the Node adapter alike. Mirrors
+// the behavior of the retired MDX-as-React pipeline: GFM, heading ids (must
+// stay in lockstep with the TOC slugs computed by src/lib/post-meta.mjs),
+// fence-meta titles, h1 suppression, and static expansion of the two
+// in-prose components (<Rationale>, <SeriesNav />).
 // -----------------------------------------------------------------------------
 
 import type { Element, ElementContent, Root } from "hast";
@@ -55,7 +54,7 @@ function highlighter(): HighlighterCore {
 }
 
 // -----------------------------------------------------------------------------
-// Slugs. Mirrors scripts/post-metadata.mjs (cleanHeadingText/slugifyHeading)
+// Slugs. Mirrors src/lib/post-meta.mjs (cleanHeadingText/slugifyHeading)
 // exactly — the TOC anchors it computes must resolve against the ids emitted
 // here. Dedupe counts occurrences across all headings in document order, the
 // way rehype-slug (github-slugger) did.

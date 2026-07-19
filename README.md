@@ -1,6 +1,6 @@
 # marfillaster · notes
 
-Static site hosted on Cloudflare at https://blog.homestack.space/ — a sister-blog umbrella for long-running experiments. The repo is still the `marfillaster/marfillaster.github.io` user-site repo for historical reasons; only the hosting moved.
+Remix 3 blog served by a Cloudflare Worker at https://blog.homestack.space/ — a sister-blog umbrella for long-running experiments. The repo is still the `marfillaster/marfillaster.github.io` user-site repo for historical reasons; only the hosting moved.
 
 Routes:
 
@@ -17,25 +17,15 @@ This project uses [pnpm](https://pnpm.io/) (declared via `packageManager` in `pa
 
 ```sh
 pnpm install
-pnpm dev
+pnpm remix:assets   # static assets + client entries (rerun after CSS/entry changes)
+pnpm dev:remix      # Node adapter, no build step — http://localhost:3000
 ```
 
-## Build
+`pnpm dev:remix-workerd` runs the same app under workerd (`wrangler dev`) with the real bindings shape.
 
-```sh
-pnpm build
-```
+## Deploy
 
-React Router prerenders each route at build time, so the deployed `build/client/<route>/index.html` files contain real article HTML instead of an empty React root.
-
-## GitHub Pages
-
-This folder is the repository root for `marfillaster/marfillaster.github.io`.
-
-1. Push the contents of this folder to that repository.
-2. In GitHub, open **Settings → Pages**.
-3. Set **Source** to **GitHub Actions**.
-4. Push to `main`; the included workflow builds and deploys `build/client/`.
+Pushing `main` deploys via Cloudflare Workers Builds: `pnpm cf:build` then `pnpm cf:deploy` (`wrangler deploy` + zone cache purge). Markdown renders at request time in the worker; every route is edge-cached keyed on the deploy version. See `docs/remix3-migration-plan.md` for the architecture.
 
 ## Solar report regeneration
 
@@ -43,11 +33,11 @@ The `/solar-report` content is regenerated from a `solar-analysis.md` source usi
 
 ```sh
 python3 .codex/skills/update-solar-report-site/scripts/update_site.py
-pnpm build
+pnpm gen:remix-content
 ```
 
 See `.codex/skills/update-solar-report-site/SKILL.md` for the contract and deterministic rules.
 
 ## Analytics
 
-Google Analytics 4 (`G-S37EV14XH2`) is wired into `src/root.tsx` and inherited by every route.
+Google Analytics 4 (`G-S37EV14XH2`) is wired into the shared document head (`app/document.tsx`); per-page view counts come from the worker's `/api/analytics/pageviews` endpoint backed by KV + the GA4 Data API.

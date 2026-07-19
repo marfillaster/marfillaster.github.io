@@ -1,6 +1,5 @@
 // -----------------------------------------------------------------------------
-// Pure post-metadata logic shared by the fs-based build scripts
-// (scripts/post-metadata.mjs) and the Remix app layer, which feeds it sources
+// Pure post-metadata logic for the Remix app layer, which feeds it sources
 // from Platform.content(). No I/O — callers supply (relativePath, source)
 // pairs. Frontmatter semantics must stay in lockstep with the TOC ids emitted
 // by src/lib/render-markdown.ts.

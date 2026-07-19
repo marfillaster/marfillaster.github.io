@@ -10,7 +10,7 @@ This skill **only copies and transforms** an existing report into the
 
 The report is produced by the **`phev-tracker` skill** (its "Extended report
 with AI analysis" path), which writes `~/phev-tracker/report.md`. This skill
-reads that file, fans it out into the React Router site, and lets `pnpm build`
+reads that file, fans it out into the Remix site, and lets `pnpm gen:remix-content`
 produce the final HTML.
 
 > If `~/phev-tracker/report.md` is stale or missing, run the `phev-tracker`
@@ -55,10 +55,10 @@ python3 .codex/skills/update-nev-mileage-site/scripts/update_nev_site.py \
   --repo-root /absolute/path/to/blog
 ```
 
-3. Build the site so the React Router routes pick up the new markdown:
+3. Regenerate the committed worker content module so the deployed app picks up the new markdown:
 
 ```bash
-pnpm build
+pnpm gen:remix-content
 ```
 
 4. Review the diff for:
@@ -67,7 +67,7 @@ pnpm build
    - `public/nev-mileage/og-image.png`
    - `public/nev-mileage/data/phev_log.csv` (copied verbatim from the data path)
 
-5. If the headline numbers on the curated summary (`src/routes/nev-mileage.tsx`) changed materially, update them by hand — the summary page is bespoke React, intentionally not generated, and there is no summary markdown.
+5. If the headline numbers on the curated summary (`app/pages/nev-mileage.tsx`) changed materially, update them by hand — the summary page is bespoke React, intentionally not generated, and there is no summary markdown.
 
 6. If the user asked to publish, commit and push the repo after reviewing the generated changes. GitHub Actions builds and deploys `build/client/`.
 
