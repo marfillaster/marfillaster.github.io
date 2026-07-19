@@ -26,13 +26,18 @@
       "id": "90321c43ce5e4817a332c0c639c474a2"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "COMMENTS_DB",
+      "database_name": "blog-comments",
+      "database_id": "8b53e206-d2c7-4c41-8f22-d8001c9832ea",
+      "migrations_dir": "migrations"
+    }
+  ],
   "vars": {
     "GA_PROPERTY_ID": "535474441",
-    // Remains dormant until the production D1 binding and Turnstile secrets
-    // are configured. Giscus stays active while this is false.
-    "COMMENTS_ENABLED": "false",
-    "TURNSTILE_SITE_KEY": "0x4AAAAAAD40Ccaaxq75pR5k",
-    "REDDIT_USER_AGENT": "web:blog.homestack.space:v1 (by /u/marfillaster)"
+    "COMMENTS_ENABLED": "true",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAD40Ccaaxq75pR5k"
   },
   "triggers": {
     "crons": ["0 18 * * *"]

@@ -5,10 +5,10 @@
 export const ASSET_MANIFEST: Record<string, string> = {
   "boot": "/assets/entries/boot-46HYPIKA.js",
   "code-highlight.css": "/assets/code-highlight-e2f9f068.css",
-  "comments": "/assets/entries/comments-6VIE4HQZ.js",
-  "enhance": "/assets/entries/enhance-PJHD2U7B.js",
+  "comments": "/assets/entries/comments-LGPAPIUI.js",
+  "enhance": "/assets/entries/enhance-MUYSOEY7.js",
   "page-stats": "/assets/entries/page-stats-FJFUT3S4.js",
   "share-links": "/assets/entries/share-links-3C47HGZ5.js",
-  "styles.css": "/assets/styles-97d94843.css",
+  "styles.css": "/assets/styles-c216fd88.css",
   "theme-toggle": "/assets/entries/theme-toggle-ATXT5L6V.js"
 };

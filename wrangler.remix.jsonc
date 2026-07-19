@@ -39,8 +39,7 @@
     "GA_PROPERTY_ID": "",
     "COMMENTS_ENABLED": "true",
     "COMMENTS_LOCAL_DEV": "true",
-    "TURNSTILE_SITE_KEY": "",
-    "REDDIT_USER_AGENT": "web:blog.homestack.space:v1 (by /u/marfillaster)"
+    "TURNSTILE_SITE_KEY": ""
   },
   "triggers": {
     "crons": ["0 18 * * *"]

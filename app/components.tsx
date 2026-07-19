@@ -1,9 +1,7 @@
 // -----------------------------------------------------------------------------
 // Shared server-rendered components: site shell, TOC, series nav, variant
 // tabs, share row, comments shell. Ports of the React components with the
-// same markup and classes. Interactive behavior (theme toggle, copy buttons,
-// Giscus injection, tab JS) is Phase 3 — everything here renders inert,
-// matching what the RR7 prerender emitted before hydration.
+// same markup and classes. Browser entries provide progressive enhancement.
 // -----------------------------------------------------------------------------
 
 import type { Handle, RemixNode } from "remix/ui";
@@ -207,12 +205,11 @@ export function Comments(
       </p>
       {handle.props.firstParty && handle.props.postHref ? (
         <CommentsThread commentsPath={commentRoutePath(handle.props.postHref)} />
-      ) : null}
-      <p className="mt-3 text-sm text-muted-foreground">
-        Comments are powered by GitHub Discussions and require a free GitHub
-        account to post.
-      </p>
-      <div className="mt-6" data-giscus />
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Comments are unavailable.
+        </p>
+      )}
     </section>
   );
 }

@@ -1,14 +1,14 @@
 # Remix 3 migration plan
 
 Status: Phases 0–5 done (Phase 5 cutover: 2026-07-19). Phase 6 is implemented
-locally and awaits its production D1/Turnstile/Access setup and activation.
+with its production D1, Turnstile, and Access configuration.
 **The Remix 3 app is
 live in production** — worker `blog` deployed directly via `wrangler deploy`
 (Git-integration build/deploy commands still to be switched to `pnpm cf:build`
 / `pnpm cf:deploy` in the dashboard, plus purge env vars; until then pushes to
 main fail CI harmlessly and deploys are manual). Phase 1 spike GO
 (`docs/remix3-spike-report.md`). Remaining: RR7 cleanup (plan §7 Phase 5 tail)
-and Phase 6 (comments + Reddit mirror).
+and Phase 6 (comments).
 Written 2026-07-18 against Remix `3.0.0-beta.5`.
 
 ## Context
@@ -216,7 +216,7 @@ Each is small and self-contained; none needs React:
 |---|---|---|
 | Theme toggle | `useTheme` in `doc.tsx` | `clientEntry()` component; same localStorage + `matchMedia` + `.dark`-class logic |
 | Page stats | `page-stats.tsx` fetch | client entry fetching `/api/analytics/pageviews` (endpoint unchanged) |
-| Giscus | `comments.tsx` | client entry injecting the script — interim only; replaced by first-party threaded comments (section 6) |
+| Comments | `comments.tsx` | first-party threaded comments loaded through a client entry (section 6) |
 | Code copy | `code-snippet.tsx` | progressive-enhancement script over Shiki's server-rendered `<pre>` |
 | Share/copy link | `share.tsx` | client entry (clipboard API) |
 | Variant tabs | `VariantTabs` in `src/lib/post-route.tsx` | client entry over server-rendered panels |
@@ -254,6 +254,10 @@ than an embedded third-party widget:
 - **No accounts.** Display name + body. Bodies are markdown-lite rendered
   through the same unified pipeline with `rehype-sanitize` (strict schema:
   links, code, emphasis; no images or raw HTML).
+- **Server-rendered preview.** Write and Preview tabs post the draft back to
+  the comment route. Preview uses the same markdown and sanitization function
+  as publication, writes nothing, and remains available as a full-page form
+  action without JavaScript.
 - **Cloudflare Turnstile gates every write.** The form embeds the Turnstile
   widget; the POST handler verifies the token server-side (`siteverify` with the
   client IP) before touching D1. Honeypot field and a per-IP KV rate limit back
@@ -273,31 +277,8 @@ than an embedded third-party widget:
   the thread structure under it survives, and renders as a "comment hidden"
   stub. No delete — hiding is reversible and D1 rows are cheap. Rows store an
   IP hash + timestamp for abuse tracing, nothing else.
-- **Giscus transition**: Giscus stays through cutover; a one-time script imports
-  the existing GitHub Discussions threads into D1 (author, body, thread
-  structure), then the widget goes away.
-
-### Mirrored Reddit discussions
-
-When an article has been shared on Reddit, the post page surfaces the actual
-Reddit thread alongside first-party comments:
-
-- **Discovery**: `reddit.com/api/info.json?url=<article-url>` lists every
-  submission linking to the article; each submission's `<permalink>.json`
-  returns its full comment tree. Both are plain fetches from the Worker.
-- **Auth**: Reddit throttles anonymous datacenter traffic, so the Worker uses a
-  registered Reddit app with the client-credentials OAuth flow
-  (`oauth.reddit.com`, credentials in `Platform.secrets`) — reliable and well
-  within free rate limits at blog traffic. If the fetch fails, the section
-  simply doesn't render.
-- **Rendering**: read-only. The same server-side thread renderer that lays out
-  first-party comments consumes the Reddit tree (score-sorted, as Reddit
-  presents it), with each comment deep-linking to Reddit and a "reply on
-  Reddit" link on the thread header. One renderer, two sources.
-- **Caching**: mirrored threads are third-party data, not version-keyed —
-  cached in the Cache API with a 30-minute TTL, refreshed lazily on request.
-  Discovery results (which threads exist per article) cache for 24 hours in KV,
-  since new shares are rare and a miss only delays the section's appearance.
+- **Giscus replacement**: there was no GitHub Discussions content to import.
+  Activation removes the Giscus loader and theme synchronization.
 
 ## 7. Sequencing
 
@@ -344,14 +325,11 @@ gate on the spike.
   with no frame support — suppressed in `app/client/boot.ts`; Cloudflare
   strips ETags from HTML (strong-format tags + inner cache key now
   version-keyed). RR7 deletion still pending as cleanup.
-- **Phase 6 — comments and discussions** (post-cutover; new functionality, not
-  porting): D1 schema + thread renderer, Turnstile-gated form, moderation
-  endpoint behind Cloudflare Access, and mirrored Reddit discussions. The
-  implementation is complete on `phase6-comments` with Node SQLite and local
-  workerd/D1 verification. Production stays dormant behind
-  `COMMENTS_ENABLED=false` until bindings and secrets are configured. There is
-  no Giscus content to import; remove Giscus when the first-party feature is
-  activated.
+- **Phase 6 — comments** (post-cutover; new functionality, not porting): D1
+  schema + thread renderer, server-rendered previews, Turnstile-gated form,
+  and a moderation endpoint behind Cloudflare Access. Production activation
+  uses the `COMMENTS_DB` binding, Turnstile keys, and `COMMENT_IP_SALT`. There
+  was no Giscus content to import, and Reddit mirroring was removed from scope.
 
 **Timing:** execute Phase 0 whenever convenient; hold Phases 1+ until Remix 3
 reaches RC/stable unless the spike is done purely to de-risk.
@@ -384,17 +362,14 @@ reaches RC/stable unless the spike is done purely to de-risk.
   D1 exports are CLI-only, so comment data needs either a scheduled GitHub
   Actions export using a D1-scoped API token or a documented manual export
   routine before production activation.
-- **The Reddit mirror depends on a third-party API** — Reddit has changed API
-  terms abruptly before. The feature degrades to absence when fetches fail, and
-  nothing else depends on it.
 
 ## 9. Verification (for the eventual implementation)
 
 - **HTML parity diff**: a script fetches every route from the old prerendered
   build and the new SSR Worker (`wrangler dev`), normalizes, and diffs
   structure + meta + ld+json.
-- Per-route smoke: theme toggle, code copy, tabs, Giscus load, page-stats fetch,
-  `/api/analytics/*` responses, cron via `wrangler dev --test-scheduled`.
+- Per-route smoke: theme toggle, code copy, tabs, comment loading, page-stats
+  fetch, `/api/analytics/*` responses, cron via `wrangler dev --test-scheduled`.
 - Caching behavior: first request renders (MISS + `ETag`), repeat request is an
   edge HIT, `curl -H 'If-None-Match: <etag>'` returns 304, and a redeploy
   changes the ETag and serves fresh HTML.
@@ -403,7 +378,6 @@ reaches RC/stable unless the spike is done purely to de-risk.
 - Comments (Phase 6): post → verify Turnstile rejection without a token and
   acceptance with one; reply nesting renders at depth 1–6 and flattens past the
   cap; fragment cache purges on write (new comment visible immediately, post
-  HTML ETag unchanged); sanitize check — a comment containing `<script>` and an
-  image renders inert; JS-off page shows the full thread and form.
-- Reddit mirror: article with a known share shows the thread score-sorted;
-  unknown article shows nothing; discovery cache hit rate visible in logs.
+  HTML ETag unchanged); preview and publication use identical sanitized HTML;
+  a comment containing `<script>` and an image renders inert; JS-off page shows
+  the full thread, preview, and form.

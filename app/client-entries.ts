@@ -35,7 +35,7 @@ const CLIENT_ENTRIES: Record<string, ClientEntryResolution> = {
 /** Browser boot module: calls run({ loadModule }) to hydrate client entries. */
 export const CLIENT_BOOT_SCRIPT = ASSET_MANIFEST["boot"];
 
-/** Framework-free progressive enhancement (code copy, Giscus, hash redirects). */
+/** Framework-free progressive enhancement (code copy and hash redirects). */
 export const ENHANCE_SCRIPT = ASSET_MANIFEST["enhance"];
 
 export function resolveClientEntry(entryId: string): ClientEntryResolution {

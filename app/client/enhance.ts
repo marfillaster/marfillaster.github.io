@@ -1,6 +1,5 @@
 // Framework-free progressive enhancement over the server-rendered page:
 //   - code-copy buttons (clipboard over the Shiki-rendered <figure> blocks)
-//   - Giscus comment embed + dark/light theme sync
 //   - legacy hash redirects (fragments never reach the server, so these must
 //     stay client-side even under SSR)
 // Precompiled to /assets/entries/enhance.js by scripts/build-remix-assets.mjs.
@@ -42,61 +41,6 @@ document.addEventListener("click", (event) => {
     void copyCode(button);
   }
 });
-
-// --- Giscus comments (port of src/components/comments.tsx) ------------------
-
-const GISCUS_CONFIG = {
-  repo: "marfillaster/marfillaster.github.io",
-  repoId: "R_kgDOSeDLPQ",
-  category: "Announcements",
-  categoryId: "DIC_kwDOSeDLPc4C9JGC",
-} as const;
-
-function currentGiscusTheme(): string {
-  return document.documentElement.classList.contains("dark") ? "dark" : "light";
-}
-
-function postThemeToGiscus(theme: string) {
-  const iframe = document.querySelector<HTMLIFrameElement>("iframe.giscus-frame");
-  iframe?.contentWindow?.postMessage(
-    { giscus: { setConfig: { theme } } },
-    "https://giscus.app",
-  );
-}
-
-function mountGiscus() {
-  const container = document.querySelector<HTMLElement>("[data-giscus]");
-  if (!container || container.querySelector("script")) {
-    return;
-  }
-
-  const script = document.createElement("script");
-  script.src = "https://giscus.app/client.js";
-  script.async = true;
-  script.crossOrigin = "anonymous";
-  script.setAttribute("data-repo", GISCUS_CONFIG.repo);
-  script.setAttribute("data-repo-id", GISCUS_CONFIG.repoId);
-  script.setAttribute("data-category", GISCUS_CONFIG.category);
-  script.setAttribute("data-category-id", GISCUS_CONFIG.categoryId);
-  script.setAttribute("data-mapping", "pathname");
-  script.setAttribute("data-strict", "0");
-  script.setAttribute("data-reactions-enabled", "1");
-  script.setAttribute("data-emit-metadata", "0");
-  script.setAttribute("data-input-position", "top");
-  script.setAttribute("data-theme", currentGiscusTheme());
-  script.setAttribute("data-lang", "en");
-  script.setAttribute("data-loading", "lazy");
-  container.appendChild(script);
-
-  // Keep giscus in sync with the manual dark/light toggle, which flips the
-  // `dark` class on <html> (see ThemeToggle in app/interactive.tsx).
-  new MutationObserver(() => postThemeToGiscus(currentGiscusTheme())).observe(
-    document.documentElement,
-    { attributes: true, attributeFilter: ["class"] },
-  );
-}
-
-mountGiscus();
 
 // --- Legacy hash redirects (port of HashRedirects in src/lib/post-route.tsx) --
 
