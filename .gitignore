@@ -9,6 +9,7 @@ __pycache__/
 .dev.vars
 .wrangler/
 .remix-assets/
+local/comments.sqlite*
 
 # Working artifacts (handoffs, drafts) — never committed
 /tmp/

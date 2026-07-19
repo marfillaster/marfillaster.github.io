@@ -7,7 +7,8 @@
 // -----------------------------------------------------------------------------
 
 import type { Handle, RemixNode } from "remix/ui";
-import { ThemeToggle } from "./interactive.tsx";
+import { CommentsThread, ThemeToggle } from "./interactive.tsx";
+import { commentRoutePath } from "./comments.ts";
 import { SERIES } from "../src/lib/series.ts";
 import type { PostTabs, PostToc } from "../src/lib/post-meta.mjs";
 import { normalizeHref } from "./site.ts";
@@ -192,8 +193,9 @@ export function VariantTabs(
   };
 }
 
-export function Comments(_: Handle) {
-  // Static shell only; the Giscus script injection is a Phase 3 client entry.
+export function Comments(
+  handle: Handle<{ postHref?: string; firstParty?: boolean }>,
+) {
   return () => (
     <section
       aria-label="Comments"
@@ -203,6 +205,9 @@ export function Comments(_: Handle) {
       <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
         Comments
       </p>
+      {handle.props.firstParty && handle.props.postHref ? (
+        <CommentsThread commentsPath={commentRoutePath(handle.props.postHref)} />
+      ) : null}
       <p className="mt-3 text-sm text-muted-foreground">
         Comments are powered by GitHub Discussions and require a free GitHub
         account to post.

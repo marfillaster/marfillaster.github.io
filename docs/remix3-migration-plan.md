@@ -1,6 +1,8 @@
 # Remix 3 migration plan
 
-Status: Phases 0–5 done (Phase 5 cutover: 2026-07-19). **The Remix 3 app is
+Status: Phases 0–5 done (Phase 5 cutover: 2026-07-19). Phase 6 is implemented
+locally and awaits its production D1/Turnstile/Access setup and activation.
+**The Remix 3 app is
 live in production** — worker `blog` deployed directly via `wrangler deploy`
 (Git-integration build/deploy commands still to be switched to `pnpm cf:build`
 / `pnpm cf:deploy` in the dashboard, plus purge env vars; until then pushes to
@@ -344,7 +346,12 @@ gate on the spike.
   version-keyed). RR7 deletion still pending as cleanup.
 - **Phase 6 — comments and discussions** (post-cutover; new functionality, not
   porting): D1 schema + thread renderer, Turnstile-gated form, moderation
-  endpoints, Giscus import and removal, mirrored Reddit discussions.
+  endpoint behind Cloudflare Access, and mirrored Reddit discussions. The
+  implementation is complete on `phase6-comments` with Node SQLite and local
+  workerd/D1 verification. Production stays dormant behind
+  `COMMENTS_ENABLED=false` until bindings and secrets are configured. There is
+  no Giscus content to import; remove Giscus when the first-party feature is
+  activated.
 
 **Timing:** execute Phase 0 whenever convenient; hold Phases 1+ until Remix 3
 reaches RC/stable unless the spike is done purely to de-risk.
@@ -373,8 +380,10 @@ reaches RC/stable unless the spike is done purely to de-risk.
 - **First-party comments carry an ongoing moderation duty** — Turnstile +
   honeypot + rate limits stop bots, not motivated humans, and accept-by-default
   means anything that slips through is live until noticed. The hide endpoint
-  and IP-hash tracing are the whole toolkit; expect occasional manual cleanup. D1 needs a periodic export (`wrangler d1 export` on the cron) so
-  comment data has a backup outside Cloudflare.
+  and IP-hash tracing are the whole toolkit; expect occasional manual cleanup.
+  D1 exports are CLI-only, so comment data needs either a scheduled GitHub
+  Actions export using a D1-scoped API token or a documented manual export
+  routine before production activation.
 - **The Reddit mirror depends on a third-party API** — Reddit has changed API
   terms abruptly before. The feature degrades to absence when fetches fail, and
   nothing else depends on it.

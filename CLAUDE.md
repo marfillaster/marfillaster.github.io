@@ -17,6 +17,9 @@ Pushing `main` auto-deploys via Workers Builds: build `pnpm cf:build` (regenerat
 ## Content, RSS, routes
 The homepage post list, post routes, `/rss.xml`, and `/sitemap.xml` all render at request time from YAML frontmatter in `src/content/*.mdx` (`app/post-index.ts` → `src/lib/post-meta.mjs`). `feed: true` posts appear in RSS/homepage and get a shared route; `feed: false` + `route: true` posts get only a shared route. Whenever content is added, renamed, or materially updated: update the frontmatter title/description/date fields and run `pnpm gen:remix-content` before committing (CI build regenerates too, but the file is committed). TSX-only summary pages (`app/pages/`) use metadata-only MDX sidecars.
 
+## Comments
+First-party threaded comments use D1 in workerd and `local/comments.sqlite` in Node. `pnpm dev:remix-workerd` applies `migrations/` to its local D1 before starting. Production remains dormant while `COMMENTS_ENABLED` is `false`; do not enable it until the production D1 binding, Turnstile keys, `COMMENT_IP_SALT`, and Cloudflare Access policy for `/api/comments/hide` are configured. Giscus stays active until that activation commit, when its block and theme-sync code are removed. There is no existing Giscus content to import. Run `pnpm test:comments` after changing comment storage, rendering, validation, or Reddit normalization.
+
 ## CHR/VyOS variant of a post
 Mirror an existing `*-vyos` / `*-chr` flavor in content only: add frontmatter with `feed: false`, `route: true`, the variant `href`, `headingPrefix` (`vyos-` or `chr-`), dependencies, and shared `tabs`. The shared post page (`app/pages/post.tsx`) handles rendering.
 

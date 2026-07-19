@@ -9,12 +9,13 @@
 // -----------------------------------------------------------------------------
 
 import { createServer } from "node:http";
-import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync, mkdirSync, statSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { extname, join, relative, resolve, sep } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { createRequestListener } from "remix/node-fetch-server";
 import { createApp } from "../app/app.tsx";
-import type { Platform } from "../app/platform.ts";
+import type { CommentRow, CommentsStore, Platform } from "../app/platform.ts";
 
 const repoRoot = resolve(import.meta.dirname, "..");
 const contentDir = join(repoRoot, "src/content");
@@ -104,6 +105,89 @@ function pseudoViews(path: string): number {
 
 const viewsStore = new Map<string, number>();
 
+interface SqlCommentRow {
+  id: string;
+  post_slug: string;
+  parent_id: string | null;
+  author: string;
+  body_md: string;
+  body_html: string;
+  ip_hash: string;
+  created_at: string;
+  hidden: number;
+}
+
+function mapComment(row: SqlCommentRow): CommentRow {
+  return {
+    id: row.id,
+    postSlug: row.post_slug,
+    parentId: row.parent_id,
+    author: row.author,
+    bodyMd: row.body_md,
+    bodyHtml: row.body_html,
+    ipHash: row.ip_hash,
+    createdAt: row.created_at,
+    hidden: row.hidden === 1,
+  };
+}
+
+function createCommentsStore(): CommentsStore {
+  const localDir = join(repoRoot, "local");
+  mkdirSync(localDir, { recursive: true });
+  const db = new DatabaseSync(join(localDir, "comments.sqlite"));
+  db.exec("PRAGMA foreign_keys = ON");
+  const table = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'comments'")
+    .get();
+  if (!table) {
+    db.exec(readFileSync(join(repoRoot, "migrations/0001_comments.sql"), "utf8"));
+  }
+
+  const select = `
+    SELECT id, post_slug, parent_id, author, body_md, body_html,
+           ip_hash, created_at, hidden
+    FROM comments`;
+  return {
+    enabled: true,
+    async listThread(postSlug) {
+      return (
+        db.prepare(`${select} WHERE post_slug = ? ORDER BY created_at ASC`).all(
+          postSlug,
+        ) as unknown as SqlCommentRow[]
+      ).map(mapComment);
+    },
+    async insert(row) {
+      db.prepare(
+        `INSERT INTO comments
+          (id, post_slug, parent_id, author, body_md, body_html, ip_hash, created_at, hidden)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        row.id,
+        row.postSlug,
+        row.parentId,
+        row.author,
+        row.bodyMd,
+        row.bodyHtml,
+        row.ipHash,
+        row.createdAt,
+        row.hidden ? 1 : 0,
+      );
+    },
+    async setHidden(id, hidden) {
+      db.prepare("UPDATE comments SET hidden = ? WHERE id = ?").run(hidden ? 1 : 0, id);
+    },
+    async get(id) {
+      const row = db.prepare(`${select} WHERE id = ?`).get(id) as
+        | SqlCommentRow
+        | undefined;
+      return row ? mapComment(row) : null;
+    },
+  };
+}
+
+const rateHits = new Map<string, { count: number; resetAt: number }>();
+const transient = new Map<string, { value: string; expiresAt: number }>();
+
 const platform: Platform = {
   content: loadContent,
   versionId: gitVersionId(),
@@ -116,10 +200,54 @@ const platform: Platform = {
       viewsStore.set(path, views);
     },
   },
+  comments: createCommentsStore(),
+  challenge: {
+    async verify() {
+      return true;
+    },
+  },
+  rateLimit: {
+    async hit(key) {
+      const now = Date.now();
+      const current = rateHits.get(key);
+      const next = !current || current.resetAt <= now
+        ? { count: 1, resetAt: now + 10 * 60_000 }
+        : { ...current, count: current.count + 1 };
+      rateHits.set(key, next);
+      return next.count > 5;
+    },
+  },
+  moderation: {
+    authorized() {
+      return true;
+    },
+  },
+  transient: {
+    async get(key) {
+      const entry = transient.get(key);
+      if (!entry || entry.expiresAt <= Date.now()) {
+        transient.delete(key);
+        return null;
+      }
+      return entry.value;
+    },
+    async put(key, value, expirationTtl) {
+      transient.set(key, {
+        value,
+        expiresAt: Date.now() + expirationTtl * 1000,
+      });
+    },
+  },
   secrets: {
     gaServiceAccountKey: process.env.GA_SERVICE_ACCOUNT_KEY,
     gaPropertyId: process.env.GA_PROPERTY_ID,
     adminResyncToken: process.env.ADMIN_RESYNC_TOKEN,
+    redditClientId: process.env.REDDIT_CLIENT_ID,
+    redditClientSecret: process.env.REDDIT_CLIENT_SECRET,
+    redditUserAgent:
+      process.env.REDDIT_USER_AGENT ??
+      "web:blog.homestack.space:v1 (by /u/marfillaster)",
+    commentIpSalt: process.env.COMMENT_IP_SALT ?? "comments-local-dev",
   },
   httpCache: null,
   waitUntil(promise) {

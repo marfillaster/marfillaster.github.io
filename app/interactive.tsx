@@ -182,3 +182,82 @@ export const PageStats: EntryComponent<{ path: string; title: string }> = client
     };
   },
 );
+
+// --- First-party comments ---------------------------------------------------
+
+function loadTurnstileWhenVisible() {
+  const widget = document.querySelector<HTMLElement>(
+    "[data-comments-fragment] .cf-turnstile",
+  );
+  if (!widget) return;
+
+  const load = () => {
+    if (document.getElementById("turnstile-script")) return;
+    const script = document.createElement("script");
+    script.id = "turnstile-script";
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  };
+
+  if (!("IntersectionObserver" in window)) {
+    load();
+    return;
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect();
+        load();
+      }
+    },
+    { rootMargin: "300px" },
+  );
+  observer.observe(widget);
+}
+
+export const CommentsThread: EntryComponent<{
+  commentsPath: string;
+}> = clientEntry(
+  "comments",
+  function CommentsThread(handle: Handle<{ commentsPath: string }>) {
+    let html: string | null = null;
+
+    if (inBrowser) {
+      fetch(`${handle.props.commentsPath}?fragment=1`, {
+        headers: { Accept: "text/html" },
+      })
+        .then((response) => (response.ok ? response.text() : null))
+        .then((fragment) => {
+          if (fragment === null) return;
+          html = fragment;
+          handle.update();
+          queueMicrotask(loadTurnstileWhenVisible);
+        })
+        .catch(() => {
+          // The standalone comments link remains as the no-JS/error fallback.
+        });
+    }
+
+    return () => (
+      <div>
+        <div
+          data-comments-fragment
+          className={html === null ? "hidden" : undefined}
+          innerHTML={html ?? ""}
+        />
+        {html === null ? (
+          <p className="mt-5 text-sm text-muted-foreground">
+            <a
+              href={handle.props.commentsPath}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              View or add comments
+            </a>
+          </p>
+        ) : null}
+      </div>
+    );
+  },
+);

@@ -18,6 +18,7 @@ import { absoluteUrl, formatPostDate } from "../site.ts";
 export interface PostPageProps {
   post: PostMeta;
   html: string;
+  commentsEnabled: boolean;
 }
 
 export function PostPage(handle: Handle<PostPageProps>) {
@@ -78,7 +79,7 @@ export function PostPage(handle: Handle<PostPageProps>) {
 
           <ShareLinks url={absoluteUrl(post.href)} title={post.title} />
 
-          <Comments />
+          <Comments postHref={post.href} firstParty={handle.props.commentsEnabled} />
         </div>
       </SiteShell>
     );

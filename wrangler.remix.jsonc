@@ -27,8 +27,20 @@
       "id": "00000000000000000000000000000000"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "COMMENTS_DB",
+      "database_name": "blog-comments-dev",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
   "vars": {
-    "GA_PROPERTY_ID": ""
+    "GA_PROPERTY_ID": "",
+    "COMMENTS_ENABLED": "true",
+    "COMMENTS_LOCAL_DEV": "true",
+    "TURNSTILE_SITE_KEY": "",
+    "REDDIT_USER_AGENT": "web:blog.homestack.space:v1 (by /u/marfillaster)"
   },
   "triggers": {
     "crons": ["0 18 * * *"]

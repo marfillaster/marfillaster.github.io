@@ -26,6 +26,10 @@ const CLIENT_ENTRIES: Record<string, ClientEntryResolution> = {
     href: ASSET_MANIFEST["page-stats"],
     exportName: "PageStats",
   },
+  comments: {
+    href: ASSET_MANIFEST["comments"],
+    exportName: "CommentsThread",
+  },
 };
 
 /** Browser boot module: calls run({ loadModule }) to hydrate client entries. */

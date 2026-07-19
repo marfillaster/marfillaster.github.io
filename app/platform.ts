@@ -30,6 +30,24 @@ export interface Platform {
    */
   views: ViewsStore;
 
+  /** Threaded-comment persistence (D1 on workerd; node:sqlite in dev). */
+  comments: CommentsStore;
+
+  /** Cloudflare Turnstile verification; the Node adapter accepts every token. */
+  challenge: ChallengeVerifier;
+
+  /** Returns true once a write key has exceeded its configured allowance. */
+  rateLimit: RateLimiter;
+
+  /** Cloudflare Access in production; unconditional in local Node dev. */
+  moderation: ModerationGate;
+
+  /** Short-lived KV data used by Reddit discovery and OAuth token caching. */
+  transient: TransientStore;
+
+  /** Public Turnstile widget key. Undefined in the auto-pass Node adapter. */
+  turnstileSiteKey?: string;
+
   /**
    * Runtime secrets. Bindings/vars on workerd; process.env on Node. All
    * optional — handlers degrade (stub GA, 401 resync) when absent.
@@ -68,4 +86,47 @@ export interface Secrets {
   gaServiceAccountKey?: string;
   gaPropertyId?: string;
   adminResyncToken?: string;
+  turnstileSecretKey?: string;
+  redditClientId?: string;
+  redditClientSecret?: string;
+  redditUserAgent?: string;
+  commentIpSalt?: string;
+}
+
+export interface CommentRow {
+  id: string;
+  postSlug: string;
+  parentId: string | null;
+  author: string;
+  bodyMd: string;
+  bodyHtml: string;
+  ipHash: string;
+  createdAt: string;
+  hidden: boolean;
+}
+
+export interface CommentsStore {
+  /** False keeps the feature dormant without changing post HTML behavior. */
+  enabled: boolean;
+  listThread(postSlug: string): Promise<CommentRow[]>;
+  insert(row: CommentRow): Promise<void>;
+  setHidden(id: string, hidden: boolean): Promise<void>;
+  get(id: string): Promise<CommentRow | null>;
+}
+
+export interface ChallengeVerifier {
+  verify(token: string, ip: string): Promise<boolean>;
+}
+
+export interface RateLimiter {
+  hit(key: string): Promise<boolean>;
+}
+
+export interface ModerationGate {
+  authorized(request: Request): boolean;
+}
+
+export interface TransientStore {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, expirationTtl: number): Promise<void>;
 }

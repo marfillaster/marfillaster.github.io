@@ -23,6 +23,8 @@ pnpm dev:remix      # Node adapter, no build step — http://localhost:3000
 
 `pnpm dev:remix-workerd` runs the same app under workerd (`wrangler dev`) with the real bindings shape.
 
+The Node adapter enables first-party comments with a gitignored SQLite database at `local/comments.sqlite`. The workerd command applies the checked-in D1 migrations to its local database before starting. `pnpm test:comments` runs the focused sanitizer, threading, write-path, moderation, fragment, and Reddit checks.
+
 ## Deploy
 
 Pushing `main` deploys via Cloudflare Workers Builds: `pnpm cf:build` then `pnpm cf:deploy` (`wrangler deploy` + zone cache purge). Markdown renders at request time in the worker; every route is edge-cached keyed on the deploy version. See `docs/remix3-migration-plan.md` for the architecture.
@@ -41,3 +43,9 @@ See `.codex/skills/update-solar-report-site/SKILL.md` for the contract and deter
 ## Analytics
 
 Google Analytics 4 (`G-S37EV14XH2`) is wired into the shared document head (`app/document.tsx`); per-page view counts come from the worker's `/api/analytics/pageviews` endpoint backed by KV + the GA4 Data API.
+
+## Comments deployment gate
+
+First-party comments are implemented but dormant in production while `COMMENTS_ENABLED=false`; Giscus remains the live comment system. Activation requires a production `COMMENTS_DB` D1 binding, the `TURNSTILE_SECRET_KEY` and `COMMENT_IP_SALT` worker secrets, a public `TURNSTILE_SITE_KEY`, and a Cloudflare Access policy covering `/api/comments/hide`. Reddit mirroring additionally needs `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`; its User-Agent identifies `/u/marfillaster`.
+
+D1 exports are CLI-only. Backups therefore need either a scheduled GitHub Actions job with a D1-scoped Cloudflare API token or a documented manual `wrangler d1 export --remote` routine. Choose and configure one before activation. Once the first-party route is live, remove the Giscus loader and theme synchronization in the same activation commit. There is no Giscus discussion data to import.

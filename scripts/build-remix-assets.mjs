@@ -56,6 +56,7 @@ const built = await esbuild.build({
     "theme-toggle": join(repoRoot, "app/client/theme-toggle.entry.ts"),
     "share-links": join(repoRoot, "app/client/share-links.entry.ts"),
     "page-stats": join(repoRoot, "app/client/page-stats.entry.ts"),
+    comments: join(repoRoot, "app/client/comments.entry.ts"),
   },
   outdir: join(outDir, "assets/entries"),
   bundle: true,

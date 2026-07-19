@@ -35,6 +35,11 @@ import { buildSitemapXml } from "./sitemap.ts";
 import { resolveClientEntry } from "./client-entries.ts";
 import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
 import { httpCaching } from "./http-caching.ts";
+import {
+  handleCommentModeration,
+  handleCommentsGet,
+  handleCommentsPost,
+} from "./comment-handlers.tsx";
 
 // Hrefs served by dedicated page components rather than the shared post page
 // (mirrors customHrefs in the RR7 src/routes.ts).
@@ -121,6 +126,23 @@ export function createApp(platform: Platform) {
   router.get("/solar-report/full-report/", redirectTo("/solar-report/full-report"));
   router.get("/nev-mileage/full-report/", redirectTo("/nev-mileage/full-report"));
 
+  // Live comment routes deliberately bypass the version-keyed document cache.
+  router.get("/comments/:slug", ({ request, params }) =>
+    handleCommentsGet(
+      request,
+      params.slug,
+      data.routablePosts,
+      platform,
+      renderNode,
+    ),
+  );
+  router.post("/comments/:slug", ({ request, params }) =>
+    handleCommentsPost(request, params.slug, data.routablePosts, platform),
+  );
+  router.post("/api/comments/hide", ({ request }) =>
+    handleCommentModeration(request, platform),
+  );
+
   // Shared post routes, derived from frontmatter exactly like src/routes.ts.
   for (const post of data.routablePosts) {
     if (customHrefs.has(post.href)) {
@@ -130,7 +152,11 @@ export function createApp(platform: Platform) {
     router.get(`/${post.routePath}/`, () =>
       page(
         postMetaDescriptors(post),
-        <PostPage post={post} html={data.postHtml(post)} />,
+        <PostPage
+          post={post}
+          html={data.postHtml(post)}
+          commentsEnabled={platform.comments.enabled}
+        />,
       ),
     );
     router.get(`/${post.routePath}`, redirectTo(`/${post.routePath}/`));

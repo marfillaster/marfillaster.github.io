@@ -77,8 +77,12 @@ export function httpCaching(platform: Platform): Middleware {
   return async (context, next) => {
     const { pathname } = context.url;
 
-    // The analytics API manages its own short-TTL caching (app/analytics.ts).
-    if (context.method !== "GET" || pathname.startsWith("/api/")) {
+    // Analytics and comments manage their own live-data caching.
+    if (
+      context.method !== "GET" ||
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/comments/")
+    ) {
       return next();
     }
 
