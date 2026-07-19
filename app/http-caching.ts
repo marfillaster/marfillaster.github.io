@@ -17,14 +17,18 @@ export const DOCUMENT_CACHE_CONTROL =
 
 const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 
-// Weak-format ETag on purpose: Cloudflare drops strong ETags from HTML it
-// recompresses, and drops weak ones only when an HTML-rewriting feature
-// (Email Obfuscation, Automatic HTTPS Rewrites, Rocket Loader) is enabled —
-// all deliberately off on this zone, so weak tags pass through alongside
-// edge compression. If HTML ETags ever vanish again, check those three zone
-// settings first.
+// Strong-format ETag + origin gzip, working with the zone's
+// respect_strong_etags cache rule. Cloudflare drops ETags (weak or strong)
+// from any HTML *it* compresses; with the rule enabled it preserves a strong
+// ETag when the origin's encoding already matches the visitor's
+// Accept-Encoding. So documents leave here gzip-encoded when the client and
+// runtime allow (see maybeGzip), Cloudflare passes them through untouched,
+// and the browser gets working 304 revalidation. If HTML ETags vanish again:
+// check the cache rule, then the HTML-rewriting zone features (Email
+// Obfuscation, Automatic HTTPS Rewrites, Rocket Loader, Speed Brain — all
+// deliberately off).
 function documentEtag(versionId: string, pathname: string): string {
-  return `W/"${versionId}:${pathname}"`;
+  return `"${versionId}:${pathname}"`;
 }
 
 /** Weak comparison over an If-None-Match header (list or `*`). */
@@ -49,6 +53,24 @@ function isCacheableDocument(response: Response): boolean {
 }
 
 export function httpCaching(platform: Platform): Middleware {
+  // Documents are stored identity-encoded in the edge cache and compressed
+  // per request on the way out: setting Content-Encoding makes workerd gzip
+  // the body on egress (encodeBody "automatic"). Vary: Accept-Encoding keeps
+  // downstream caches honest about the negotiation.
+  const maybeGzip = (request: Request, response: Response): Response => {
+    if (
+      !platform.autoEncodesBody ||
+      response.headers.has("Content-Encoding") ||
+      !/\bgzip\b/.test(request.headers.get("Accept-Encoding") ?? "")
+    ) {
+      return response;
+    }
+    const encoded = new Response(response.body, response);
+    encoded.headers.set("Content-Encoding", "gzip");
+    encoded.headers.set("Vary", "Accept-Encoding");
+    return encoded;
+  };
+
   return async (context, next) => {
     const { pathname } = context.url;
 
@@ -82,7 +104,7 @@ export function httpCaching(platform: Platform): Middleware {
     if (cache && cacheKey) {
       const hit = await cache.match(cacheKey);
       if (hit) {
-        return hit;
+        return maybeGzip(context.request, hit);
       }
     }
 
@@ -99,6 +121,6 @@ export function httpCaching(platform: Platform): Middleware {
       platform.waitUntil(cache.put(cacheKey, decorated.clone()));
     }
 
-    return decorated;
+    return maybeGzip(context.request, decorated);
   };
 }

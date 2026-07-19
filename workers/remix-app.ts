@@ -67,6 +67,9 @@ function getApp(env: RemixEnv) {
         promise.catch(() => {});
       }
     },
+    // workerd compresses to match Content-Encoding on egress (encodeBody
+    // "automatic"), letting the app emit origin-gzip documents.
+    autoEncodesBody: true,
   };
 
   cached = { router: createApp(platform), platform };

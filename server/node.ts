@@ -125,6 +125,8 @@ const platform: Platform = {
   waitUntil(promise) {
     promise.catch((err) => console.error("waitUntil task failed", err));
   },
+  // Node serves bodies as-is; documents go out identity-encoded in dev.
+  autoEncodesBody: false,
 };
 
 const router = createApp(platform);

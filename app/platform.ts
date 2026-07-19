@@ -48,6 +48,15 @@ export interface Platform {
    * edge-cache writes. `ctx.waitUntil` on workerd; fire-and-forget on Node.
    */
   waitUntil(promise: Promise<unknown>): void;
+
+  /**
+   * True when the runtime compresses response bodies to match a
+   * Content-Encoding header on egress (workerd's encodeBody "automatic").
+   * Lets app/http-caching.ts emit origin-gzip documents so Cloudflare
+   * passes them through untransformed, preserving the strong ETag. False on
+   * Node, which serves bodies as-is.
+   */
+  autoEncodesBody: boolean;
 }
 
 export interface ViewsStore {
