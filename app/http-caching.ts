@@ -10,10 +10,13 @@
 import type { Middleware } from "remix/router";
 import type { Platform } from "./platform.ts";
 
-// Browsers revalidate every time (cheap 304s); the Cloudflare edge caches
-// until the deploy purge. Applied to every version-keyed document response.
+// Browsers render their cached copy instantly and revalidate in the
+// background (stale-while-revalidate; a cheap 304 against the ETag below),
+// staying at most one view behind a deploy. Safari ignores SWR and blocks on
+// the revalidation instead. The Cloudflare edge caches until the deploy
+// purge. Applied to every version-keyed document response.
 export const DOCUMENT_CACHE_CONTROL =
-  "public, max-age=0, must-revalidate, s-maxage=31536000";
+  "public, max-age=0, stale-while-revalidate=86400, s-maxage=31536000";
 
 const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 
