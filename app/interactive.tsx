@@ -222,42 +222,18 @@ export const CommentsThread: EntryComponent<{
 }> = clientEntry(
   "comments",
   function CommentsThread(handle: Handle<{ commentsPath: string }>) {
-    let html: string | null = null;
-
     if (inBrowser) {
-      fetch(`${handle.props.commentsPath}?fragment=1`, {
-        headers: { Accept: "text/html" },
-      })
-        .then((response) => (response.ok ? response.text() : null))
-        .then((fragment) => {
-          if (fragment === null) return;
-          html = fragment;
-          handle.update();
-          queueMicrotask(loadTurnstileWhenVisible);
-        })
-        .catch(() => {
-          // The standalone comments link remains as the no-JS/error fallback.
+      const frame = handle.frames.get("comments");
+      if (frame) {
+        frame.addEventListener("reloadComplete", () =>
+          queueMicrotask(loadTurnstileWhenVisible),
+        );
+        void frame.reload().catch(() => {
+          // The server-rendered standalone link remains as the error fallback.
         });
+      }
     }
 
-    return () => (
-      <div>
-        <div
-          data-comments-fragment
-          className={html === null ? "hidden" : undefined}
-          innerHTML={html ?? ""}
-        />
-        {html === null ? (
-          <p className="mt-5 text-sm text-muted-foreground">
-            <a
-              href={handle.props.commentsPath}
-              className="underline underline-offset-4 hover:text-foreground"
-            >
-              View or add comments
-            </a>
-          </p>
-        ) : null}
-      </div>
-    );
+    return () => null;
   },
 );

@@ -297,7 +297,7 @@ export function CommentsFragment(handle: Handle<CommentsFragmentProps>) {
   return () => {
     const path = commentRoutePath(handle.props.postSlug);
     return (
-      <div data-first-party-comments>
+      <div data-first-party-comments data-comments-fragment>
         {handle.props.previewHtml === undefined ? null : (
           <section
             className="mt-8 rounded-md border bg-muted/30 p-4"

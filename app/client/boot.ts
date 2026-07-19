@@ -4,20 +4,31 @@
 
 import { run } from "remix/ui";
 
-// run() unconditionally installs a Navigation API interceptor that reroutes
-// every same-origin link click through a frame reload — with no frame
-// support wired up (resolveFrame is unimplemented here), the URL updates and
-// nothing renders. Registering first and stopping propagation keeps clicks
-// on default full-document navigation, which is this site's model.
+// run() installs a Navigation API interceptor for frame-targeted links. Keep
+// ordinary links on full-document navigation, which is this site's caching
+// model, while allowing explicitly targeted frame navigation through.
 (window as { navigation?: EventTarget }).navigation?.addEventListener(
   "navigate",
-  (event) => event.stopImmediatePropagation(),
+  (event) => {
+    const source = (event as { sourceElement?: unknown }).sourceElement;
+    const link = source instanceof Element ? source.closest("a, area") : null;
+    if (link?.hasAttribute("rmx-target")) return;
+    event.stopImmediatePropagation();
+  },
 );
 
 const app = run({
   async loadModule(moduleUrl: string, exportName: string) {
     const mod = await import(moduleUrl);
     return mod[exportName];
+  },
+  async resolveFrame(src: string, signal?: AbortSignal) {
+    const response = await fetch(src, {
+      signal,
+      headers: { Accept: "text/html" },
+    });
+    if (!response.ok) throw new Error(`frame fetch ${response.status}`);
+    return response.text();
   },
 });
 

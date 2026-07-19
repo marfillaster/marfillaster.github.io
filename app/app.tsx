@@ -53,7 +53,19 @@ export function createApp(platform: Platform) {
   // resolveClientEntry hook, so every document render goes through
   // renderToStream (SiteShell's ThemeToggle is an entry on every page).
   const renderNode = (node: RemixNode, init?: ResponseInit) =>
-    createHtmlResponse(renderToStream(node, { resolveClientEntry }), init);
+    createHtmlResponse(
+      renderToStream(node, {
+        resolveClientEntry,
+        resolveFrame: (src: string, name?: string) => {
+          if (name === "comments") {
+            const standalone = src.replace(/\?fragment=1$/, "");
+            return `<p class="mt-5 text-sm text-muted-foreground"><a href="${standalone}" class="underline underline-offset-4 hover:text-foreground">View or add comments</a></p>`;
+          }
+          throw new Error(`No server resolver for frame ${name ?? src}`);
+        },
+      }),
+      init,
+    );
 
   const render = renderWith(() => (input: {
     node: RemixNode;

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHtmlResponse } from "remix/response/html";
+import { createElement } from "remix/ui";
 import { renderToStream } from "remix/ui/server";
+import { Comments } from "../app/components.tsx";
 import { renderCommentMarkdown } from "../app/comment-markdown.ts";
 import {
   MAX_COMMENT_DEPTH,
@@ -105,6 +107,26 @@ const chain = Array.from({ length: MAX_COMMENT_DEPTH }, (_, index) =>
 assert.equal(commentDepth(chain, `depth-${MAX_COMMENT_DEPTH}`), MAX_COMMENT_DEPTH);
 
 const posts = [{ href: "/article/", title: "Test article" }];
+const commentsShell = await createHtmlResponse(
+  renderToStream(
+    createElement(Comments, { firstParty: true, postHref: "/article/" }),
+    {
+      resolveClientEntry: () => ({
+        href: "/assets/comments.js",
+        exportName: "CommentsThread",
+      }),
+      resolveFrame: (src, name) => {
+        assert.equal(name, "comments");
+        assert.equal(src, "/comments/article?fragment=1");
+        return '<p><a href="/comments/article">View or add comments</a></p>';
+      },
+    },
+  ),
+).text();
+assert.match(commentsShell, /<!-- rmx:f:/);
+assert.match(commentsShell, /View or add comments/);
+assert.doesNotMatch(commentsShell, /data-first-party-comments|comment-form/);
+
 const invalidChallenge = memoryPlatform({ challenge: false });
 let response = await handleCommentsPost(
   new Request("https://example.com/comments/article", {

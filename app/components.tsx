@@ -4,7 +4,7 @@
 // same markup and classes. Browser entries provide progressive enhancement.
 // -----------------------------------------------------------------------------
 
-import type { Handle, RemixNode } from "remix/ui";
+import { Frame, type Handle, type RemixNode } from "remix/ui";
 import { CommentsThread, ThemeToggle } from "./interactive.tsx";
 import { commentRoutePath } from "./comments.ts";
 import { SERIES } from "../src/lib/series.ts";
@@ -204,7 +204,13 @@ export function Comments(
         Comments
       </p>
       {handle.props.firstParty && handle.props.postHref ? (
-        <CommentsThread commentsPath={commentRoutePath(handle.props.postHref)} />
+        <>
+          <CommentsThread commentsPath={commentRoutePath(handle.props.postHref)} />
+          <Frame
+            name="comments"
+            src={`${commentRoutePath(handle.props.postHref)}?fragment=1`}
+          />
+        </>
       ) : (
         <p className="mt-3 text-sm text-muted-foreground">
           Comments are unavailable.
