@@ -59,13 +59,6 @@ function CommentItem(handle: Handle<CommentItemProps>) {
             <time dateTime={comment.createdAt}>
               {formatCommentDate(comment.createdAt)} UTC
             </time>
-            {" · "}
-            <a
-              href={permalink}
-              className="underline underline-offset-4 hover:text-foreground"
-            >
-              permalink
-            </a>
           </summary>
 
           {comment.hidden ? (
@@ -76,16 +69,25 @@ function CommentItem(handle: Handle<CommentItemProps>) {
             <CommentBody bodyHtml={comment.bodyHtml} />
           )}
 
-          {allowReplies && !comment.hidden && depth < MAX_COMMENT_DEPTH ? (
-            <p className="mt-2 text-xs text-muted-foreground">
-              <a
-                href={`${commentsPath}?reply_to=${encodeURIComponent(comment.id)}#comment-form`}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                Reply
-              </a>
-            </p>
-          ) : null}
+          <p className="mt-2 text-xs text-muted-foreground">
+            <a
+              href={permalink}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              permalink
+            </a>
+            {allowReplies && !comment.hidden && depth < MAX_COMMENT_DEPTH ? (
+              <>
+                {" · "}
+                <a
+                  href={`${commentsPath}?reply_to=${encodeURIComponent(comment.id)}#comment-form`}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  Reply
+                </a>
+              </>
+            ) : null}
+          </p>
 
           {comment.children.length > 0 ? (
             canRenderChildren ? (
