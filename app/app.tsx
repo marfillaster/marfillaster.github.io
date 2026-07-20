@@ -139,6 +139,17 @@ export function createApp(platform: Platform) {
   router.get("/solar-report/full-report/", redirectTo("/solar-report/full-report"));
   router.get("/nev-mileage/full-report/", redirectTo("/nev-mileage/full-report"));
 
+  // Pre-rename slugs (6170e0d): 404ing instead of redirecting means Google
+  // keeps re-crawling a dead end instead of folding signal into the live URL.
+  router.get(
+    "/lan-segmentation-vlans-mikrotik",
+    redirectTo("/mikrotik-vlan-guest-iot/"),
+  );
+  router.get(
+    "/lan-segmentation-vlans-mikrotik/",
+    redirectTo("/mikrotik-vlan-guest-iot/"),
+  );
+
   // Live comment routes deliberately bypass the version-keyed document cache.
   router.get("/comments/:slug", ({ request, params }) =>
     handleCommentsGet(
