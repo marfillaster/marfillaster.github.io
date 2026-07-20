@@ -149,4 +149,22 @@
   .text-pretty {
     text-wrap: pretty;
   }
+
+  /* Theme toggle icons. Both are server-rendered and CSS picks one off the
+     `.dark` class the pre-paint script in document.tsx sets, so the markup is
+     theme-independent: the server can't know the visitor's theme, and any
+     branch here would hydrate into a mismatch. display:none also drops the
+     hidden half's label from the accessible name, leaving the button with
+     exactly one. */
+  .theme-icon-dark {
+    display: none;
+  }
+
+  .dark .theme-icon-dark {
+    display: inline;
+  }
+
+  .dark .theme-icon-light {
+    display: none;
+  }
 }

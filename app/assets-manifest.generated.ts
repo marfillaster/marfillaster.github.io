@@ -5,12 +5,12 @@
 export const ASSET_MANIFEST: Record<string, string> = {
   "boot": "/assets/entries/boot-Z7WOOGZO.js",
   "code-highlight.css": "/assets/code-highlight-e2f9f068.css",
-  "comments": "/assets/entries/comments-JMBHSTR6.js",
+  "comments": "/assets/entries/comments-J5VJZPP3.js",
   "enhance": "/assets/entries/enhance-MUYSOEY7.js",
-  "page-stats": "/assets/entries/page-stats-7Q7DYWNX.js",
-  "share-links": "/assets/entries/share-links-JIA4OZ4F.js",
-  "styles.css": "/assets/styles-c216fd88.css",
-  "theme-toggle": "/assets/entries/theme-toggle-ODYJN2I2.js"
+  "page-stats": "/assets/entries/page-stats-CIA3TCDC.js",
+  "share-links": "/assets/entries/share-links-5DHF332Y.js",
+  "styles.css": "/assets/styles-c216384c.css",
+  "theme-toggle": "/assets/entries/theme-toggle-TIBUEPUP.js"
 };
 
 // Modules loaded on every page (boot + enhance + theme-toggle and the shared
@@ -21,6 +21,6 @@ export const PRELOAD_MODULES: string[] = [
   "/assets/entries/chunk-6AVIBSFS.js",
   "/assets/entries/boot-Z7WOOGZO.js",
   "/assets/entries/enhance-MUYSOEY7.js",
-  "/assets/entries/chunk-EZHYFPJ2.js",
-  "/assets/entries/theme-toggle-ODYJN2I2.js"
+  "/assets/entries/chunk-DMUQKI35.js",
+  "/assets/entries/theme-toggle-TIBUEPUP.js"
 ];

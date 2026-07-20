@@ -31,23 +31,33 @@ function applyTheme(dark: boolean) {
 
 export const ThemeToggle: EntryComponent = clientEntry(
   "theme-toggle",
-  function ThemeToggle(handle: Handle) {
-    // The inline pre-paint script in document.tsx has already applied the
-    // stored/system theme to <html>; hydration picks the state up from there.
-    let dark = inBrowser && document.documentElement.classList.contains("dark");
-
+  function ThemeToggle(_: Handle) {
+    // Renders both icons and lets CSS show one (see .theme-icon-* in
+    // styles.css). The server has no way to know the visitor's theme, so any
+    // branch on it here renders light on the server and hydrates into a
+    // mismatch for dark-mode visitors — and flashes the wrong icon until
+    // hydration. Theme-independent markup avoids both.
+    //
+    // The click handler reads the current theme off <html> — where the
+    // pre-paint script and applyTheme both keep it — rather than tracking it
+    // in component state, so toggling needs no re-render: flipping the class
+    // reswitches the icons and the label through CSS.
     return () => (
       <button
         type="button"
-        aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
         className="text-muted-foreground/70 hover:text-foreground transition-colors"
-        mix={on("click", () => {
-          dark = !dark;
-          applyTheme(dark);
-          handle.update();
-        })}
+        mix={on("click", () =>
+          applyTheme(!document.documentElement.classList.contains("dark")),
+        )}
       >
-        {dark ? <IconSun /> : <IconMoon />}
+        <span className="theme-icon-light">
+          <IconMoon />
+          <span className="sr-only">Switch to dark mode</span>
+        </span>
+        <span className="theme-icon-dark">
+          <IconSun />
+          <span className="sr-only">Switch to light mode</span>
+        </span>
       </button>
     );
   },
