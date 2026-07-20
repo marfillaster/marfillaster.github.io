@@ -35,6 +35,7 @@ import { buildSitemapXml } from "./sitemap.ts";
 import { resolveClientEntry } from "./client-entries.ts";
 import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
 import { httpCaching } from "./http-caching.ts";
+import { headRequests } from "./head-requests.ts";
 import {
   handleCommentModeration,
   handleCommentsGet,
@@ -73,7 +74,7 @@ export function createApp(platform: Platform) {
   }) => renderNode(input.node, input.init));
 
   const router = createRouter({
-    middleware: [httpCaching(platform), render],
+    middleware: [headRequests, httpCaching(platform), render],
     async defaultHandler({ request }) {
       const asset = await platform.assets(request);
       if (asset && asset.status !== 404) {
