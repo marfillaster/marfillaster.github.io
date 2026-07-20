@@ -185,7 +185,7 @@ export const PageStats: EntryComponent<{ path: string; title: string }> = client
 
 // --- First-party comments ---------------------------------------------------
 
-function loadTurnstileWhenVisible() {
+export function loadTurnstileWhenVisible() {
   const widget = document.querySelector<HTMLElement>(
     "[data-comments-fragment] .cf-turnstile",
   );

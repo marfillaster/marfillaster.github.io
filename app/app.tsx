@@ -100,9 +100,24 @@ export function createApp(platform: Platform) {
         headers: { "Cache-Control": "public, max-age=86400" },
       });
 
-  function page(descriptors: MetaDescriptor[], node: RemixNode) {
-    return renderNode(<Document descriptors={descriptors}>{node}</Document>);
+  function page(
+    descriptors: MetaDescriptor[],
+    node: RemixNode,
+    codeHighlight = false,
+  ) {
+    return renderNode(
+      <Document descriptors={descriptors} codeHighlight={codeHighlight}>
+        {node}
+      </Document>,
+    );
   }
+
+  // code-highlight.css only matters where render-markdown emitted a code
+  // figure (Shiki output or a plain fence — both carry the copy-button chrome
+  // the stylesheet drives). Testing the rendered HTML rather than hardcoding
+  // which routes have code means adding a fence to any markdown page pulls the
+  // stylesheet in on its own.
+  const hasCodeFigure = (html: string) => html.includes('class="code-snippet"');
 
   router.map(routes, {
     actions: {
@@ -116,17 +131,23 @@ export function createApp(platform: Platform) {
           headers: { "Content-Type": "application/xml; charset=utf-8" },
         }),
       solarReport: () => page(solarReportDescriptors, <SolarReportPage />),
-      solarReportFull: () =>
-        page(
+      solarReportFull: () => {
+        const html = data.contentHtml("full-report.md");
+        return page(
           solarReportFullDescriptors,
-          <SolarReportFullPage html={data.contentHtml("full-report.md")} />,
-        ),
+          <SolarReportFullPage html={html} />,
+          hasCodeFigure(html),
+        );
+      },
       nevMileage: () => page(nevMileageDescriptors, <NevMileagePage />),
-      nevMileageFull: () =>
-        page(
+      nevMileageFull: () => {
+        const html = data.contentHtml("nev-full-report.md");
+        return page(
           nevMileageFullDescriptors,
-          <NevMileageFullPage html={data.contentHtml("nev-full-report.md")} />,
-        ),
+          <NevMileageFullPage html={html} />,
+          hasCodeFigure(html),
+        );
+      },
       analyticsPageviews: ({ request }) =>
         handlePageviews(request, platform, ga),
       analyticsResync: ({ request }) => handleResync(request, platform, ga),
@@ -179,16 +200,18 @@ export function createApp(platform: Platform) {
       continue;
     }
 
-    router.get(`/${post.routePath}/`, () =>
-      page(
+    router.get(`/${post.routePath}/`, () => {
+      const html = data.postHtml(post);
+      return page(
         postMetaDescriptors(post),
         <PostPage
           post={post}
-          html={data.postHtml(post)}
+          html={html}
           commentsEnabled={platform.comments.enabled}
         />,
-      ),
-    );
+        hasCodeFigure(html),
+      );
+    });
     router.get(`/${post.routePath}`, redirectTo(`/${post.routePath}/`));
   }
 

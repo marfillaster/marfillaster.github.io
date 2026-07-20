@@ -1,5 +1,14 @@
 // Browser entry for first-party comment loading, preview, and lazy Turnstile.
+import { loadTurnstileWhenVisible } from "../interactive.tsx";
+
 export { CommentsThread } from "../interactive.tsx";
+
+// The standalone /comments/:slug page server-renders the fragment outright, so
+// the widget is already in the DOM when this module runs and the observer
+// arms immediately. On post pages the fragment arrives via a frame reload
+// instead — there this call finds nothing and no-ops, and CommentsThread's
+// reloadComplete handler arms the observer once the markup lands.
+loadTurnstileWhenVisible();
 
 const activeClasses = ["border-foreground", "text-foreground"];
 const inactiveClasses = [

@@ -9,7 +9,7 @@
 import type { Handle, RemixNode } from "remix/ui";
 import type { MetaDescriptor } from "./head.ts";
 import { CLIENT_BOOT_SCRIPT, ENHANCE_SCRIPT } from "./client-entries.ts";
-import { ASSET_MANIFEST } from "./assets-manifest.generated.ts";
+import { ASSET_MANIFEST, PRELOAD_MODULES } from "./assets-manifest.generated.ts";
 
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
 
@@ -20,8 +20,35 @@ const gtagInit = `window.dataLayer = window.dataLayer || [];function gtag(){data
 
 const themeInit = `(function(){try{var s=localStorage.getItem("theme");var d=s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#0c0a09":"#fafaf9");}catch(e){}})();`;
 
+// Navigation is full-document by design (see app/client/boot.ts), and
+// documents sit in the edge cache until the next deploy purge — so a
+// prefetched page is close to free to serve and stays valid. `moderate`
+// eagerness starts the fetch on hover intent rather than speculatively
+// crawling every link on the page. The live comment routes and the analytics
+// API deliberately bypass the document cache, so they're excluded.
+const speculationRules = JSON.stringify({
+  prefetch: [
+    {
+      where: {
+        and: [
+          { href_matches: "/*" },
+          { not: { href_matches: "/api/*" } },
+          { not: { href_matches: "/comments/*" } },
+        ],
+      },
+      eagerness: "moderate",
+    },
+  ],
+});
+
 export interface DocumentProps {
   descriptors: MetaDescriptor[];
+  /**
+   * Whether the page renders server-highlighted code figures. Only those pages
+   * pay for code-highlight.css; app.tsx derives this from the rendered HTML so
+   * adding a fence to a page turns it on without a code change here.
+   */
+  codeHighlight?: boolean;
   children?: RemixNode;
 }
 
@@ -59,15 +86,22 @@ export function Document(handle: Handle<DocumentProps>) {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#fafaf9" />
+        {/* Render-blocking stylesheets first so the preload scanner starts
+            them ahead of the third-party analytics connection below. */}
+        <link rel="stylesheet" href={ASSET_MANIFEST["styles.css"]} />
+        {handle.props.codeHighlight ? (
+          <link rel="stylesheet" href={ASSET_MANIFEST["code-highlight.css"]} />
+        ) : null}
+        {PRELOAD_MODULES.map((href) => (
+          <link rel="modulepreload" href={href} />
+        ))}
+        <script innerHTML={themeInit} />
         <script
           async
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
         />
         <script innerHTML={gtagInit} />
-        <script innerHTML={themeInit} />
         <HeadDescriptors descriptors={handle.props.descriptors} />
-        <link rel="stylesheet" href={ASSET_MANIFEST["styles.css"]} />
-        <link rel="stylesheet" href={ASSET_MANIFEST["code-highlight.css"]} />
         <link rel="icon" href={favicon} />
         <link
           rel="alternate"
@@ -75,6 +109,7 @@ export function Document(handle: Handle<DocumentProps>) {
           title="marfillaster · notes RSS"
           href="/rss.xml"
         />
+        <script type="speculationrules" innerHTML={speculationRules} />
       </head>
       <body>
         {handle.props.children}

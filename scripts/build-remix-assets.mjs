@@ -74,12 +74,54 @@ const built = await esbuild.build({
   logLevel: "info",
 });
 
-for (const [outputPath, output] of Object.entries(built.metafile.outputs)) {
+const outputs = built.metafile.outputs;
+const outputPathFor = {};
+for (const [outputPath, output] of Object.entries(outputs)) {
   if (!output.entryPoint) {
     continue;
   }
   const logicalName = basename(output.entryPoint).replace(/(\.entry)?\.ts$/, "");
   manifest[logicalName] = outputPath.replace(/^\.remix-assets/, "");
+  outputPathFor[logicalName] = outputPath;
+}
+
+// Modules every page loads: the two document-level <script type=module> tags,
+// plus theme-toggle (SiteShell renders it on every page, so boot always
+// dynamically imports it). Walking their transitive *static* imports picks up
+// the shared remix/ui runtime chunk, which every other client entry depends on
+// too — so preloading this set also flattens the waterfall for the
+// page-specific entries (share-links, page-stats, comments).
+//
+// Without these hints the browser can't discover the runtime chunk until it
+// has parsed boot.js, and can't discover theme-toggle until boot has run and
+// scanned the DOM for entry markers: four sequential round-trips. The
+// generated PRELOAD_MODULES list is emitted as <link rel=modulepreload> by
+// app/document.tsx, collapsing that to one.
+const ALWAYS_LOADED = ["boot", "enhance", "theme-toggle"];
+const preloadModules = [];
+const visited = new Set();
+
+function collectPreloads(outputPath) {
+  if (visited.has(outputPath) || !outputs[outputPath]) {
+    return;
+  }
+  visited.add(outputPath);
+  // Depth-first, so shared chunks are listed ahead of the modules importing
+  // them — the order the browser wants to start fetches in.
+  for (const imported of outputs[outputPath].imports ?? []) {
+    if (imported.kind === "import-statement") {
+      collectPreloads(imported.path);
+    }
+  }
+  preloadModules.push(outputPath.replace(/^\.remix-assets/, ""));
+}
+
+for (const logicalName of ALWAYS_LOADED) {
+  const outputPath = outputPathFor[logicalName];
+  if (!outputPath) {
+    throw new Error(`No build output for always-loaded entry: ${logicalName}`);
+  }
+  collectPreloads(outputPath);
 }
 
 // Workers Assets honors a _headers file in the asset directory. Everything
@@ -106,6 +148,12 @@ export const ASSET_MANIFEST: Record<string, string> = ${JSON.stringify(
   null,
   2,
 )};
+
+// Modules loaded on every page (boot + enhance + theme-toggle and the shared
+// runtime chunks they pull in), in dependency order. Emitted as
+// <link rel="modulepreload"> so the browser starts all of them in parallel
+// instead of discovering each one a round-trip at a time.
+export const PRELOAD_MODULES: string[] = ${JSON.stringify(preloadModules, null, 2)};
 `;
 await writeFile(join(repoRoot, "app/assets-manifest.generated.ts"), manifestModule);
 

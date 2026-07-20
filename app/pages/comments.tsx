@@ -356,14 +356,10 @@ export function CommentsPage(
           </a>
         </p>
         <CommentsFragment {...handle.props} />
+        {/* The entry module arms the same viewport-triggered Turnstile loader
+            the post pages use, so the third-party script isn't requested until
+            the widget is near the viewport. */}
         <script type="module" src={ASSET_MANIFEST.comments} />
-        {handle.props.turnstileSiteKey ? (
-          <script
-            async
-            defer
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-          />
-        ) : null}
       </div>
     </SiteShell>
   );

@@ -5,10 +5,22 @@
 export const ASSET_MANIFEST: Record<string, string> = {
   "boot": "/assets/entries/boot-Z7WOOGZO.js",
   "code-highlight.css": "/assets/code-highlight-e2f9f068.css",
-  "comments": "/assets/entries/comments-3BZ7X3UH.js",
+  "comments": "/assets/entries/comments-JMBHSTR6.js",
   "enhance": "/assets/entries/enhance-MUYSOEY7.js",
-  "page-stats": "/assets/entries/page-stats-APMABDTS.js",
-  "share-links": "/assets/entries/share-links-M2ON2KZD.js",
+  "page-stats": "/assets/entries/page-stats-7Q7DYWNX.js",
+  "share-links": "/assets/entries/share-links-JIA4OZ4F.js",
   "styles.css": "/assets/styles-c216fd88.css",
-  "theme-toggle": "/assets/entries/theme-toggle-JXQH757H.js"
+  "theme-toggle": "/assets/entries/theme-toggle-ODYJN2I2.js"
 };
+
+// Modules loaded on every page (boot + enhance + theme-toggle and the shared
+// runtime chunks they pull in), in dependency order. Emitted as
+// <link rel="modulepreload"> so the browser starts all of them in parallel
+// instead of discovering each one a round-trip at a time.
+export const PRELOAD_MODULES: string[] = [
+  "/assets/entries/chunk-6AVIBSFS.js",
+  "/assets/entries/boot-Z7WOOGZO.js",
+  "/assets/entries/enhance-MUYSOEY7.js",
+  "/assets/entries/chunk-EZHYFPJ2.js",
+  "/assets/entries/theme-toggle-ODYJN2I2.js"
+];
