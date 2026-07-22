@@ -103,14 +103,16 @@ One Cloudflare Worker replaces the current static-assets-plus-API Worker:
   - **HTML routes**: `ETag: W/"<version-id>:<path>"`. The Worker checks
     `If-None-Match` first and answers `304 Not Modified` without rendering —
     the ETag derives from the version binding, not from rendered output.
-    Response headers: `ETag` plus
-    `Cache-Control: public, max-age=0, must-revalidate, s-maxage=31536000` —
-    browsers always revalidate (cheap 304s), the Cloudflare edge caches
-    indefinitely. The fetch handler backs this with the Cache API
-    (`caches.default`), so a route renders once per colo per deploy.
+    Response headers: `ETag` plus browser-facing
+    `Cache-Control: public, max-age=60, stale-while-revalidate=86400, stale-if-error=86400`
+    and an equivalent `Cloudflare-CDN-Cache-Control` with a one-year
+    `max-age`. Browsers cache for a minute; both layers can use a stale copy
+    during revalidation or a transient error. The fetch handler backs this
+    with the Cache API (`caches.default`), so a route renders once per colo per
+    deploy.
   - **Invalidation on deploy**: new version ID → new ETags; the deploy step
-    purges the zone cache via the Cloudflare API, so stale edge copies die
-    immediately rather than waiting out `s-maxage`.
+    purges mutable URLs via the Cloudflare API, so stale edge copies die
+    immediately without evicting content-hashed assets.
   - **Static assets**: fingerprinted CSS/JS →
     `Cache-Control: public, max-age=31536000, immutable`. Non-fingerprinted
     files (images) get modest `max-age` plus the ETags Workers Assets already

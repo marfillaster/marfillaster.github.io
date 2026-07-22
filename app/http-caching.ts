@@ -10,13 +10,16 @@
 import type { Middleware } from "remix/router";
 import type { Platform } from "./platform.ts";
 
-// Browsers render their cached copy instantly and revalidate in the
-// background (stale-while-revalidate; a cheap 304 against the ETag below),
-// staying at most one view behind a deploy. Safari ignores SWR and blocks on
-// the revalidation instead. The Cloudflare edge caches until the deploy
-// purge. Applied to every version-keyed document response.
+// Browsers keep a document fresh for a minute, then may render their cached
+// copy while revalidating in the background (a cheap 304 against the ETag
+// below) or while a transient error prevents revalidation.
 export const DOCUMENT_CACHE_CONTROL =
-  "public, max-age=0, stale-while-revalidate=86400, s-maxage=31536000";
+  "public, max-age=60, stale-while-revalidate=86400, stale-if-error=86400";
+
+// Cloudflare gets a separate one-year freshness window so s-maxage does not
+// disable stale-if-error. Deploys selectively purge mutable URLs before then.
+export const DOCUMENT_CDN_CACHE_CONTROL =
+  "public, max-age=31536000, stale-while-revalidate=86400, stale-if-error=86400";
 
 const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 
@@ -90,7 +93,11 @@ export function httpCaching(platform: Platform): Middleware {
     if (etagMatches(context.request.headers.get("If-None-Match"), etag)) {
       return new Response(null, {
         status: 304,
-        headers: { ETag: etag, "Cache-Control": DOCUMENT_CACHE_CONTROL },
+        headers: {
+          ETag: etag,
+          "Cache-Control": DOCUMENT_CACHE_CONTROL,
+          "Cloudflare-CDN-Cache-Control": DOCUMENT_CDN_CACHE_CONTROL,
+        },
       });
     }
 
@@ -123,6 +130,10 @@ export function httpCaching(platform: Platform): Middleware {
     const decorated = new Response(response.body, response);
     decorated.headers.set("ETag", etag);
     decorated.headers.set("Cache-Control", DOCUMENT_CACHE_CONTROL);
+    decorated.headers.set(
+      "Cloudflare-CDN-Cache-Control",
+      DOCUMENT_CDN_CACHE_CONTROL,
+    );
 
     if (cache && cacheKey) {
       platform.waitUntil(cache.put(cacheKey, decorated.clone()));
