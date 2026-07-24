@@ -8,6 +8,7 @@
  * @param {boolean} [options.challenge]  Turnstile verdict
  * @param {boolean} [options.moderator]  Access gate verdict
  * @param {boolean} [options.cache]      provide a counting httpCache stub
+ * @param {boolean} [options.flooding]   unmatched-path limiter reports exhausted
  * @param {Record<string, string>} [options.pathDigests]
  * @param {Record<string, string>} [options.assetDigests]
  * @param {string} [options.versionId]
@@ -17,6 +18,7 @@ export function memoryPlatform({
   challenge = true,
   moderator = true,
   cache = false,
+  flooding = false,
   content = new Map(),
   pathDigests = {},
   assetDigests = {},
@@ -58,6 +60,7 @@ export function memoryPlatform({
         },
       },
       rateLimit: { hit: async () => limited },
+      floodLimit: { hit: async () => flooding },
       moderation: { authorized: () => moderator },
       secrets: { commentIpSalt: "test-salt", adminResyncToken },
       httpCache: cache

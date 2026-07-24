@@ -219,6 +219,8 @@ const platform: Platform = {
       return next.count > 5;
     },
   },
+  // No flood to guard against in local dev.
+  floodLimit: { hit: async () => false },
   moderation: {
     authorized() {
       return true;

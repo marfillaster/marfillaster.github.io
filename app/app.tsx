@@ -74,20 +74,58 @@ export function createApp(platform: Platform) {
     init?: ResponseInit;
   }) => renderNode(input.node, input.init));
 
+  // The 404 document is fixed, so it is rendered once per isolate and replayed
+  // from a string. Unmatched paths are the one route an attacker picks, so the
+  // work done here is the work a flood multiplies.
+  let notFoundHtml: Promise<string> | null = null;
+  const notFoundBody = () =>
+    (notFoundHtml ??= renderNode(
+      <Document descriptors={notFoundDescriptors}>
+        <NotFoundPage />
+      </Document>,
+    ).text());
+
+  const notFound = async (headers: Record<string, string>) =>
+    new Response(await notFoundBody(), {
+      status: 404,
+      headers: { "Content-Type": "text/html; charset=utf-8", ...headers },
+    });
+
   const router = createRouter({
     middleware: [headRequests, httpCaching(platform), render],
-    async defaultHandler({ request }) {
-      const asset = await platform.assets(request);
-      if (asset && asset.status !== 404) {
-        return asset;
+    async defaultHandler({ request, url }) {
+      // Per-IP ceiling on unmatched paths. Repeats of one bad URL are absorbed
+      // by the edge cache below and never reach here; this bounds the other
+      // shape of the problem, a spray of paths that are each distinct.
+      const client = request.headers.get("CF-Connecting-IP") ?? "anonymous";
+      if (await platform.floodLimit.hit(`404:${client}`)) {
+        return new Response("Too many requests.\n", {
+          status: 429,
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store",
+            "Retry-After": "10",
+          },
+        });
       }
 
-      return renderNode(
-        <Document descriptors={notFoundDescriptors}>
-          <NotFoundPage />
-        </Document>,
-        { status: 404, headers: { "Cache-Control": "no-store" } },
-      );
+      // Workers Assets serves real files without invoking this Worker, so a
+      // request arriving here has already missed. Only paths shaped like a
+      // file are worth a binding round-trip to confirm it.
+      if (/\.[a-z0-9]+$/i.test(url.pathname)) {
+        const asset = await platform.assets(request);
+        if (asset && asset.status !== 404) {
+          return asset;
+        }
+      }
+
+      // Cacheable, unlike before: entries are keyed by Worker version, so a
+      // path that becomes real is published by a deploy — which retires this
+      // 404 at exactly the moment it stops being true. Scanner traffic repeats
+      // the same few hundred paths, and this collapses each to one render.
+      return notFound({
+        "Cache-Control": "public, max-age=60, s-maxage=86400",
+      });
     },
   });
 

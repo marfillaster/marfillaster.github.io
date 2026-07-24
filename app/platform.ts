@@ -48,6 +48,15 @@ export interface Platform {
   /** Returns true once a write key has exceeded its configured allowance. */
   rateLimit: RateLimiter;
 
+  /**
+   * Per-IP ceiling on requests for unmatched paths, guarding the one route a
+   * flood can aim at. Backed by the Workers rate-limit binding rather than KV:
+   * a KV-backed limiter would spend a write per request, and the free tier
+   * allows a thousand a day — the limiter would fail before the flood did.
+   * Always under the limit on Node.
+   */
+  floodLimit: RateLimiter;
+
   /** Cloudflare Access in production; unconditional in local Node dev. */
   moderation: ModerationGate;
 

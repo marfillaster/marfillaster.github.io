@@ -134,6 +134,44 @@ for (const path of routes) {
   );
 }
 
+// --- unmatched paths ------------------------------------------------------
+// A 404 is the one route an attacker chooses, so it has to be cheap and
+// repeatable. Caching it is safe because entries are keyed by Worker version:
+// a path that becomes real is published by a deploy, which retires this.
+const missing = await get("/no-such-page-at-all");
+assert.equal(missing.status, 404);
+assert.match(missing.headers.get("Cache-Control"), /s-maxage=86400/);
+assert.doesNotMatch(missing.headers.get("Cache-Control"), /no-store/);
+
+// Extensionless misses skip the asset binding entirely; only file-shaped paths
+// are worth confirming, since real assets never reach the Worker.
+let assetLookups = 0;
+const counting = memoryPlatform({ content, pathDigests: digests.paths });
+counting.platform.assets = async () => {
+  assetLookups += 1;
+  return null;
+};
+const countingApp = createApp(counting.platform);
+const fetchFrom = (app, path) => app.fetch(new Request(new URL(path, origin)));
+await fetchFrom(countingApp, "/no-such-page");
+assert.equal(assetLookups, 0);
+await fetchFrom(countingApp, "/missing-image.png");
+assert.equal(assetLookups, 1);
+
+// Over the per-IP ceiling, unmatched paths are refused before rendering.
+const flooded = memoryPlatform({
+  content,
+  pathDigests: digests.paths,
+  flooding: true,
+});
+const floodedApp = createApp(flooded.platform);
+const refused = await fetchFrom(floodedApp, "/anything");
+assert.equal(refused.status, 429);
+assert.equal(refused.headers.get("Cache-Control"), "no-store");
+assert.equal(refused.headers.get("Retry-After"), "10");
+// Real routes are unaffected by the ceiling.
+assert.equal((await fetchFrom(floodedApp, "/")).status, 200);
+
 // --- manual purge ----------------------------------------------------------
 const purgeRequest = (body, token) =>
   new Request(new URL("/api/cache/purge", origin), {

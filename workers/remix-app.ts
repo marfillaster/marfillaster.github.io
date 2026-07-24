@@ -37,6 +37,10 @@ interface RemixEnv {
     ): Promise<void>;
   };
   COMMENTS_DB?: D1Database;
+  /** Workers rate-limit binding; see `ratelimits` in wrangler.jsonc. */
+  NOT_FOUND_LIMITER?: {
+    limit(options: { key: string }): Promise<{ success: boolean }>;
+  };
   GA_PROPERTY_ID?: string;
   GA_SERVICE_ACCOUNT_KEY?: string;
   ADMIN_RESYNC_TOKEN?: string;
@@ -218,6 +222,14 @@ function getApp(env: RemixEnv) {
         const count = Number((await env.PAGE_VIEWS.get(key)) ?? "0") + 1;
         await env.PAGE_VIEWS.put(key, String(count), { expirationTtl: 600 });
         return count > 5;
+      },
+    },
+    // Native limiter, so guarding a flood costs no KV writes.
+    floodLimit: {
+      async hit(key) {
+        if (!env.NOT_FOUND_LIMITER) return false;
+        const { success } = await env.NOT_FOUND_LIMITER.limit({ key });
+        return !success;
       },
     },
     moderation: {
