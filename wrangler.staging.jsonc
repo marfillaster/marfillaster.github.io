@@ -12,8 +12,18 @@
   "name": "blog-staging",
   "main": "workers/remix-app.ts",
   "compatibility_date": "2025-07-01",
+  // ctx.exports (the loopback to the `Site` entrypoint) is default-on from
+  // compatibility date 2025-11-17; this enables it without moving the date
+  // across a year of unrelated flags.
+  "compatibility_flags": ["enable_ctx_exports"],
   // No nodejs_compat — the rendering path is Web-API only (see
   // docs/remix3-spike-report.md).
+  // Mirrors production so the cache behaviour under test is the real one.
+  "cache": { "enabled": true },
+  "exports": {
+    "default": { "type": "worker", "cache": { "enabled": false } },
+    "Site": { "type": "worker", "cache": { "enabled": true } }
+  },
   "assets": {
     "binding": "ASSETS",
     "directory": "./.remix-assets",

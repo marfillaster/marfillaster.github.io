@@ -190,6 +190,9 @@ const rateHits = new Map<string, { count: number; resetAt: number }>();
 const platform: Platform = {
   content: loadContent,
   versionId: gitVersionId(),
+  // Dev reads content from disk per request, so freshness comes from there
+  // rather than from a build-time digest; every ETag falls back to versionId.
+  digests: { build: "", paths: {}, assets: {} },
   assets: serveAsset,
   views: {
     async get(path) {
@@ -228,6 +231,10 @@ const platform: Platform = {
     commentIpSalt: process.env.COMMENT_IP_SALT ?? "comments-local-dev",
   },
   httpCache: null,
+  // No edge cache in front of the Node adapter, so there is nothing to purge.
+  async purgeCache() {
+    return { success: true };
+  },
   waitUntil(promise) {
     promise.catch((err) => console.error("waitUntil task failed", err));
   },

@@ -96,6 +96,12 @@ One Cloudflare Worker replaces the current static-assets-plus-API Worker:
   so `scripts/generate-rss.mjs` and the `pnpm rss` build step are retired.
   Unmatched routes get a Remix-rendered 404 — the `__spa-fallback.html →
   404.html` copy in `react-router.config.ts` goes away.
+> **Superseded for caching.** The version-keyed scheme below shipped as
+> described and was replaced in July 2026 by Workers Cache + build-time content
+> digests + tag reconciliation. Read `docs/caching-migration-plan.md` and the
+> Caching section of `CLAUDE.md` for the current design; what follows is the
+> Phase 4/5 record.
+
 - **Aggressive CDN caching with ETag revalidation.** Content only changes on
   deploy, so caching keys on the deploy version — obtained **at runtime** from
   the version-metadata binding (`env.CF_VERSION_METADATA.id`), so no build step

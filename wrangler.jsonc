@@ -2,7 +2,7 @@
 // with version-keyed edge caching (Phase 5 cutover; docs/remix3-migration-plan.md).
 // Deployed by the Cloudflare Git integration on push to main:
 //   build:  pnpm cf:build   (content module + fingerprinted assets)
-//   deploy: pnpm cf:deploy  (wrangler deploy + zone purge)
+//   deploy: pnpm cf:deploy  (wrangler deploy)
 // Secrets GA_SERVICE_ACCOUNT_KEY + ADMIN_RESYNC_TOKEN live on the worker and
 // persist across deploys (`wrangler secret put`).
 {
@@ -10,8 +10,21 @@
   "name": "blog",
   "main": "workers/remix-app.ts",
   "compatibility_date": "2025-07-01",
+  // ctx.exports (the loopback to the `Site` entrypoint) is default-on from
+  // compatibility date 2025-11-17; this enables it without moving the date
+  // across a year of unrelated flags.
+  "compatibility_flags": ["enable_ctx_exports"],
   // No nodejs_compat — the rendering path is Web-API only (see
   // docs/remix3-spike-report.md).
+  // Workers Cache in front of the `Site` entrypoint. Cache keys include the
+  // Worker version, so a deploy makes every previous entry unreachable and no
+  // purge step is needed at all. The default export is the gateway and is
+  // excluded: it exists to canonicalize the URL and must run on every request.
+  "cache": { "enabled": true },
+  "exports": {
+    "default": { "type": "worker", "cache": { "enabled": false } },
+    "Site": { "type": "worker", "cache": { "enabled": true } }
+  },
   "assets": {
     "binding": "ASSETS",
     "directory": "./.remix-assets",

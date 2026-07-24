@@ -91,15 +91,25 @@ async function commentView(
   };
 }
 
+// A new comment has to be visible everywhere, not just in the colo that
+// handled the POST. httpCache.delete only reaches this colo, so the tag purge
+// is what actually clears the other ones; the delete stays because the inner
+// cache has no tags and the Node adapter has no edge cache at all.
 export async function purgeCommentCache(
   platform: Platform,
   origin: string,
   postSlug: string,
 ): Promise<void> {
-  if (!platform.httpCache) return;
-  await Promise.all(
-    cacheKeys(origin, postSlug).map((key) => platform.httpCache!.delete(key)),
-  );
+  await Promise.all([
+    platform.httpCache
+      ? Promise.all(
+          cacheKeys(origin, postSlug).map((key) =>
+            platform.httpCache!.delete(key),
+          ),
+        )
+      : Promise.resolve(),
+    platform.purgeCache({ pathPrefixes: [commentRoutePath(postSlug)] }),
+  ]);
 }
 
 export async function handleCommentsGet(

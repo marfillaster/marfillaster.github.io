@@ -14,9 +14,18 @@ export interface Platform {
 
   /**
    * Deploy/version identifier. `CF_VERSION_METADATA.id` on workerd; a git SHA
-   * or timestamp on Node. Keys the document ETags in app/http-caching.ts.
+   * or timestamp on Node. Keys document ETags for paths with no digest.
    */
   versionId: string;
+
+  /**
+   * Build-time content digests (workers/cache-digests.generated.ts on
+   * workerd). A path's digest moves only when what that page renders from
+   * changes, which is what lets a deploy invalidate one post without
+   * disturbing the rest. Empty on Node, where every ETag falls back to
+   * versionId and freshness comes from re-reading disk.
+   */
+  digests: CacheDigests;
 
   /**
    * Serve a static asset for this request, or null when the platform has no
@@ -59,6 +68,14 @@ export interface Platform {
   httpCache: Cache | null;
 
   /**
+   * Invalidate Workers Cache entries network-wide by path prefix.
+   * `cache.purge()` from "cloudflare:workers" on workerd; a no-op on Node,
+   * which has no edge cache in front of it. Unlike httpCache.delete this
+   * reaches every colo, which is what a new comment needs.
+   */
+  purgeCache(options: PurgeOptions): Promise<PurgeResult>;
+
+  /**
    * Extend the request lifetime past the response for background work such as
    * edge-cache writes. `ctx.waitUntil` on workerd; fire-and-forget on Node.
    */
@@ -77,6 +94,27 @@ export interface Platform {
 export interface ViewsStore {
   get(path: string): Promise<number>;
   put(path: string, views: number): Promise<void>;
+}
+
+export interface CacheDigests {
+  /** Digest of the shared code and styles, folded into every path digest. */
+  build: string;
+  /** Rendered document path → digest of everything that page renders from. */
+  paths: Readonly<Record<string, string>>;
+  /** Non-fingerprinted public/ file path → digest of its bytes. */
+  assets: Readonly<Record<string, string>>;
+}
+
+export interface PurgeOptions {
+  tags?: string[];
+  pathPrefixes?: string[];
+  /** Mutually exclusive with the other two, per the Workers Cache API. */
+  purgeEverything?: boolean;
+}
+
+export interface PurgeResult {
+  success: boolean;
+  errors?: { code: number; message: string }[];
 }
 
 export interface Secrets {

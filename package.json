@@ -7,10 +7,12 @@
   "scripts": {
     "typecheck": "tsc -b",
     "test:comments": "node --import remix/node-tsx scripts/verify-comments.mjs",
+    "test:caching": "node --import remix/node-tsx scripts/verify-caching.mjs",
     "gen:remix-content": "node scripts/generate-remix-content.mjs",
+    "gen:cache-digests": "node scripts/generate-cache-digests.mjs",
     "remix:assets": "node scripts/build-remix-assets.mjs",
-    "cf:build": "pnpm gen:remix-content && pnpm remix:assets",
-    "cf:deploy": "wrangler deploy && node scripts/purge-zone.mjs",
+    "cf:build": "pnpm gen:remix-content && pnpm remix:assets && pnpm gen:cache-digests",
+    "cf:deploy": "wrangler deploy",
     "dev:remix": "node --import remix/node-tsx server/node.ts",
     "dev:remix-workerd": "CI=true wrangler d1 migrations apply blog-comments-dev --local -c wrangler.remix.jsonc && wrangler dev -c wrangler.remix.jsonc"
   },

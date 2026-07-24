@@ -34,6 +34,7 @@ import { buildRssXml } from "./rss.ts";
 import { buildSitemapXml } from "./sitemap.ts";
 import { resolveClientEntry } from "./client-entries.ts";
 import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
+import { handleCachePurge } from "./cache-purge.ts";
 import { httpCaching } from "./http-caching.ts";
 import { headRequests } from "./head-requests.ts";
 import {
@@ -192,6 +193,10 @@ export function createApp(platform: Platform) {
   );
   router.post("/api/comments/hide", ({ request }) =>
     handleCommentModeration(request, platform),
+  );
+
+  router.post("/api/cache/purge", ({ request }) =>
+    handleCachePurge(request, platform),
   );
 
   // Shared post routes, derived from frontmatter exactly like src/routes.ts.

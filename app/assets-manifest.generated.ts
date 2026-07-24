@@ -9,7 +9,7 @@ export const ASSET_MANIFEST: Record<string, string> = {
   "enhance": "/assets/entries/enhance-MUYSOEY7.js",
   "page-stats": "/assets/entries/page-stats-CIA3TCDC.js",
   "share-links": "/assets/entries/share-links-5DHF332Y.js",
-  "styles.css": "/assets/styles-c216384c.css",
+  "styles.css": "/assets/styles-84320332.css",
   "theme-toggle": "/assets/entries/theme-toggle-TIBUEPUP.js"
 };
 

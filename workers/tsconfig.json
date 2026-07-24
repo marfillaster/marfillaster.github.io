@@ -16,5 +16,10 @@
   "include": ["**/*.ts"],
   // The Remix worker files belong to the app project (app/tsconfig.json),
   // which compiles JSX against remix/ui and NodeNext resolution.
-  "exclude": ["remix-app.ts", "remix-content.generated.ts", "remix-env.d.ts"]
+  "exclude": [
+    "remix-app.ts",
+    "remix-content.generated.ts",
+    "cache-digests.generated.ts",
+    "remix-env.d.ts"
+  ]
 }

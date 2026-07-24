@@ -1,13 +1,28 @@
 // -----------------------------------------------------------------------------
-// workerd adapter for the Remix app (dev-only via `pnpm dev:remix-workerd`;
-// never deployed until cutover). The only file that knows about Cloudflare
-// bindings. Phase 3 merged the analytics API + cron here; the production
-// worker (workers/app.ts) keeps serving them live until Phase 5.
+// workerd adapter for the Remix app. The only file that knows about Cloudflare
+// bindings.
+//
+// Two entrypoints, which is Cloudflare's documented gateway pattern for
+// Workers Cache: the default export is excluded from caching and runs on every
+// request purely to normalize the URL, then hands off to `Site` — which is
+// cached, so a repeat request is answered at the edge without the router, the
+// content map or a render. Query strings never change a document here, so the
+// gateway strips them and every ?utm_* variant of a page shares one entry. See
+// wrangler.jsonc for the matching `exports` config.
 // -----------------------------------------------------------------------------
 
+import { WorkerEntrypoint, cache } from "cloudflare:workers";
 import { createApp } from "../app/app.tsx";
 import { createGaClient, syncViewsForDate } from "../app/analytics.ts";
-import type { CommentRow, CommentsStore, Platform } from "../app/platform.ts";
+import { canonicalDocumentUrl } from "../app/cache-key.ts";
+import type {
+  CommentRow,
+  CommentsStore,
+  Platform,
+  PurgeOptions,
+  PurgeResult,
+} from "../app/platform.ts";
+import { ASSET_DIGESTS, BUILD_DIGEST, PATH_DIGESTS } from "./cache-digests.generated.ts";
 import { CONTENT } from "./remix-content.generated.ts";
 
 interface RemixEnv {
@@ -132,6 +147,7 @@ interface SchedulerContext {
   waitUntil(promise: Promise<unknown>): void;
 }
 
+
 let cached: { router: ReturnType<typeof createApp>; platform: Platform } | null =
   null;
 
@@ -159,6 +175,11 @@ function getApp(env: RemixEnv) {
   const platform: Platform = {
     content: () => new Map(CONTENT),
     versionId: env.CF_VERSION_METADATA?.id ?? "workerd-dev",
+    digests: {
+      build: BUILD_DIGEST,
+      paths: PATH_DIGESTS,
+      assets: ASSET_DIGESTS,
+    },
     assets: (request) => env.ASSETS.fetch(request),
     views: {
       async get(path) {
@@ -215,6 +236,17 @@ function getApp(env: RemixEnv) {
     // workerd's CacheStorage carries a non-standard `default` cache; the DOM
     // lib this project compiles against doesn't know it.
     httpCache: (caches as unknown as { default?: Cache }).default ?? null,
+    // Network-wide, unlike httpCache.delete, which only reaches this colo.
+    // Local dev has no Workers Cache and no cache.purge to call; nothing is
+    // cached in front of it either, so reporting success is accurate there
+    // rather than merely convenient.
+    async purgeCache(options: PurgeOptions): Promise<PurgeResult> {
+      const purge = (cache as { purge?: (options: PurgeOptions) => Promise<PurgeResult> })
+        .purge;
+      return typeof purge === "function"
+        ? purge.call(cache, options)
+        : { success: true };
+    },
     waitUntil(promise) {
       try {
         currentCtx?.waitUntil(promise);
@@ -231,10 +263,30 @@ function getApp(env: RemixEnv) {
   return cached;
 }
 
+/**
+ * The cached entrypoint: everything the application does happens here, behind
+ * the edge cache configured for it in wrangler.jsonc.
+ */
+export class Site extends WorkerEntrypoint<RemixEnv> {
+  fetch(request: Request): Promise<Response> {
+    currentCtx = this.ctx;
+    return getApp(this.env).router.fetch(request);
+  }
+}
+
+interface GatewayContext extends SchedulerContext {
+  exports: { Site: { fetch(request: Request): Promise<Response> } };
+}
+
 export default {
-  fetch(request: Request, env: RemixEnv, ctx: SchedulerContext): Promise<Response> {
-    currentCtx = ctx;
-    return getApp(env).router.fetch(request);
+  // Deliberately thin, and deliberately not calling getApp: this runs on every
+  // request, including ones the edge answers, so building the router here
+  // would give back what the cache saves.
+  fetch(request: Request, _env: RemixEnv, ctx: GatewayContext): Promise<Response> {
+    const canonical = canonicalDocumentUrl(new URL(request.url), PATH_DIGESTS);
+    return ctx.exports.Site.fetch(
+      canonical ? new Request(canonical, request) : request,
+    );
   },
 
   scheduled(_event: unknown, env: RemixEnv, ctx: SchedulerContext): void {

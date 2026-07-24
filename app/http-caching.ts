@@ -1,10 +1,17 @@
 // -----------------------------------------------------------------------------
-// Version-keyed HTTP caching for rendered documents (HTML, RSS, sitemap).
-// Content only changes on deploy, so the ETag is the deploy version + path:
-// If-None-Match answers 304 before any rendering, and the edge cache
-// (platform.httpCache) holds one rendered copy per colo per deploy. Responses
-// are recognized by content type after the handler runs, so assets, API JSON,
-// redirects, and the 404 page pass through untouched.
+// Digest-keyed HTTP caching for rendered documents (HTML, RSS, sitemap).
+// A document's ETag is the build-time digest of everything that page renders
+// from (workers/cache-digests.generated.ts), so a deploy that edits one post
+// leaves every other page's ETag alone and readers keep their cached copies.
+// If-None-Match answers 304 before any rendering, and platform.httpCache holds
+// one rendered copy per colo per digest. Responses are recognized by content
+// type after the handler runs, so assets, API JSON, redirects, and the 404
+// page pass through untouched.
+//
+// This sits behind Workers Cache (see workers/remix-app.ts): the edge layer
+// absorbs repeat requests without invoking the router at all, and this layer
+// catches what reaches the Worker anyway — the Node adapter, cache misses, and
+// anything the edge declines to store.
 // -----------------------------------------------------------------------------
 
 import type { Middleware } from "remix/router";
@@ -13,13 +20,20 @@ import type { Platform } from "./platform.ts";
 // Browsers keep a document fresh for a minute, then may render their cached
 // copy while revalidating in the background (a cheap 304 against the ETag
 // below) or while a transient error prevents revalidation.
+//
+// `s-maxage` is the shared-cache window and browsers ignore it, so the edge
+// keeps a document for a week while a browser rechecks every minute. Whether
+// Workers Cache reads Cloudflare-CDN-Cache-Control is undocumented; s-maxage
+// is honored by any shared cache, so the TTL lands either way. A week rather
+// than a year is deliberate: entries are version-keyed, so a deploy already
+// retires them — the week is only a floor for anything a deploy somehow
+// misses.
 export const DOCUMENT_CACHE_CONTROL =
-  "public, max-age=60, stale-while-revalidate=86400, stale-if-error=86400";
+  "public, max-age=60, s-maxage=604800, stale-while-revalidate=86400, stale-if-error=86400";
 
-// Cloudflare gets a separate one-year freshness window so s-maxage does not
-// disable stale-if-error. Deploys selectively purge mutable URLs before then.
 export const DOCUMENT_CDN_CACHE_CONTROL =
-  "public, max-age=31536000, stale-while-revalidate=86400, stale-if-error=86400";
+  "public, max-age=604800, stale-while-revalidate=86400, stale-if-error=86400";
+
 
 const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 
@@ -33,8 +47,13 @@ const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 // check the cache rule, then the HTML-rewriting zone features (Email
 // Obfuscation, Automatic HTTPS Rewrites, Rocket Loader, Speed Brain — all
 // deliberately off).
-function documentEtag(versionId: string, pathname: string): string {
-  return `"${versionId}:${pathname}"`;
+//
+// The digest replaces the deploy version here. Paths with no digest — none
+// today, but a new route added without regenerating would be one — fall back
+// to the version id, which is correct if coarse.
+function documentEtag(platform: Platform, pathname: string): string {
+  const digest = platform.digests.paths[pathname] ?? platform.versionId;
+  return `"${digest}"`;
 }
 
 /** Weak comparison over an If-None-Match header (list or `*`). */
@@ -61,8 +80,7 @@ function isCacheableDocument(response: Response): boolean {
 export function httpCaching(platform: Platform): Middleware {
   // Documents are stored identity-encoded in the edge cache and compressed
   // per request on the way out: setting Content-Encoding makes workerd gzip
-  // the body on egress (encodeBody "automatic"). Vary: Accept-Encoding keeps
-  // downstream caches honest about the negotiation.
+  // the body on egress (encodeBody "automatic").
   const maybeGzip = (request: Request, response: Response): Response => {
     if (
       !platform.autoEncodesBody ||
@@ -73,7 +91,6 @@ export function httpCaching(platform: Platform): Middleware {
     }
     const encoded = new Response(response.body, response);
     encoded.headers.set("Content-Encoding", "gzip");
-    encoded.headers.set("Vary", "Accept-Encoding");
     return encoded;
   };
 
@@ -89,7 +106,7 @@ export function httpCaching(platform: Platform): Middleware {
       return next();
     }
 
-    const etag = documentEtag(platform.versionId, pathname);
+    const etag = documentEtag(platform, pathname);
     if (etagMatches(context.request.headers.get("If-None-Match"), etag)) {
       return new Response(null, {
         status: 304,
@@ -102,15 +119,14 @@ export function httpCaching(platform: Platform): Middleware {
     }
 
     // Query strings never change a document, so the cache keys on pathname
-    // only — no cache-fill from ?utm_* variants. The versionId rides along so
-    // caches.default can never serve a previous deploy's HTML (the zone purge
-    // in cf:deploy clears the outer edge cache; this covers the inner layer
-    // even if that purge fails).
+    // only — no cache-fill from ?utm_* variants reaching this layer. The
+    // digest rides along so an entry cannot outlive the content it rendered
+    // from: a changed page gets a new key rather than needing eviction.
     const cache = platform.httpCache;
     const cacheKey = cache
       ? new Request(
           new URL(
-            `${pathname}?rmxv=${encodeURIComponent(platform.versionId)}`,
+            `${pathname}?v=${encodeURIComponent(etag.replaceAll('"', ""))}`,
             context.url.origin,
           ),
         )
@@ -134,6 +150,10 @@ export function httpCaching(platform: Platform): Middleware {
       "Cloudflare-CDN-Cache-Control",
       DOCUMENT_CDN_CACHE_CONTROL,
     );
+    // Set unconditionally, not only when this response is gzipped: an
+    // identity copy stored without Vary could otherwise be handed to a client
+    // that asked for gzip.
+    decorated.headers.set("Vary", "Accept-Encoding");
 
     if (cache && cacheKey) {
       platform.waitUntil(cache.put(cacheKey, decorated.clone()));

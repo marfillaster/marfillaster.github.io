@@ -14,6 +14,7 @@ import {
   handleCommentsGet,
   handleCommentsPost,
 } from "../app/comment-handlers.tsx";
+import { memoryPlatform } from "./lib/memory-platform.mjs";
 
 const renderNode = (node, init) =>
   createHtmlResponse(renderToStream(node), init);
@@ -30,56 +31,6 @@ function row(overrides = {}) {
     createdAt: new Date().toISOString(),
     hidden: false,
     ...overrides,
-  };
-}
-
-function memoryPlatform({
-  limited = false,
-  challenge = true,
-  moderator = true,
-  cache = false,
-} = {}) {
-  const rows = [];
-  let verifications = 0;
-  let cacheCalls = 0;
-  return {
-    rows,
-    get verifications() { return verifications; },
-    get cacheCalls() { return cacheCalls; },
-    platform: {
-      content: () => new Map(),
-      versionId: "test",
-      assets: async () => null,
-      views: { get: async () => 0, put: async () => {} },
-      comments: {
-        enabled: true,
-        listThread: async (slug) => rows.filter((item) => item.postSlug === slug),
-        insert: async (item) => rows.push(item),
-        setHidden: async (id, hidden) => {
-          const item = rows.find((candidate) => candidate.id === id);
-          if (item) item.hidden = hidden;
-        },
-        get: async (id) => rows.find((item) => item.id === id) ?? null,
-      },
-      challenge: {
-        verify: async () => {
-          verifications += 1;
-          return challenge;
-        },
-      },
-      rateLimit: { hit: async () => limited },
-      moderation: { authorized: () => moderator },
-      secrets: { commentIpSalt: "test-salt" },
-      httpCache: cache
-        ? {
-            match: async () => { cacheCalls += 1; return undefined; },
-            put: async () => { cacheCalls += 1; },
-            delete: async () => { cacheCalls += 1; return true; },
-          }
-        : null,
-      waitUntil: (promise) => void promise,
-      autoEncodesBody: false,
-    },
   };
 }
 
@@ -296,6 +247,10 @@ assert.match(response.headers.get("Location"), /^\/article\/#c-/);
 assert.equal(accepted.rows.length, 1);
 assert.match(accepted.rows[0].bodyHtml, /<strong>thread<\/strong>/);
 assert.doesNotMatch(accepted.rows[0].ipHash, /192\.0\.2\.10/);
+// The thread's edge entries have to go network-wide, not just in the colo that
+// took the POST — and scoped to the thread's own path, so a new comment does
+// not drop the article or the homepage.
+assert.deepEqual(accepted.purges, [{ pathPrefixes: ["/comments/article"] }]);
 
 response = await handleCommentsGet(
   new Request("https://example.com/comments/article?fragment=1"),
