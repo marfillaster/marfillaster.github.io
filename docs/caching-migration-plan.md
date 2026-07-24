@@ -1,6 +1,9 @@
 # Caching adjustment: Workers Cache, canonical keys, content digests
 
-> **Status: built 2026-07-25, staging-verified, not yet in production.**
+> **Status: shipped 2026-07-25** (`a3358b3`), staging-verified then deployed.
+> Production confirms digest ETags survive the zone's respect_strong_etags rule,
+> query variants share one entry, gzip and 304 revalidation both work, and a
+> deploy retires entries with no purge step.
 >
 > The plan below was written against `cross_version_cache: true` plus a
 > post-deploy tag-purge reconcile. Staging measurement retired that design; what
