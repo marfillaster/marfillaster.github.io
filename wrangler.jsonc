@@ -9,20 +9,28 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "blog",
   "main": "workers/remix-app.ts",
-  "compatibility_date": "2025-07-01",
   // ctx.exports (the loopback to the `Site` entrypoint) is default-on from
-  // compatibility date 2025-11-17; this enables it without moving the date
-  // across a year of unrelated flags.
-  "compatibility_flags": ["enable_ctx_exports"],
+  // compatibility date 2025-11-17, so no explicit flag is needed. Everything
+  // else this date turns on is either nodejs_compat-gated (off here) or
+  // additive.
+  "compatibility_date": "2026-07-24",
   // No nodejs_compat — the rendering path is Web-API only (see
   // docs/remix3-spike-report.md).
-  // Workers Cache in front of the `Site` entrypoint. Cache keys include the
-  // Worker version, so a deploy makes every previous entry unreachable and no
-  // purge step is needed at all. The default export is the gateway and is
-  // excluded: it exists to canonicalize the URL and must run on every request.
-  "cache": { "enabled": true },
+  // Workers Cache in front of both entrypoints — the gateway's layer answers
+  // canonical URLs without running anything, `Site`'s layer collapses the
+  // rewritten ones onto a shared entry (workers/remix-app.ts). Cache keys
+  // include the Worker version (cross_version_cache stays off — version keying
+  // is what makes "a deploy needs no purge" true), so a deploy makes every
+  // previous entry unreachable.
+  //
+  // Deliberately no top-level `cache` block: both entrypoints set their own
+  // value, so it would never be read — and enabling caching Worker-wide is
+  // what makes otherwise-free static asset requests bill at the standard
+  // request rate. Whether the asset path follows the top-level flag or "any
+  // entrypoint caches" is undocumented; listing only entrypoints is the
+  // configuration that can't cost more than it has to.
   "exports": {
-    "default": { "type": "worker", "cache": { "enabled": false } },
+    "default": { "type": "worker", "cache": { "enabled": true } },
     "Site": { "type": "worker", "cache": { "enabled": true } }
   },
   "assets": {

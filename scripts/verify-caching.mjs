@@ -10,7 +10,7 @@ import { readFile } from "node:fs/promises";
 import { extname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "../app/app.tsx";
-import { canonicalDocumentUrl } from "../app/cache-key.ts";
+import { canonicalUrl, isPurgeManaged } from "../app/cache-key.ts";
 import { handleCachePurge } from "../app/cache-purge.ts";
 import { createAppData } from "../app/post-index.ts";
 import { CACHE_EPOCH } from "../src/lib/cache-epoch.mjs";
@@ -22,14 +22,12 @@ const origin = "https://example.test";
 const url = (path) => new URL(path, origin);
 
 // --- cache keys ------------------------------------------------------------
-// Document routes are handed to `Site` with the query stripped, so tracking
-// parameters and sprayed junk collapse onto one entry rather than each forcing
-// a render. The request path stays canonical, which is what keeps entries
-// addressable by tag — a cf.cacheKey override silently breaks tag purges (see
-// app/cache-key.ts).
-const docs = { "/": "d", "/rss.xml": "d", "/mikrotik-vlan-guest-iot/": "d" };
+// Requests are handed to `Site` with the query stripped, so tracking parameters
+// and sprayed junk collapse onto one entry rather than each forcing a render.
+// The request path stays canonical, which is what keeps entries addressable by
+// tag — a cf.cacheKey override silently breaks tag purges (see app/cache-key.ts).
 const canonical = (path) => {
-  const result = canonicalDocumentUrl(url(path), docs);
+  const result = canonicalUrl(url(path));
   return result === null ? null : result.pathname + result.search;
 };
 
@@ -40,12 +38,29 @@ assert.equal(canonical("/rss.xml?nonce=9"), "/rss.xml");
 assert.equal(canonical("/"), null);
 assert.equal(canonical("/mikrotik-vlan-guest-iot/"), null);
 
-// Everything else passes through with its query intact: /comments/ and /api/
-// read parameters to select a response, and a redirect must not drop a
-// visitor's campaign parameters on its way to the canonical URL.
+// Unmatched paths are stripped too — that is the shape a scanner sprays, and a
+// cacheable 404 only collapses if the junk never reaches the key.
+assert.equal(canonical("/wp-login.php?x=91237"), "/wp-login.php");
+assert.equal(canonical("/nope/deeper?a=1&b=2"), "/nope/deeper");
+
+// /comments/ and /api/ read parameters to select a response, so their queries
+// pass through untouched.
 assert.equal(canonical("/comments/article/?fragment=1"), null);
 assert.equal(canonical("/api/analytics/pageviews?path=/a/"), null);
-assert.equal(canonical("/mikrotik-vlan-guest-iot?utm_source=hn"), null);
+
+// Redirect sources are stripped like everything else. The cost is that a 301
+// no longer forwards campaign parameters to the canonical URL; the gain is that
+// no path on the site has a cache key an outsider can vary.
+assert.equal(canonical("/mikrotik-vlan-guest-iot?utm_source=hn"), "/mikrotik-vlan-guest-iot");
+assert.equal(canonical("/solar-report/full-report/?ref=hn&z=2"), "/solar-report/full-report/");
+
+// Both entrypoints cache, and a purge only reaches the one that issued it. A
+// comment thread's freshness comes from a purge inside `Site`, so the gateway
+// must not hold a copy; everything else is retired by the Worker version.
+assert.equal(isPurgeManaged("/comments/mikrotik-vlan-guest-iot"), true);
+assert.equal(isPurgeManaged("/"), false);
+assert.equal(isPurgeManaged("/mikrotik-vlan-guest-iot/"), false);
+assert.equal(isPurgeManaged("/api/analytics/pageviews"), false);
 
 // --- digests ---------------------------------------------------------------
 const digests = await computeDigests(repoRoot, CACHE_EPOCH);
@@ -133,6 +148,17 @@ for (const path of routes) {
     `${path} responded ${response.status} with no Cache-Control`,
   );
 }
+
+// The gateway and the redirect handler composed: `Site` is handed the stripped
+// URL, so the Location it echoes has no query either. Worth asserting together
+// because the parameters are dropped in one file and echoed in another (the
+// Node adapter has no gateway, hence the explicit canonicalUrl call).
+const trackedSource = `${samplePost.href.replace(/\/$/, "")}?utm_source=hn`;
+const redirected = await app.fetch(
+  new Request(canonicalUrl(url(trackedSource)) ?? url(trackedSource)),
+);
+assert.equal(redirected.status, 301);
+assert.equal(redirected.headers.get("Location"), samplePost.href);
 
 // --- unmatched paths ------------------------------------------------------
 // A 404 is the one route an attacker chooses, so it has to be cheap and

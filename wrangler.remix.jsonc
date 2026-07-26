@@ -5,11 +5,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "blog-remix",
   "main": "workers/remix-app.ts",
-  "compatibility_date": "2025-07-01",
-  // ctx.exports (the loopback to the `Site` entrypoint) is default-on from
-  // compatibility date 2025-11-17; this enables it without moving the date
-  // across a year of unrelated flags.
-  "compatibility_flags": ["enable_ctx_exports"],
+  // Matches wrangler.jsonc; ctx.exports is default-on from 2025-11-17.
+  "compatibility_date": "2026-07-24",
   // No nodejs_compat — the rendering path is Web-API only (see
   // docs/remix3-spike-report.md).
   "assets": {

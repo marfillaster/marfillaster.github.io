@@ -39,11 +39,13 @@ const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 
 // Strong-format ETag + origin gzip, working with the zone's
 // respect_strong_etags cache rule. Cloudflare drops ETags (weak or strong)
-// from any HTML *it* compresses; with the rule enabled it preserves a strong
-// ETag when the origin's encoding already matches the visitor's
-// Accept-Encoding. So documents leave here gzip-encoded when the client and
-// runtime allow (see maybeGzip), Cloudflare passes them through untouched,
-// and the browser gets working 304 revalidation. If HTML ETags vanish again:
+// from any HTML *it* compresses; with the rule enabled it keeps one when the
+// origin's encoding already matches the visitor's Accept-Encoding. So
+// documents leave here gzip-encoded when the client and runtime allow (see
+// maybeGzip) and the browser gets working 304 revalidation. What production
+// actually returns is the weakened form (`W/"<digest>"`), which costs nothing:
+// etagMatches compares weakly, and 304s were verified against the live site.
+// If HTML ETags vanish again:
 // check the cache rule, then the HTML-rewriting zone features (Email
 // Obfuscation, Automatic HTTPS Rewrites, Rocket Loader, Speed Brain — all
 // deliberately off).

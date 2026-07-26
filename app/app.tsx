@@ -34,7 +34,7 @@ import { buildRssXml } from "./rss.ts";
 import { buildSitemapXml } from "./sitemap.ts";
 import { resolveClientEntry } from "./client-entries.ts";
 import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
-import { handleCachePurge } from "./cache-purge.ts";
+import { ADMIN_PURGE_PATH, handleCachePurge } from "./cache-purge.ts";
 import { httpCaching } from "./http-caching.ts";
 import { headRequests } from "./head-requests.ts";
 import {
@@ -233,7 +233,7 @@ export function createApp(platform: Platform) {
     handleCommentModeration(request, platform),
   );
 
-  router.post("/api/cache/purge", ({ request }) =>
+  router.post(ADMIN_PURGE_PATH, ({ request }) =>
     handleCachePurge(request, platform),
   );
 

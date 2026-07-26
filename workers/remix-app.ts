@@ -2,19 +2,30 @@
 // workerd adapter for the Remix app. The only file that knows about Cloudflare
 // bindings.
 //
-// Two entrypoints, which is Cloudflare's documented gateway pattern for
-// Workers Cache: the default export is excluded from caching and runs on every
-// request purely to normalize the URL, then hands off to `Site` — which is
-// cached, so a repeat request is answered at the edge without the router, the
-// content map or a render. Query strings never change a document here, so the
-// gateway strips them and every ?utm_* variant of a page shares one entry. See
-// wrangler.jsonc for the matching `exports` config.
+// Two cached entrypoints, one behind the other. The default export normalizes
+// the URL — query strings never change a response here except under /api/ and
+// /comments/, so it strips them everywhere else, and every ?utm_* variant of a
+// page plus every sprayed ?x=1..n on a path that does not exist collapses onto
+// one entry. It then hands off to `Site`, which owns the router, the content
+// map and the renderer.
+//
+// Both layers cache, and they do different jobs:
+//
+//   - The gateway's layer answers a request whose URL is already canonical —
+//     the common case — without running any code at all, so nothing is billed
+//     but the request itself.
+//   - `Site`'s layer is what the normalization pays off in: every URL the
+//     gateway rewrote lands on one shared entry there, so a spray costs one
+//     render rather than one per variant.
+//
+// See wrangler.jsonc for the matching `exports` config.
 // -----------------------------------------------------------------------------
 
 import { WorkerEntrypoint, cache } from "cloudflare:workers";
 import { createApp } from "../app/app.tsx";
 import { createGaClient, syncViewsForDate } from "../app/analytics.ts";
-import { canonicalDocumentUrl } from "../app/cache-key.ts";
+import { canonicalUrl, isPurgeManaged } from "../app/cache-key.ts";
+import { ADMIN_PURGE_PATH } from "../app/cache-purge.ts";
 import type {
   CommentRow,
   CommentsStore,
@@ -151,6 +162,19 @@ interface SchedulerContext {
   waitUntil(promise: Promise<unknown>): void;
 }
 
+/**
+ * Purges the calling entrypoint's cache. Local dev has no Workers Cache and no
+ * cache.purge to call; nothing is cached in front of it either, so reporting
+ * success is accurate there rather than merely convenient.
+ */
+function purgeEdge(options: PurgeOptions): Promise<PurgeResult> {
+  const purge = (cache as { purge?: (options: PurgeOptions) => Promise<PurgeResult> })
+    .purge;
+  return typeof purge === "function"
+    ? purge.call(cache, options)
+    : Promise.resolve({ success: true });
+}
+
 
 let cached: { router: ReturnType<typeof createApp>; platform: Platform } | null =
   null;
@@ -249,16 +273,9 @@ function getApp(env: RemixEnv) {
     // lib this project compiles against doesn't know it.
     httpCache: (caches as unknown as { default?: Cache }).default ?? null,
     // Network-wide, unlike httpCache.delete, which only reaches this colo.
-    // Local dev has no Workers Cache and no cache.purge to call; nothing is
-    // cached in front of it either, so reporting success is accurate there
-    // rather than merely convenient.
-    async purgeCache(options: PurgeOptions): Promise<PurgeResult> {
-      const purge = (cache as { purge?: (options: PurgeOptions) => Promise<PurgeResult> })
-        .purge;
-      return typeof purge === "function"
-        ? purge.call(cache, options)
-        : { success: true };
-    },
+    // Clears `Site`'s layer only — purges are scoped to the entrypoint that
+    // issues them, which is why the gateway clears its own (see below).
+    purgeCache: purgeEdge,
     waitUntil(promise) {
       try {
         currentCtx?.waitUntil(promise);
@@ -292,13 +309,37 @@ interface GatewayContext extends SchedulerContext {
 
 export default {
   // Deliberately thin, and deliberately not calling getApp: this runs on every
-  // request, including ones the edge answers, so building the router here
-  // would give back what the cache saves.
-  fetch(request: Request, _env: RemixEnv, ctx: GatewayContext): Promise<Response> {
-    const canonical = canonicalDocumentUrl(new URL(request.url), PATH_DIGESTS);
-    return ctx.exports.Site.fetch(
+  // miss of *this* entrypoint's cache, so building the router here would give
+  // back what the cache saves.
+  async fetch(
+    request: Request,
+    _env: RemixEnv,
+    ctx: GatewayContext,
+  ): Promise<Response> {
+    const url = new URL(request.url);
+    const canonical = canonicalUrl(url);
+    const response = await ctx.exports.Site.fetch(
       canonical ? new Request(canonical, request) : request,
     );
+
+    // `Site` issued a purge that could not reach this layer. The copies here
+    // are duplicates of documents `Site` can rebuild, so dropping all of them
+    // costs a cold cache and nothing else.
+    if (request.method === "POST" && url.pathname === ADMIN_PURGE_PATH && response.ok) {
+      ctx.waitUntil(purgeEdge({ purgeEverything: true }));
+    }
+
+    if (!isPurgeManaged(url.pathname)) {
+      return response;
+    }
+
+    // Highest precedence of the three cache headers, and Cloudflare strips it
+    // before the client sees it. Set here rather than in the handler so only
+    // this layer opts out: `Site` stored its copy before the response got here,
+    // and that one is still purgeable.
+    const uncached = new Response(response.body, response);
+    uncached.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+    return uncached;
   },
 
   scheduled(_event: unknown, env: RemixEnv, ctx: SchedulerContext): void {

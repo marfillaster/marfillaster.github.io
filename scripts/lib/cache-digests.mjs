@@ -139,9 +139,10 @@ export async function computeDigests(repoRoot, epoch) {
     paths[href] = indexDigest;
   }
 
-  // Non-fingerprinted static files. With cross_version_cache enabled these
-  // survive deploys, so the reconcile needs to know when their bytes change —
-  // /assets/* is deliberately absent, being content-addressed already.
+  // Non-fingerprinted static files. Served by Workers Assets rather than the
+  // Worker, so no deploy retires them the way version keying retires a
+  // document — the reconcile needs to know when their bytes change. /assets/*
+  // is deliberately absent, being content-addressed already.
   const publicDir = join(repoRoot, "public");
   const assets = {};
   for (const path of await listFiles(publicDir)) {
