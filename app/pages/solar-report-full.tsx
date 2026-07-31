@@ -7,14 +7,14 @@ import { SiteShell, TableOfContents } from "../components.tsx";
 import { PageStats } from "../interactive.tsx";
 
 const title =
-  "Full residential solar performance report — Cavite, Philippines (Dec 2025–Jun 2026)";
+  "Full residential solar performance report — Cavite, Philippines (Dec 2025–Jul 2026)";
 const description =
-  "Full report: hourly-data-driven analysis of a 6.5 kWp / 14.3 kWh / 8 kW residential solar+battery system in Cavite, Philippines, covering seven months from December 2025 to June 2026. Generation, self-sufficiency, recommendations, bill impact, ROI, battery health, projections, and methodology.";
+  "Full report: hourly-data-driven analysis of a 6.5 kWp / 14.3 kWh / 8 kW residential solar+battery system in Cavite, Philippines, covering eight months from December 2025 to July 2026. Generation, self-sufficiency, recommendations, bill impact, ROI, battery health, projections, and methodology.";
 const url = "https://blog.homestack.space/solar-report/full-report";
 const ogImage = "https://blog.homestack.space/solar-report/og-image.png";
 const author = "Ken Marfilla";
 const datePublished = "2026-05-01";
-const dateModified = "2026-07-01";
+const dateModified = "2026-08-01";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -64,6 +64,7 @@ export const solarReportFullDescriptors: MetaDescriptor[] = [
 const navItems: Array<[string, string]> = [
   ["#executive-summary", "Summary"],
   ["#system-profile", "System"],
+  ["#alerts", "Alerts"],
   ["#recommendations", "Recommendations"],
   ["#bill-impact", "Bill"],
   ["#roi-estimate", "ROI"],
@@ -80,7 +81,7 @@ export function SolarReportFullPage(handle: Handle<{ html: string }>) {
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Full report · 6.5 kWp · Cavite, PH · Dec 2025 – Jun 2026
+            Full report · 6.5 kWp · Cavite, PH · Dec 2025 – Jul 2026
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
             Residential solar performance — full analysis
