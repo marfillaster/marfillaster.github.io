@@ -8,14 +8,14 @@ import { SiteShell, TableOfContents } from "../components.tsx";
 import { PageStats } from "../interactive.tsx";
 
 const title =
-  "Full BYD Sealion 6 PHEV mileage report — Cavite, Philippines (Dec 2025–Mar 2026)";
+  "Full BYD Sealion 6 PHEV mileage report — Cavite, Philippines (Dec 2025–Jul 2026)";
 const description =
-  "Full report: per-refuel and cumulative efficiency, electric-vs-fuel running cost, usage split, AI analysis, anomalies, and projections for a BYD Sealion 6 PHEV tracked over 5,123 km in Cavite, Philippines.";
+  "Full report: per-refuel and cumulative efficiency, electric-vs-fuel running cost, usage split, AI analysis, anomalies, and projections for a BYD Sealion 6 PHEV tracked over 9,600 km in Cavite, Philippines.";
 const url = "https://blog.homestack.space/nev-mileage/full-report";
 const ogImage = `https://blog.homestack.space/nev-mileage/og-image.png?v=${ogVersion}`;
 const author = "Ken Marfilla";
 const datePublished = "2026-05-15";
-const dateModified = "2026-05-15";
+const dateModified = "2026-08-02";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -67,7 +67,7 @@ const navItems: Array<[string, string]> = [
   ["#cumulative", "Cumulative"],
   ["#executive-summary", "Summary"],
   ["#ai-analysis", "AI analysis"],
-  ["#recommendations", "Recommendations"],
+  ["#how-the-drivetrain-works-and-why-per-trip-efficiency-misleads", "Drivetrain"],
   ["#inferred-insights", "Insights"],
   ["#data-sources", "Data"],
 ];
@@ -78,7 +78,7 @@ export function NevMileageFullPage(handle: Handle<{ html: string }>) {
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Full report · BYD Sealion 6 · Cavite, PH · Dec 2025 – Mar 2026
+            Full report · BYD Sealion 6 · Cavite, PH · Dec 2025 – Jul 2026
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
             PHEV mileage &amp; running cost — full analysis

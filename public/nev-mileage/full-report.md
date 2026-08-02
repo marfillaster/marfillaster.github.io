@@ -1,4 +1,4 @@
-**BYD Sealion 6** · *7 fill-ups tracked* · Dec 2025 – Jul 2026
+**BYD Sealion 6** · *8 fill-ups tracked* · Dec 2025 – Jul 2026
 
 > **Disclaimer:** Efficiency figures, cost calculations, and usage splits are derived from odometer and meter readings you provide. Accuracy depends on the accuracy of those inputs. Values are for personal tracking purposes and should not be used for warranty claims, tax filings, or official reporting without independent verification.
 >
@@ -8,11 +8,11 @@
 
 | | Distance | Fuel/Energy | Efficiency | Cost | Cost/km |
 |---|---:|---:|---:|---:|---:|
-| HEV | 444 km | 41.97 L | 9.45 L/100km | ₱3,000.93 | ₱6.76 |
-| EV | 273 km | 17.00 kWh | 16.06 km/kWh | ₱273.70 | ₱1.00 |
-| **Combined** | 717 km | — | 6.39 L/100km* | ₱3,274.63 | ₱4.57 |
+| HEV | 303 km | 35.06 L | 11.57 L/100km | ₱2,885.44 | ₱9.52 |
+| EV | 626 km | 95.80 kWh | 6.53 km/kWh | ₱1,532.80 | ₱2.45 |
+| **Combined** | 929 km | — | 5.78 L/100km* | ₱4,418.24 | ₱4.76 |
 
-**Usage:** 61.9% F / 38.1% EV (last) · 35.3% F / 64.7% EV (cumulative)
+**Usage:** 32.6% F / 67.4% EV (last) · 35.0% F / 65.0% EV (cumulative)
 
 *\* Combined efficiency: EV cost converted to equivalent fuel liters*
 
@@ -20,54 +20,81 @@
 
 | | Distance | Fuel/Energy | Efficiency | Cost | Cost/km |
 |---|---:|---:|---:|---:|---:|
-| HEV | 3,057 km | 270.38 L | 8.84 L/100km | ₱17,004.37 | ₱5.56 |
-| EV | 5,614 km | 991.70 kWh | 5.66 km/kWh | ₱14,798.89 | ₱2.64 |
-| **Combined** | 8,671 km | — | 5.83 L/100km* | ₱31,803.26 | ₱3.67 |
+| HEV | 3,360 km | 305.44 L | 9.09 L/100km | ₱19,889.81 | ₱5.92 |
+| EV | 6,240 km | 1,087.50 kWh | 5.74 km/kWh | ₱16,331.69 | ₱2.62 |
+| **Combined** | 9,600 km | — | 5.79 L/100km* | ₱36,221.50 | ₱3.77 |
 
 *\* Combined efficiency: EV cost converted to equivalent fuel liters*
 
 ## Executive Summary
 
-- **8,671 km tracked · ₱31,803 spent · 64.7% EV** over the Dec 2025 – Jul 2026 window.
-- Saving an estimated **₱15,887 vs a comparable ICE SUV** over the tracked window, and roughly **1,665 kg CO2 avoided**. Extrapolated across the full 31,092 km lifetime odometer, that's roughly **₱56,968** — a rough estimate, since ~22,421 km of pre-tracking driving has no logged fuel/EV split (see Inferred Insights).
-- Fuel efficiency has stayed stable rather than trending up or down; EV share has climbed overall but dropped sharply in the most recent fill-up (a road trip shifted more distance to highway HEV driving); pump prices spiked in Jun–Jul 2026 from the Strait of Hormuz supply crisis; battery is healthy at 99% SOH (last checked Mar 2026); next PMS milestone is a few months out.
+- **9,600 km tracked · ₱36,222 spent · 65% EV** across Dec 2025 – Jul 2026 (221 days).
+- Running cost is **₱3.77/km**, against roughly ₱5.50/km for a comparable mid-size ICE SUV — about **₱16,600 saved** over the tracked distance.
+- The headline number to watch is cost per kilometre, not efficiency. It has drifted from ₱3.24/km (Mar) to ₱4.76/km (Jul), and almost all of that is pump price rather than anything the car or the driving is doing: fuel has gone from ~₱53/L to ~₱82/L since December.
+- July's tank covered a provincial round trip and reads 11.57 L/100km, the thirstiest in the log. That figure is a true tank-to-tank measurement, but see Core Analysis — a single interval's efficiency is not a reliable signal on this vehicle, and the trip's own telemetry shows the driving itself was fine.
+- Battery is healthy at 99% SOH (rechecked 2026-08-02). Next service is time-triggered, roughly Sep 2026.
 
 ## AI Analysis
-1. **Efficiency trends** — Session fuel efficiency has held in a narrow band across all 7 fill-ups (10.6–12.3 km/L, or 8.1–9.5 L/100km), with the two most recent sessions (Jul 2026) at the less-efficient end. No clear improving or declining trend — efficiency looks stable rather than degrading with mileage.
-2. **Cost optimization** — EV cost/km (₱2.64 cumulative) is roughly half fuel cost/km (₱5.56), so shifting a km from HEV to EV mode saves close to ₱2.90 at current tariffs and fuel prices. EV mode already carries 65% of cumulative distance; more EV share on short/urban trips is the biggest remaining lever.
-3. **Usage patterns** — EV share rose steadily from ~48% (first tracked session) to a peak of ~76% (Jun 2026), then dropped to 38% in the latest fill-up (Jul 16). This is explained: a road trip put a much larger share of the distance on the highway in HEV mode rather than local EV-charged driving — not a change in charging access or a logging issue.
-4. **Anomalies** — (a) Fuel price paid jumped from ~₱53–59/L (Dec 2025–Mar 2026) to ~₱70–78/L (Jun–Jul 2026), a ~30–40% increase. Explained: a regional pump price spike from the Strait of Hormuz supply crisis, not a data-entry issue. (b) A 101-day gap between the Mar 8 and Jun 17 fill-ups is well outside the ~3-week average seen in the other intervals. Explained: the car was in for radiator replacement during that window, so it wasn't being driven or refueled. (c) **EV efficiency swung sharply across the last two sessions** — 4.08 km/kWh on Jul 10, then 16.06 km/kWh on Jul 16 — well outside the 5.3–7.4 km/kWh range seen in every other session. Not fully explained yet: this may be a side effect of the same road trip (charging away from the tracked home meter, e.g. a public/fast charger or a host's outlet, would inflate EV km driven relative to the home plug-meter kWh reading), but that's inferred, not confirmed — worth checking whether any charging happened off the tracked meter around Jul 10–16.
-5. **Performance comparison** — Cumulative combined cost is ₱3.67/km, comfortably inside the ₱3–4/km PHEV benchmark for a mid-size SUV and well below the ₱5–7/km pure-ICE benchmark. EV-mode efficiency (5.66 km/kWh) sits just under the 5.5–7.0 km/kWh typical for this class, so there's some room to close that gap with driving style or route choice.
-6. **Recommendations** — EV share should recover now that the road trip is over; no action needed there. Pump prices are elevated for as long as the Hormuz crisis persists — the EV cost/km advantage is even larger while that holds, so leaning on EV charging is worth more right now than usual. Confirm whether any Jul 10–16 charging happened off the tracked home meter, to explain the EV-efficiency swing. Watch the odometer as it approaches the next PMS milestone (~40,000 km or ~Sep 2026).
+1. **Efficiency trends** — Fuel efficiency sat in a tight 8.12–9.45 L/100km band for the first seven intervals, then read 11.57 L/100km in July. EV-mode efficiency has held between 5.35 and 6.53 km/kWh apart from two outliers in early July. Across the whole record there is no drift with accumulated mileage — nothing here suggests mechanical degradation.
+
+2. **Cost optimisation** — EV running costs ₱2.62/km against ₱5.92/km on fuel, so every kilometre moved from fuel to plug saves about ₱3.30 at current prices. That gap has widened as pump prices rose: in December the spread was nearer ₱2.20/km. EV already carries 65% of cumulative distance, and the remaining fuel kilometres are mostly long-trip distance that plug charge cannot reach.
+
+3. **Usage patterns** — EV share climbed from 48% in the first tracked interval to a 76% peak in June, and has been noisier since: 74%, then 38%, then 67%. The 38% interval was a road trip. Local driving stays in EV mode on overnight charging; the share drops whenever a long trip puts distance beyond the battery's range.
+
+4. **The limits of per-interval efficiency** — A single interval's L/100km moves with the mode mix and with how much regenerative braking it happened to collect, and that movement usually cannot be explained from the log. July's 11.57 L/100km is best read as this effect rather than as a real efficiency loss. See "How the drivetrain works" below for why, and for the trip telemetry that puts the same days' driving well ahead of the cumulative figure.
+
+5. **Anomalies** — Three, all explained, none mechanical. (a) A 101-day gap between the March and June fill-ups: the car was in for radiator replacement. (b) Pump price paid rose from ~₱53–59/L to ~₱70–82/L across June and July, tracking a regional supply-driven spike rather than any change in consumption. (c) EV-mode efficiency swung from 4.08 to 16.06 km/kWh across two fill-ups six days apart in July; taken as a pair they give 5.46 km/kWh, so a charge landed on one side of a fill-up while the kilometres it powered fell on the other.
+
+6. **Performance comparison** — At ₱3.77/km the car sits inside the ₱3–4/km band typical of a mid-size PHEV SUV and well under the ₱5–7/km of a pure-ICE equivalent. EV-mode efficiency of 5.74 km/kWh is at the lower edge of the 5.5–7.0 km/kWh class range, which is consistent with a heavy vehicle in a hot climate running air-conditioning almost continuously.
+
+7. **Recommendations** — Keep charging overnight; the fuel-to-plug spread is now ₱3.30/km and widening, so the habit is worth more than it was six months ago. Do not read individual tanks as efficiency verdicts — the measurement cannot support that, and cost per kilometre answers the same question cleanly. Recheck SOH around March 2027 to establish a degradation rate, which needs a second reading well separated from the first. Watch for the time-based service trigger around Sep 2026, which will arrive well before the 40,000 km trigger.
+
+## How the Drivetrain Works, and Why Per-Trip Efficiency Misleads
+
+Most of the confusing numbers in this log trace back to one thing: the car has three sources of propulsion energy and meters only one of them. Worth setting out, because it changes which figures mean anything.
+
+**The two modes.** On a full charge the car runs in EV mode, propelling on battery alone until state of charge falls to roughly 25%. Below that it switches to HEV mode, where the engine either charges the battery or drives the wheels directly, depending on how much power is being asked for — high speed and uphill sections pull the engine into direct drive. The EV odometer only advances while EV mode is active, so the HEV and EV distance columns are mode counters, not energy counters.
+
+**Three sources, one meter.** In HEV mode the energy reaching the wheels comes from the battery, from regenerative braking, and from the engine. The plug meter counts electricity drawn from the wall and nothing else. There is no separate meter for regen, and none for charge the engine produces through the onboard generator. So the log can say how much fuel and how much mains electricity went in, but it cannot say which of them moved any particular kilometre.
+
+Two consequences of that pull in opposite directions, and neither is measurable here. Whatever plug charge remains in the pack when the car crosses into HEV mode gets spent as HEV kilometres, which flatters fuel economy. Regen adds free energy to both columns, which flatters everything. There is no way to net them out.
+
+**What that does to a per-trip figure.** The number a trip computer shows depends mostly on where the trip started in the charge cycle. The provincial round trip in this log makes the point: the outbound leg began on a full battery and ran its first 150 km on plug charge with the fuel gauge almost stationary, then continued in charge-sustaining mode. The return leg began at 19.5% and ran on fuel throughout. Compared like for like — charge-sustaining only, same route, same load — the two legs came out within 1% of each other, around 14.8 km/L, comfortably better than the 11.0 km/L cumulative figure. Compared as whole trips, they would look nothing alike, and the tank covering them reads as the worst in the log.
+
+**The instruments themselves need care.** Three measured discrepancies from that trip, all in the car's own readings: the 35.06 L fill raised the fuel gauge 64 points, but 64 points of a 60 L tank should be 38.4 L, so the gauge reports full about 3.3 L early; over the return leg the gauge's drop implied 27.6 L consumed while the trip computer's injector count said 22.4 L, a 23% disagreement in the upper part of the tank; and distance integrated from the speed feed ran about 5% above the odometer. None of these is a fault. They are ordinary instrument behaviour, and they are large enough to overturn a conclusion — the figures in the paragraph above are themselves derived from these instruments and should be read as indicative rather than exact.
+
+**Which is why this log is tank-to-tank.** The fuel pump is an external measuring device and the only trustworthy one in the chain: a fill records exactly how much fuel was consumed since the last fill, with no dependence on what the car believes. Everything on the dashboard is secondary. Efficiency figures over a single interval still carry all the attribution problems above, but the fuel and cost totals underneath them are solid.
+
+**And cost per kilometre avoids the problem entirely.** Pesos spent at the pump, plus pesos spent on metered electricity, divided by kilometres driven. No attribution required, nothing to apportion between three energy sources. It is the figure this report leads with, and the one to use when comparing against another vehicle.
 
 ## Inferred Insights
 
 **Time-based:**
-- Refuel cadence averaged ~31 days across the tracked period (13, 30, 26, 20, 101, 23, 6 days between fill-ups); excluding the 101-day outlier, the average tightens to ~20 days.
-- Daily average: ~42.1 km/day over the 206-day tracked window (Dec 22, 2025 – Jul 16, 2026).
-- Projected annual distance: ~15,360 km/year at the current pace.
-- Projected annual spend: ~₱56,350/year at current usage and prices.
-- Next refuel: likely within 1–3 weeks, given the last two intervals were short (23 and 6 days).
+- Refuel cadence averaged ~29 days across the tracked period; excluding the 101-day service gap, ~19 days.
+- Daily average: ~43 km/day over the 221-day tracked window.
+- Projected annual distance: ~15,900 km/year at the current pace.
+- Projected annual spend: ~₱59,800/year at current prices and usage mix.
+- Next refuel: roughly 2–3 weeks out on recent cadence.
 
 **Savings & Environment:**
-- Savings vs ICE over the tracked window: ~₱15,887 over the 8,671 km actually logged, using a ₱5.50/km mid-size-SUV ICE benchmark.
-- Note: this is the *measured* figure — it only covers the tracked period, not the vehicle's full life. The 31,092 km lifetime odometer includes ~22,421 km driven before tracking started (Sep 2024 – Dec 2025), which has no logged fuel/EV split or cost data.
-- Estimated *lifetime* savings vs ICE: ~₱56,968 over the full 31,092 km odometer, extrapolating the tracked period's average cost/km (₱3.67) across the whole lifetime. This assumes the pre-tracking driving had a similar EV/fuel mix and pricing, which is unverified — treat it as a rough estimate, not a measured figure.
-- CO2 avoided: ~1,665 kg over the tracked period (grid ~0.5 kg CO2/kWh, fuel ~2.3 kg CO2/L); a lifetime figure isn't estimated here since the CO2 calculation depends on the EV/fuel km split, which isn't known for the untracked period.
+- Savings vs ICE over the tracked window: ~₱16,600 across the 9,600 km actually logged, using a ₱5.50/km mid-size-SUV ICE benchmark.
+- This is the measured figure and covers only the tracked period. The 32,021 km lifetime odometer includes ~22,421 km driven before tracking began (Sep 2024 – Dec 2025), for which no fuel or energy split exists.
+- Extrapolated lifetime saving: ~₱55,300 across the full odometer, applying the tracked period's ₱3.77/km against the ₱5.50/km benchmark. This assumes the untracked driving had a similar mix and pricing, which is unverified — a rough estimate, not a measurement.
+- CO₂ avoided: ~760 kg over the tracked period. The 6,240 EV kilometres would have needed ~567 L of fuel (~1,305 kg CO₂ at 2.3 kg/L); the 1,087.5 kWh drawn to cover them carries ~544 kg at the Philippine grid average of ~0.5 kg CO₂/kWh.
 
 **Battery Health:**
-- Estimated charge cycles: ~54 full-equivalent cycles (991.7 kWh / 18.3 kWh pack).
-- SOH: 99% as of 2026-03-07 (~4 months old) — healthy, no action needed; a recheck around Sep 2026 would keep this current before it passes the 6-month mark.
-- A degradation-rate projection to 50k/100k km isn't possible yet — only one SOH reading exists, so there's no second point to derive a rate from.
+- SOH 99%, rechecked 2026-08-02 — unchanged from the March reading, and healthy.
+- Estimated charge cycles: ~59 full-equivalent from plug energy (1,087.5 kWh / 18.3 kWh pack). This undercounts real cycling, since charge produced by the onboard generator is not metered and does not appear in the plug total.
+- A degradation rate still cannot be derived: two readings four months apart both report 99%, which sets a floor on health but gives no slope.
 
 **Trends:**
-- EV usage: rising overall (48% → 76% across most sessions); the most recent fill-up broke the trend at 38%, explained by a road trip rather than a reversal.
-- Fuel price paid: rising, from ~₱53–59/L (Dec 2025–Mar 2026) to ~₱70–78/L (Jun–Jul 2026) — a regional spike from the Strait of Hormuz supply crisis.
-- Efficiency vs mileage: no meaningful correlation visible yet — fuel efficiency has stayed flat across the tracked mileage range; too early to call a degradation trend.
+- EV usage: rose from 48% to a 76% peak, then became trip-dependent rather than trending.
+- Fuel price paid: ₱53.04/L (Dec) → ₱82.30/L (Jul), a 55% rise, and the dominant driver of rising cost per kilometre.
+- Efficiency vs mileage: flat across the tracked range. No degradation signal.
 
 **Predictions:**
-- Next refuel: roughly 6–23 days out, based on the two most recent intervals.
-- Next PMS milestone: the schedule calls for service every 20,000 km or 12 months following the second PMS. The second-PMS trigger (20,000 km, or 1 year after the Sep 2024 acquisition) has already passed, so it's assumed done; the next is then due around 40,000 km or ~Sep 2026, whichever comes first. At the current ~42 km/day pace, the odometer reaches 40,000 km around Feb 2027, so the Sep 2026 time-based trigger will likely land first — roughly 2 months out. (Inferred from mileage and acquisition date only; no service records are tracked here, so treat this as an estimate.)
+- Next refuel: ~2–3 weeks out.
+- Next service: due around Sep 2026 on the 12-month trigger, or ~Feb 2027 at 40,000 km on current pace — the time trigger lands first. Inferred from mileage and acquisition date only; no service records are tracked here.
 
 ---
 
