@@ -4,7 +4,9 @@
 Source of truth: ~/phev-tracker/report.md (the extended AI-analysis report
 emitted by the phev-tracker skill). The refuel log CSV that backs the report
 lives at $PHEV_TRACKER_DATA_DIR/phev_log.csv when that env var is set (the
-phev-tracker skill's data-dir override), else ~/.local/share/phev-tracker/phev_log.csv.
+phev-tracker skill's data-dir override); otherwise it is resolved from
+DATA_CANDIDATES — the agentkeep data folder first, then the skill's older
+~/.local/share/phev-tracker/ default. Run with --help to see what resolved.
 
 This script only regenerates the markdown inputs + OG image + copied data file
 under /nev-mileage. The summary route (app/pages/nev-mileage.tsx) is
@@ -20,18 +22,43 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from generate_og_image import render as render_og_image  # noqa: E402
+try:
+    from generate_og_image import render as render_og_image  # noqa: E402
+except ModuleNotFoundError as exc:  # pragma: no cover - dependency guard
+    if exc.name != "PIL":
+        raise
+    sys.exit(
+        "error: the OG image renderer needs Pillow, which is not installed for "
+        f"{sys.executable}.\n"
+        "  Install it into a virtualenv and run this script with that interpreter:\n"
+        "    python3 -m venv .venv-solar && .venv-solar/bin/pip install Pillow\n"
+        "    .venv-solar/bin/python .codex/skills/update-nev-mileage-site/scripts/update_nev_site.py\n"
+        "  (`.venv-solar/` is gitignored; delete it afterwards if you prefer.)"
+    )
+
+
+# The refuel log lives in the phev-tracker skill's data folder, which sits in
+# the agentkeep repo so it syncs across machines. `~/.local/share/phev-tracker/`
+# is the skill's older standalone default, kept as a fallback.
+DATA_CANDIDATES = (
+    Path.home() / "repos" / "agentkeep-ken" / "sl6" / "phev-tracker-data" / "phev_log.csv",
+    Path.home() / ".local" / "share" / "phev-tracker" / "phev_log.csv",
+)
 
 
 def default_data_path() -> Path:
     """Resolve phev_log.csv from $PHEV_TRACKER_DATA_DIR if set (the phev-tracker
-    skill's data-dir override), else the skill's default share location."""
+    skill's data-dir override), else the first candidate location that exists."""
     env_dir = os.environ.get("PHEV_TRACKER_DATA_DIR")
     if env_dir:
         return Path(env_dir) / "phev_log.csv"
-    return Path.home() / ".local" / "share" / "phev-tracker" / "phev_log.csv"
+    for candidate in DATA_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    return DATA_CANDIDATES[0]
 
 
 DEFAULT_SOURCE = Path.home() / "phev-tracker" / "report.md"
@@ -46,14 +73,28 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 #     the download link; the Data Sources bullet keeps a relative data/ path.
 #   - public/nev-mileage/og-image.png → OG image for both /nev-mileage routes.
 #   - public/nev-mileage/data/phev_log.csv → the refuel log, copied verbatim.
-MDX_PATH = REPO_ROOT / "src" / "content" / "nev-full-report.md"
-RAW_REPORT_PATH = REPO_ROOT / "public" / "nev-mileage" / "full-report.md"
-OG_IMAGE_PATH = REPO_ROOT / "public" / "nev-mileage" / "og-image.png"
-DATA_DEST = REPO_ROOT / "public" / "nev-mileage" / "data" / "phev_log.csv"
-# Content-hash of og-image.png, imported by the routes and appended to the
-# og:image URL as `?v=<hash>` so share scrapers re-fetch when (and only when)
-# the image actually changes.
-OG_VERSION_PATH = REPO_ROOT / "src" / "content" / "nev-og-version.ts"
+#   - src/content/nev-og-version.ts → content-hash of og-image.png, imported by
+#     the routes and appended to the og:image URL as `?v=<hash>` so share
+#     scrapers re-fetch when (and only when) the image actually changes.
+# These are derived from the repo root passed in at call time so --repo-root
+# actually redirects every output; writing to module-level constants instead
+# would send them to this checkout regardless of the flag.
+class OutputPaths(NamedTuple):
+    mdx: Path
+    raw_report: Path
+    og_image: Path
+    data_dest: Path
+    og_version: Path
+
+
+def output_paths(repo_root: Path) -> OutputPaths:
+    return OutputPaths(
+        mdx=repo_root / "src" / "content" / "nev-full-report.md",
+        raw_report=repo_root / "public" / "nev-mileage" / "full-report.md",
+        og_image=repo_root / "public" / "nev-mileage" / "og-image.png",
+        data_dest=repo_root / "public" / "nev-mileage" / "data" / "phev_log.csv",
+        og_version=repo_root / "src" / "content" / "nev-og-version.ts",
+    )
 
 # Section headings (## level) expected in the PHEV Tracker extended report.
 REQUIRED_SECTIONS = [
@@ -261,10 +302,12 @@ def build_site(source: Path, data_csv: Path, repo_root: Path) -> bool:
     vehicle, _fillups = parse_header(markdown)
     period = parse_period(data_csv, markdown)
 
+    out = output_paths(repo_root)
+
     copied = False
     if data_csv.exists():
-        DATA_DEST.parent.mkdir(parents=True, exist_ok=True)
-        DATA_DEST.write_bytes(data_csv.read_bytes())
+        out.data_dest.parent.mkdir(parents=True, exist_ok=True)
+        out.data_dest.write_bytes(data_csv.read_bytes())
         copied = True
     else:
         print(
@@ -274,13 +317,13 @@ def build_site(source: Path, data_csv: Path, repo_root: Path) -> bool:
         )
 
     with_sources = append_data_sources(markdown)
-    write_text(MDX_PATH, to_mdx(linkify_data_sources(with_sources)))
-    write_text(RAW_REPORT_PATH, with_sources)
+    write_text(out.mdx, to_mdx(linkify_data_sources(with_sources)))
+    write_text(out.raw_report, with_sources)
     build_og_image(sections, vehicle, period, repo_root)
 
-    og_hash = hashlib.sha256(OG_IMAGE_PATH.read_bytes()).hexdigest()[:10]
+    og_hash = hashlib.sha256(out.og_image.read_bytes()).hexdigest()[:10]
     write_text(
-        OG_VERSION_PATH,
+        out.og_version,
         "// Generated by update_nev_site.py — do not edit.\n"
         f'export const ogVersion = "{og_hash}";\n',
     )
@@ -290,9 +333,9 @@ def build_site(source: Path, data_csv: Path, repo_root: Path) -> bool:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE,
-                        help="Path to the PHEV Tracker report.md")
+                        help=f"Path to the PHEV Tracker report.md (default: {DEFAULT_SOURCE})")
     parser.add_argument("--data", type=Path, default=DEFAULT_DATA,
-                        help="Path to phev_log.csv")
+                        help=f"Path to phev_log.csv (default: {DEFAULT_DATA})")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT,
                         help="Path to the blog repo root")
     return parser.parse_args()
@@ -305,7 +348,11 @@ def main() -> None:
     repo_root = args.repo_root.expanduser().resolve()
 
     if not source.exists():
-        raise SystemExit(f"Source report not found: {source}")
+        raise SystemExit(
+            f"Source report not found: {source}\n"
+            "  Pass --source /absolute/path/to/report.md if the report lives "
+            "elsewhere."
+        )
     if not (repo_root / "package.json").exists():
         raise SystemExit(f"package.json not found in repo root: {repo_root}")
     if not (repo_root / "app" / "pages" / "nev-mileage.tsx").exists():
@@ -314,11 +361,12 @@ def main() -> None:
         )
 
     copied = build_site(source, data_csv, repo_root)
-    print(f"Updated {MDX_PATH}")
-    print(f"Updated {RAW_REPORT_PATH}")
-    print(f"Updated {OG_IMAGE_PATH}")
+    out = output_paths(repo_root)
+    print(f"Updated {out.mdx}")
+    print(f"Updated {out.raw_report}")
+    print(f"Updated {out.og_image}")
     if copied:
-        print(f"Copied refuel log into {DATA_DEST}")
+        print(f"Copied refuel log into {out.data_dest}")
     print(f"Source report: {source}")
     print("Run `pnpm gen:remix-content` to refresh the worker content module.")
 

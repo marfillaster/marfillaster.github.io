@@ -6,6 +6,8 @@ local/
 .DS_Store
 __pycache__/
 *.pyc
+# Throwaway venv for the solar-report generator's Pillow dependency
+.venv-solar/
 .dev.vars
 .wrangler/
 .remix-assets/

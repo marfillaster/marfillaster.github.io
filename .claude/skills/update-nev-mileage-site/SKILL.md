@@ -37,19 +37,37 @@ Use $update-nev-mileage-site to publish the latest ~/phev-tracker/report.md to /
 1. Confirm the source paths (defaults shown):
    - Report: `~/phev-tracker/report.md` (written by the `phev-tracker` skill)
    - Data: `$PHEV_TRACKER_DATA_DIR/phev_log.csv` when that env var is set (the
-     `phev-tracker` skill's data-dir override), else
-     `~/.local/share/phev-tracker/phev_log.csv`. `--data` overrides both.
+     `phev-tracker` skill's data-dir override). Otherwise the script tries
+     `~/repos/agentkeep-ken/sl6/phev-tracker-data/phev_log.csv` — the skill's
+     data folder, which lives in the agentkeep repo so it syncs across machines
+     — then the older standalone `~/.local/share/phev-tracker/phev_log.csv`.
+     First path that exists wins; `--data` overrides all of it.
 
-2. Run the transform from the blog repo root:
+   Run with `--help` to see which defaults resolved on this machine.
+
+2. Run the transform from the blog repo root. **It needs Pillow** (for the OG
+   image), which is usually not installed for the system Python — use a
+   throwaway venv (`.venv-solar/` is gitignored):
+
+```bash
+python3 -m venv .venv-solar && .venv-solar/bin/pip install Pillow
+.venv-solar/bin/python .codex/skills/update-nev-mileage-site/scripts/update_nev_site.py
+rm -rf .venv-solar
+```
+
+If Pillow is already available for `python3`, the plain invocation works:
 
 ```bash
 python3 .codex/skills/update-nev-mileage-site/scripts/update_nev_site.py
 ```
 
+Either way the script aborts with install instructions rather than a traceback
+when Pillow is missing.
+
 Optional flags:
 
 ```bash
-python3 .codex/skills/update-nev-mileage-site/scripts/update_nev_site.py \
+.venv-solar/bin/python .codex/skills/update-nev-mileage-site/scripts/update_nev_site.py \
   --source /absolute/path/to/report.md \
   --data /absolute/path/to/phev_log.csv \
   --repo-root /absolute/path/to/blog
@@ -77,7 +95,7 @@ pnpm gen:remix-content
 - Treat `.codex/skills/update-nev-mileage-site/scripts/update_nev_site.py` as the source of truth for the repo/site markdown. Do not hand-edit `src/content/nev-full-report.md`, `public/nev-mileage/full-report.md`, `public/nev-mileage/og-image.png`, or `public/nev-mileage/data/phev_log.csv` to change report content — fix the upstream report and re-run.
 - Redact the public location to `Cavite, Philippines` in any hand-written copy.
 - If required report sections are missing, the script aborts and names the missing headings instead of improvising. Regenerate the report via the `phev-tracker` skill and re-run.
-- The data CSV is copied from `--data` (default `$PHEV_TRACKER_DATA_DIR/phev_log.csv` when that env var is set, else `~/.local/share/phev-tracker/phev_log.csv`). A missing file is warned about but does not abort the build; publish the file or fix the path, then re-run.
+- The data CSV is copied from `--data` (default `$PHEV_TRACKER_DATA_DIR/phev_log.csv` when that env var is set, else the first existing of `~/repos/agentkeep-ken/sl6/phev-tracker-data/phev_log.csv` and `~/.local/share/phev-tracker/phev_log.csv`). A missing file is warned about but does not abort the build; publish the file or fix the path, then re-run.
 
 ## Extraction Contract
 

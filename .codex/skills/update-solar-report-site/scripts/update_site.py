@@ -11,10 +11,39 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from generate_og_image import render as render_og_image  # noqa: E402
+try:
+    from generate_og_image import render as render_og_image  # noqa: E402
+except ModuleNotFoundError as exc:  # pragma: no cover - dependency guard
+    if exc.name != "PIL":
+        raise
+    sys.exit(
+        "error: the OG image renderer needs Pillow, which is not installed for "
+        f"{sys.executable}.\n"
+        "  Install it into a virtualenv and run this script with that interpreter:\n"
+        "    python3 -m venv .venv-solar && .venv-solar/bin/pip install Pillow\n"
+        "    .venv-solar/bin/python .codex/skills/update-solar-report-site/scripts/update_site.py\n"
+        "  (`.venv-solar/` is gitignored; delete it afterwards if you prefer.)"
+    )
 
 
-DEFAULT_SOURCE = Path.home() / "solar-skills" / "data" / "solar-analysis.md"
+# The report is written by the solar-skills plugin into its data folder, which
+# lives in the agentkeep repo so it syncs across machines. `~/solar-skills/` is
+# the older standalone location, kept as a fallback. First existing wins; when
+# neither is present the canonical path is reported in the error.
+SOURCE_CANDIDATES = (
+    Path.home() / "repos" / "agentkeep-ken" / "solar" / "data" / "solar-analysis.md",
+    Path.home() / "solar-skills" / "data" / "solar-analysis.md",
+)
+
+
+def resolve_default_source() -> Path:
+    for candidate in SOURCE_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    return SOURCE_CANDIDATES[0]
+
+
+DEFAULT_SOURCE = resolve_default_source()
 REPO_ROOT = Path(__file__).resolve().parents[4]
 # Output targets in the Remix site layout:
 #   - src/content/full-report.md  → markdown source with `\<` escapes; imported
@@ -25,9 +54,9 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 #   The summary page (/solar-report) and the rendered full-report page
 #   (/solar-report/full-report) are both rendered by the worker at request time; this
 #   script does not emit HTML.
-MDX_PATH = REPO_ROOT / "src" / "content" / "full-report.md"
-RAW_REPORT_PATH = REPO_ROOT / "public" / "solar-report" / "full-report.md"
-OG_IMAGE_PATH = REPO_ROOT / "public" / "solar-report" / "og-image.png"
+# All of these are built from the repo root passed in at call time (see
+# build_site) rather than module-level constants, so --repo-root actually
+# redirects every output instead of silently writing to this checkout.
 
 SITE_URL = "https://blog.homestack.space/solar-report"
 SITE_AUTHOR = "Ken Marfilla"
@@ -366,6 +395,21 @@ def redact_location(profile: dict[str, str]) -> str:
     if "Location" not in profile:
         return "Cavite, Philippines"
     return "Cavite, Philippines"
+
+
+# The source report names the exact city; this repo is public, so the published
+# body carries only the province. Matches the System Profile bullet and keeps
+# whatever trails the location (e.g. " — tropical, ~14.4°N") intact.
+_LOCATION_BULLET_RE = re.compile(
+    r"(?m)^(?P<prefix>-\s+\*\*Location\*\*:\s*)(?P<place>[^—\n]+?)(?P<rest>\s*(?:—.*)?)$"
+)
+
+
+def redact_location_in_body(markdown: str) -> str:
+    """Replace the precise location in the report body with the public form."""
+    return _LOCATION_BULLET_RE.sub(
+        lambda m: f"{m.group('prefix')}Cavite, Philippines{m.group('rest')}", markdown
+    )
 
 
 def render_table(table: list[list[str]]) -> str:
@@ -883,7 +927,7 @@ def build_og_image(sections: dict[str, str], period_long: str, repo_root: Path) 
 
 
 def build_site(source: Path, repo_root: Path) -> list[str]:
-    markdown = source.read_text(encoding="utf-8")
+    markdown = redact_location_in_body(source.read_text(encoding="utf-8"))
     sections = split_sections(markdown)
     ensure_sections(sections)
     period_long, _period_short = parse_report_period(markdown)
@@ -916,7 +960,12 @@ def build_site(source: Path, repo_root: Path) -> list[str]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE, help="Path to solar-analysis.md")
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=DEFAULT_SOURCE,
+        help=f"Path to solar-analysis.md (default: {DEFAULT_SOURCE})",
+    )
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="Path to the marfillaster.github.io repo root")
     return parser.parse_args()
 
@@ -927,7 +976,11 @@ def main() -> None:
     repo_root = args.repo_root.expanduser().resolve()
 
     if not source.exists():
-        raise SystemExit(f"Source report not found: {source}")
+        raise SystemExit(
+            f"Source report not found: {source}\n"
+            "  Pass --source /absolute/path/to/solar-analysis.md if the report "
+            "lives elsewhere."
+        )
     if not (repo_root / "package.json").exists():
         raise SystemExit(f"package.json not found in repo root: {repo_root}")
     if not (repo_root / "app" / "pages" / "solar-report.tsx").exists():

@@ -1,6 +1,6 @@
 ---
 name: update-solar-report-site
-description: Regenerate the /solar-report content of the blog.homestack.space blog from /Users/ken/solar-skills/data/solar-analysis.md (or another solar-analysis.md report). Use when updating the markdown source for the summary and full-report routes, plus the OG image, after the analysis report changes.
+description: Regenerate the /solar-report content of the blog.homestack.space blog from ~/repos/agentkeep-ken/solar/data/solar-analysis.md (or another solar-analysis.md report). Use when updating the markdown source for the summary and full-report routes, plus the OG image, after the analysis report changes.
 ---
 
 # Update Solar Report Site
@@ -25,18 +25,36 @@ Use $update-solar-report-site to refresh the /solar-report content from the late
 ## Workflow
 
 1. Confirm the source report path.
-   Default source: `/Users/ken/solar-skills/data/solar-analysis.md`
+   Default source: `~/repos/agentkeep-ken/solar/data/solar-analysis.md` — the
+   solar-skills plugin's data folder, which lives in the agentkeep repo so it
+   syncs across machines. The script resolves it from a candidate list and falls
+   back to the older standalone `~/solar-skills/data/solar-analysis.md`; the
+   first path that exists wins, and `--source` overrides both. Run with
+   `--help` to see which default resolved on this machine.
 
-2. Run the generator from the blog repo root:
+2. Run the generator from the blog repo root. **It needs Pillow** (for the OG
+   image), which is usually not installed for the system Python — use a
+   throwaway venv (`.venv-solar/` is gitignored):
+
+```bash
+python3 -m venv .venv-solar && .venv-solar/bin/pip install Pillow
+.venv-solar/bin/python .codex/skills/update-solar-report-site/scripts/update_site.py
+rm -rf .venv-solar
+```
+
+If Pillow is already available for `python3`, the plain invocation works:
 
 ```bash
 python3 .codex/skills/update-solar-report-site/scripts/update_site.py
 ```
 
+Either way the script aborts with install instructions rather than a traceback
+when Pillow is missing.
+
 Optional flags:
 
 ```bash
-python3 .codex/skills/update-solar-report-site/scripts/update_site.py \
+.venv-solar/bin/python .codex/skills/update-solar-report-site/scripts/update_site.py \
   --source /absolute/path/to/solar-analysis.md \
   --repo-root /absolute/path/to/marfillaster.github.io
 ```
