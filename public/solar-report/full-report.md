@@ -1,80 +1,97 @@
 ---
 feed: false
 href: "/solar-report/full-report"
-eyebrow: "Full report · 2026-07"
+eyebrow: "Full report · 2026-08"
 title: "Full residential 6.5 kWp solar performance report — Cavite, Philippines"
 description: >-
   Full hourly-data analysis of a 6.5 kWp / 14.3 kWh / 8 kW residential solar-plus-battery system in Cavite, Philippines: generation, self-sufficiency, recommendations, bill impact, ROI, battery health, and projections.
 datePublished: "2026-05-01"
-dateModified: "2026-08-01"
+dateModified: "2026-09-04"
 category: "Home & Energy"
 ---
 
 # Solar System Recommendations
 
-Based on analysis of solar data from December 2025 – July 2026 (242 days).
+Based on analysis of solar data from December 2025 – August 2026 (273 days).
 
 ## Executive Summary
 
-July recovered most of what June's wet-season onset took away: generation rose ~8% to ~25.4 kWh/day, household load eased ~5% to ~36.3 kWh/day, and self-sufficiency climbed ~7 points back to **~66%**. Grid import fell from 462 kWh to ~377 kWh, and the month's bill saving was **~₱12,100** at the new ₱16.00/₱9.27 tariff. The 6.5 kWp system holds a **~3.0-year payback** on ₱400,000 (~2.3 years remaining), cutting the annual bill ~68%.
+August was the weakest month on record: a multi-week monsoon cut generation to ~15.8 kWh/day, ~38% below July, and self-sufficiency fell ~15 points to **~51.8%** — below December's ~54.3%, the previous floor. Grid import rose to ~440 kWh and the month's bill saving dropped to **~₱8,150** despite the tariff rising to ₱16.75/kWh. Household load fell ~19% to ~29.5 kWh/day over the same period, with only 4 charging days against July's 9, which cushioned the loss considerably.
 
-The apparent drop in battery round-trip efficiency to ~92% is a month-boundary artefact, not degradation: July opened at 11% SOC and closed at 92%, leaving ~11.5 kWh charged but not yet discharged. Adjusted for that, July's efficiency is ~96% — in line with every prior month. No equipment faults were detected.
+None of this is an equipment problem. The monsoon produced widespread flooding across Luzon and was an exceptional event rather than a normal wet season; the eleven August days flagged as low-generation anomalies all fall inside it, and the battery's raw 105.8% round-trip efficiency is the month-boundary artefact anticipated last month — the mirror of July's 91.9%. Adjusted for the ~9.5 kWh the battery carried into August and discharged, the month reads **~99%**, in line with every prior month.
 
-The most significant revision this month concerns PHEV charge timing. On closer inspection of the charging-day hourly profile, the midday surplus that recommendation assumed largely does not exist on charging days — the battery is only ~55–63% charged through the early afternoon, so a car charging then competes with the battery rather than soaking up spare solar. The highest-impact action is now **the overnight base load**, which costs ~₱25,000/year at full import price.
+The system remains on a **~3.0-year payback** on ₱400,000 (~2.2 years remaining), cutting the annual bill ~66%. The overnight load floor is still the largest addressable saving, and a wet month makes the case stronger rather than weaker: when generation collapses, the overnight draw is the one load that neither panels nor battery can reach.
 
-The system avoids **~5.4 tonnes of CO₂ a year**.
+The system avoids **~5.2 tonnes of CO₂ a year**.
 
 ## System Profile
 
 - **PV capacity**: 6.5 kWp, inverter: 8 kW AC (DC/AC ratio: 0.81 — inverter substantially oversized, large expansion headroom)
-- **Battery**: 14.3 kWh nominal, ~14.2 kWh usable estimated (operating SOC range ~18%–82%)
-- **EV/PHEV**: PHEV present; charging detected on 35 of 242 days, 9 of them in July (down from 12 in June)
-- **Tariff**: Flat — ₱16.00/kWh import (current, effective July 2026); past months billed at their then-current rate (see monthly table)
-- **Feed-in tariff**: ₱9.27/kWh (~58% of import rate)
+- **Battery**: 14.3 kWh nominal, ~14.2 kWh usable estimated (operating SOC range ~17%–79%)
+- **EV/PHEV**: PHEV present; charging detected on 42 of 273 days, 4 of them in August (down from 9 in July)
+- **Tariff**: Flat — ₱16.75/kWh import (current, effective August 2026); past months billed at their then-current rate (see monthly table)
+- **Feed-in tariff**: ₱9.23/kWh export credit (~55% of import rate)
+- **Location**: Cavite, Philippines — tropical, ~14.4°N
 
 ## Alerts
 
 ### PV Generation Alerts
 
+Eleven August days generated less than 60% of their rolling baseline, the largest cluster in the dataset. All of them sit inside the multi-week monsoon recorded in `data/month_notes.md` — the event that flooded much of Luzon and had not fully receded by early September.
+
 | Date | Daily PV (kWh) | Expected (kWh) | Deviation |
 |---|---|---|---|
-| 2026-07-29 | 7.3 | ~27.0 | −73% |
+| 2026-08-29 | 1.4 | ~19.7 | −93% |
+| 2026-08-08 | 4.7 | ~17.3 | −73% |
+| 2026-08-13 | 4.5 | ~15.3 | −71% |
+| 2026-08-05 | 6.4 | ~21.1 | −70% |
+| 2026-08-14 | 4.7 | ~13.9 | −66% |
+| 2026-08-02 | 9.4 | ~24.5 | −62% |
+| 2026-08-06 | 8.4 | ~19.4 | −57% |
+| 2026-08-28 | 8.5 | ~19.4 | −56% |
+| 2026-08-07 | 8.0 | ~17.9 | −55% |
+| 2026-08-17 | 6.8 | ~13.0 | −48% |
+| 2026-08-04 | 11.8 | ~22.1 | −46% |
 
-This is the only July day flagged, and its shape matches weather rather than a fault: generation is depressed across the whole daylight window rather than cutting off abruptly, and it falls in the heart of the wet season. Comparable days appear in June (2026-06-05 at −74%, 2026-06-30 at −69%). No action is needed unless a dip this deep recurs on a clear day, which would instead point to soiling or new shading.
+**No action is indicated.** These days carry the signature of weather rather than a fault: output is suppressed across the entire daylight window rather than cutting off abruptly, the dips cluster in consecutive runs (Aug 4–8, Aug 13–14, Aug 28–29) as weather systems do, and the array recovered to ~29.3 kWh on 31 August — a figure a degraded or partly shaded array could not reach. The anomaly test compares each day to its own trailing 14-day mean and cannot separate cloud from equipment; in a month like this it will flag heavily by design.
+
+The one day worth naming is **2026-08-29 at 1.4 kWh** (−93%). That is the deepest single-day dip in 273 days. It still reads as weather — the neighbouring days are also depressed and the following day recovered to ~13.1 kWh — but if a dip that severe ever recurs on a clear day, that would point to soiling or new shading and warrant an inverter log check.
 
 ### Battery Alerts
 
-None in July. The month's headline efficiency of ~91.9% would normally warrant a look, but it is explained entirely by where the month happened to start and end. The battery sat at 11% SOC at 00:00 on 1 July and 92% at 23:00 on 31 July — roughly 11.5 kWh charged during July that will be discharged in August. Crediting that stored energy gives ~96.0%, squarely inside the 92–95% LFP band and consistent with the seven months before it. The two soft readings on record remain 2026-03-17 (78.7%) and 2026-05-17 (79.8%), both isolated and consistent with BMS recalibration.
+- **2026-08-01**: round-trip efficiency 68.5% on 2.3 kWh charged and 1.5 kWh discharged. The throughput is too small for the ratio to mean anything; a single partial cycle at the end of a near-full battery produces figures like this. Not a concern.
+
+Two comparable days appear earlier in the dataset (2026-03-17 at 78.7%, 2026-05-17 at 79.8%), both isolated. There is no pattern.
 
 ## Recommendations
 
-### 1. Trim the overnight base load (highest impact)
+### 1. Meter and cut the overnight load floor (highest impact)
 
-Between midnight and 07:00 the house draws ~4.3 kWh straight from the grid every night on ordinary days. The battery has nothing left to give by then — SOC bottoms at ~20–21% around 04:00–06:00 — so every one of those kilowatt-hours is bought at the full ₱16.00 rate with no feed-in trade-off to weigh against it. That is roughly **₱25,000 a year** flowing out during the hours the house is asleep.
+The household draws ~738 W through the small hours of August (01:00–05:00) and ~779 W across the full dataset. That floor runs every night regardless of weather, and it is the only significant load that neither the panels nor the battery can offset by retiming — by 02:00 the battery is typically at ~20% SOC and the remainder comes from the grid at full import price.
 
-The load floor itself is the problem: ~630–950 W sustained from 03:00 to 06:00 in July, and ~700 W across the whole small-hours window over the full dataset. A sleeping household should sit well below that. The usual causes are always-on draws — standby electronics, a pump, networking and CCTV gear, an ageing refrigerator cycling harder than it should. Every 100 W removed from that floor is ~2.4 kWh/day, or **~₱14,000/year**.
+August makes the cost of this plain. In a month when generation collapsed, the overnight draw did not: it accounted for roughly 3.7 kWh per night, ~115 kWh across the month, or ~₱1,900 at the new rate. Annualised, every 100 W removed from that floor is ~2.4 kWh/day and **~₱14,700/year** at ₱16.75/kWh. Removing 300 W — plausible if the cause is standby electronics plus one mis-cycling appliance — is ~₱44,000/year, which would pull roughly nine months off the remaining payback (2.2 years down to ~1.5).
 
-Implementation: run a plug-in energy meter across one week, one circuit at a time, starting with the refrigerator and the entertainment/networking cluster. Consolidate genuine standby loads onto switchable strips. This is the rare optimization that needs no behavioural change once done — the saving repeats every night whether anyone is home or not.
+The floor has held between ~700 and ~780 W for nine months, so this is a fixed draw rather than a seasonal one. Identifying it needs measurement, not inference: a plug-in power meter moved around the house over a week, or a clamp meter on individual circuits, will separate the refrigerator from networking gear, CCTV, pumps and standby loads. Start with anything that runs a compressor or a motor, then anything with a permanently lit LED.
 
-### 2. Start the PHEV charge earlier, but expect a modest gain
+### 2. Keep charging inside the 09:00–14:00 window
 
-On the nine July charging days the house pulled ~23.3 kWh from the grid against ~7.6 kWh on ordinary days — an extra ~15.7 kWh at full price, and evening SOC bottomed at ~17% versus ~46% otherwise. The instinct is to move that charge into the midday solar window, and directionally that is still right: the charging load currently runs from ~13:00 to ~20:00, with its 5.2 kW peak at 14:00 and a long tail into the evening when PV is gone and the battery is already being drawn down.
+Charging days now average ~48.4 kWh of load against ~24.8 kWh of generation, and the battery reaches evening at ~22% SOC against ~47% on ordinary days. The average peak grid draw on charging days is ~5.6 kW against ~1.8 kW otherwise.
 
-The gain is smaller than previously estimated, and it is worth being precise about why. On charging days the battery is only at ~60% SOC at 13:00 and ~55% at 14:00 — it never fills, and the array exports nothing at all (0.0 kWh/day on July charging days). There is therefore no idle surplus for a midday charge to absorb; energy sent to the car at noon is energy the battery does not store, and would have returned to the house that evening at ~95% round-trip. The genuinely free surplus is only what actually leaves the property — ~17.9 kWh exported in all of July, worth about **₱120/month** at the ₱6.73 import/export spread if fully self-consumed. The earlier ₱4,000–6,000/year figure assumed a midday surplus that the charging-day data does not show.
+Charging is currently spread across 06:00–21:00. The hours that matter are the tail: any charge still running after ~18:00 draws from an exhausted battery at the same time as the evening household peak, which is what produces the ~5.6 kW figure. Compressing the session into 09:00–14:00 puts it against the six-hour peak generation window (09:00–14:00) and keeps it clear of the evening.
 
-What still helps is compressing the charge into 09:00–14:00 rather than letting it run to 20:00. That keeps the tail out of the 18:00–21:00 window where the battery is exhausted and every kWh comes from the grid at peak household draw, and it cuts the average charging-day peak grid draw (~4.2 kW in July, versus ~1.4 kW on ordinary days). Treat it as a demand-smoothing and comfort measure rather than a large financial win. Set the EVSE or in-cabin scheduler to start ~09:00 and stop by ~14:00.
+The financial gain here is modest — with the feed-in credit at ~55% of import, moving a kWh from grid-import to self-consumption is worth ~₱7.52, and the array rarely has genuine surplus on charging days anyway. Treat this as demand smoothing and evening comfort rather than a large saving. Set the EVSE or in-cabin scheduler to start ~09:00 and stop by ~14:00.
 
-### 3. Recognise that generation, not storage, is the constraint on charging days
+### 3. Recognise that generation, not storage, is the constraint
 
-On July charging days the array made ~28.5 kWh against ~51.5 kWh of load. No amount of retiming closes a gap that size, and no additional battery capacity helps either — the battery already cycles to ~61% depth and empties every charging evening because there is nothing left to fill it with. The only lever that would move this materially is more generation.
+On August charging days the array made ~21.0 kWh against ~46.2 kWh of load. Even on ordinary August days it made ~15.0 kWh against ~27.0 kWh. No retiming closes gaps of that size, and no additional battery helps: the battery already cycles to ~58% depth and reached its 10–11% floor on most August days because there was nothing available to charge it with. Avoidable import — the ceiling on what better battery scheduling could recover — is ~1.3 kWh/day, ~₱8,000/year, and that is an upper bound.
 
-The inverter has unusual room for it: peak output has never exceeded 5.44 kW against an 8 kW AC rating (68%), with zero clipping hours recorded in 242 days and a DC/AC ratio of 0.81. Around 3–4 kWp could be added before the inverter becomes the limit. No roof expansion is assumed in this report, so nothing is modelled — but if roof area ever becomes available, the inverter will not be the obstacle.
+The inverter has unusual room for more generation: peak output has never exceeded 5.44 kW against an 8 kW AC rating (68%), with zero clipping hours in 273 days and a DC/AC ratio of 0.81. Roughly 3–4 kWp could be added before the inverter becomes the limit. No roof expansion is assumed here so nothing is modelled, but if roof area becomes available, the inverter will not be the obstacle — and a wet season this deep is the argument for it, since extra capacity earns most on marginal-light days.
 
 ### Not Recommended
 
-- **Grid-charging the battery off-peak**: the tariff is flat at ₱16.00/kWh around the clock, so there is no cheap window to arbitrage. Grid-charging would only add round-trip losses.
-- **A second or larger battery**: overall self-consumption is already ~93%, and projected annual export is only ~552 kWh. There is too little surplus to store for a second pack to pay back.
-- **Chasing the July efficiency reading**: see the battery alert above — the dip is a calendar artefact, and acting on it would mean servicing a healthy battery.
+- **Grid-charging the battery off-peak**: the tariff is flat at ₱16.75/kWh around the clock, so there is no cheap window to arbitrage. Grid-charging would only add round-trip losses.
+- **A second battery**: export totals ~311 kWh across 273 days (~1.1 kWh/day). There is almost nothing spare to store, and in the wet season there is nothing at all.
+- **Reacting to August's generation figures**: the array performed correctly for the light available. Cleaning, re-tilting or servicing on the strength of a monsoon month would spend money against weather.
 
 ## Bill Impact
 
@@ -89,173 +106,206 @@ The inverter has unusual room for it: peak output has never exceeded 5.44 kW aga
 | Apr 2026 | 14.98 | ₱17,542 | ₱5,585 | ₱208 | ₱12,165 |
 | May 2026 | 15.50 | ₱18,633 | ₱5,599 | ₱128 | ₱13,162 |
 | Jun 2026 | 16.10 | ₱18,539 | ₱7,443 | ₱47 | ₱11,144 |
-| **Jul 2026** | **16.00** | **₱18,001** | **₱6,038** | **₱166** | **₱12,129** |
+| Jul 2026 | 16.00 | ₱18,001 | ₱6,038 | ₱166 | ₱12,129 |
+| **Aug 2026** | **16.75** | **₱15,302** | **₱7,371** | **₱217** | **₱8,148** |
 
-Each month is billed at the rate that actually applied then; the annual figures below are projected at today's ₱16.00/₱9.27.
+Each month is billed at the rate in effect that month. August's ₱8,148 is the weakest saving since January, and the fall is larger than it looks: the rate rose to ₱16.75, so the same solar contribution should have been worth *more*. The saving fell because the array delivered ~300 kWh less than July while the grid made up the difference at the highest rate yet charged.
 
-- Estimated annual bill without solar: **₱194,558**
-- Estimated annual bill with solar: **₱66,286**
-- **Annual bill reduction: ₱132,289 (68%)**
+- Estimated annual bill without solar: ₱201,008
+- Estimated annual bill with solar: ₱71,369
+- **Annual bill reduction: ₱133,476 (66%)**
 
-July's saving recovered ~₱1,000 on June despite a marginally lower import rate, driven by the ~85 kWh drop in grid import. Feed-in credit remains a rounding error at ₱166 — the system exports so little that the export rate barely matters to the household economics.
+The annual figures are projected at today's ₱16.75/₱9.23 tariff. Annual reduction has slipped from ~68% to ~66% with August's data added, which is the wet season asserting itself in the average rather than any change in system behaviour.
 
 ## ROI Estimate
 
-| Metric | Value |
-|---|---|
-| System cost | ₱400,000 |
-| Estimated annual savings (year 1) | ₱132,289 |
-| **Simple payback** | **3.0 years** |
-| Remaining payback | 2.3 years |
-| 25-year lifetime savings | ₱3,116,193 |
+| Metric | With Battery | Without Battery |
+|---|---|---|
+| System cost | ₱400,000 | ₱300,000 |
+| Estimated annual savings (year 1) | ₱133,476 | ₱114,871 |
+| **Simple payback** | **3.0 years** | **2.6 years** |
+| Remaining payback | 2.2 years | 1.8 years |
+| 25-year lifetime savings | ₱3,144,154 | ₱2,705,887 |
 
-The battery (~₱100,000 of the total) moves ~8.7 kWh/day of discharge from cheap export at ₱9.27 to self-consumption displacing ₱16.00 import — a ~₱6.73/kWh spread worth roughly ₱21,000/year, for a standalone battery payback near ~4.7 years against a ~26-year projected cycle life. The panels carry most of the return, but the battery is comfortably justified. Payback is measured against a 25+ year panel lifespan, and the degradation-adjusted figure (0.5%/year) is marginally longer than a naive calculation.
+**Battery incremental ROI**: the battery (~₱100,000 of the total) shifts ~8.3 kWh/day of discharge from export at ₱9.23 to self-consumption displacing ₱16.75 import — a ~₱7.52/kWh spread worth ~₱18,600/year, giving a standalone battery payback near **~5.4 years** against a ~27-year projected cycle life.
 
-Note that the ₱400,000 is the total invested figure, which includes financing cost; hardware-only cost would yield a shorter payback.
+That is a longer battery payback than last month's ~4.7-year estimate, and the reason is August: battery throughput fell to ~140 kWh charged against July's ~281 kWh, because a monsoon leaves little surplus to store. The battery earns its return from surplus generation, so a wet season suppresses its incremental case specifically while barely touching the panels'. Expect the figure to move back toward ~4.7 years as dry-season months re-enter the average. The panels carry most of the return either way, and the battery remains justified over its life.
+
+Payback is measured against a 25+ year panel lifespan. The ₱400,000 is the total invested figure including financing cost; hardware-only cost would yield a shorter payback.
 
 ## Key Metrics
 
-### July 2026
-
-| Metric | Non-EV Days (22) | Charging Days (9) |
+| Metric | Non-EV Days | EV Days |
 |---|---|---|
-| Daily PV generation | ~24.2 kWh | ~28.5 kWh |
-| Daily consumption | ~30.1 kWh | ~51.5 kWh |
-| Daily grid import | ~7.6 kWh | ~23.3 kWh |
-| Daily grid export | ~0.8 kWh | ~0.0 kWh |
-| Evening SOC | ~46% | ~17% |
-| Avg daily peak grid draw | ~1.4 kW | ~4.2 kW |
+| Daily PV generation | ~22.2 kWh | ~24.8 kWh |
+| Daily consumption | ~30.1 kWh | ~48.4 kWh |
+| Daily grid import | ~9.4 kWh | ~23.9 kWh |
+| Daily grid export | ~1.3 kWh | ~0.3 kWh |
+| Evening SOC | ~47% | ~22% |
 
-- Self-consumption rate: 98.0% (Jun), 94.8% (Jul) — the July uptick in export reflects better generation, not changed behaviour
-- Self-sufficiency: 59.9% (Jun), 66.5% (Jul)
-- Grid export is concentrated at 12:00–15:00 when the battery approaches full (~76–79% SOC)
-- The battery drains from ~52% in the early evening to ~20% by dawn on ordinary days (a ~32-point drain)
-- On charging days the battery reaches only ~55–63% at midday and bottoms at ~15–17%, forcing heavy evening grid import
-- Charging days generate *more* than ordinary days (~28.5 vs ~24.2 kWh) — charging is clustered on good-weather days, which slightly flatters the charging-day PV figure
+- Self-consumption rate: ~93.7% across the dataset — 94.8% (Jul), 96.9% (Aug)
+- Self-sufficiency: 66.5% (Jul), 51.8% (Aug) — August is the dataset low, below December's 54.3%
+- Grid export concentrated at 12:00–15:00 when the battery is full; in August there was almost no such window
+- Battery drains from ~50% to ~20% overnight on ordinary days (~30 points); on charging days it starts the night at ~24% and reaches ~15%
+- Charging days still generate slightly *more* than ordinary days (~24.8 vs ~22.2 kWh) — charging clusters on better-weather days, which flatters the charging-day PV figure
+- Ordinary-day load (~30.1 kWh) exceeds generation (~22.2 kWh), giving a PV/load ratio of 0.74 across the dataset
 
 ### Hourly Patterns
 
-- PV ramps from ~07:00, peaks 09:00–14:00 in the ~2.3–3.7 kW band, and is effectively finished by 17:00
-- Household load on ordinary days peaks at ~1.9–2.0 kW at 14:00–15:00 and again stays high through the evening, well after PV has tapered
-- On charging days load jumps to 4.6–5.2 kW at 13:00–15:00 and stays above 2 kW until ~20:00 — the charge window overlaps only the back half of the solar day
-- The battery finishes charging around 13:00–14:00 on ordinary days (~76–79% SOC), which is exactly when the small export window opens
-- Overnight grid import runs ~0.6–0.75 kWh every hour from 22:00 to 06:00, totalling ~4.3 kWh/night at full import price
-- Morning SOC bottoms at ~20% around 05:00–06:00 on ordinary days, ~15% on charging days
+- Peak generation runs 09:00–14:00, with output topping out at 5.44 kW (2026-03-15, 12:00) — 84% of panel nameplate, 68% of inverter capacity
+- Ordinary-day load peaks around midday to mid-afternoon (~1.8–2.0 kW) and again in the evening, while the overnight floor sits at ~700–780 W
+- Charging draw appears across 06:00–21:00, far wider than the generation window, which is what pushes charging-day peak grid draw to ~5.6 kW
+- Export occurs only in the 12:00–15:00 window and only once the battery is near full — ~1.1 kWh/day averaged over the dataset
+- Overnight import runs from roughly 18:00 through 06:00, when the battery is exhausted and generation is zero
+- Peak grid draw across the whole dataset was 9.1 kW on 2026-05-15 at 18:00, on an ordinary day — an evening coincidence of household loads, not charging
 
 ### Weekday vs Weekend
 
-Weekday and weekend consumption patterns are similar (~30.2 vs ~31.5 kWh/day, 69% vs 72% self-sufficiency). The only notable difference is a daytime shift: weekend load runs 210–350 W higher between 10:00 and 15:00, when someone is home and PV is at its strongest — which is why weekend self-sufficiency is marginally better despite higher consumption. Load-shifting advice is therefore easier to act on at weekends; weekday changes need timer-based automation.
+Weekday and weekend consumption are similar (~29.7 vs ~30.9 kWh/day, 68% vs 71% self-sufficiency). The difference sits in daytime shape: weekend load runs 220–360 W higher from 10:00 to 15:00, when occupants are home and generation is at its peak, which is why weekends convert slightly more of the array's output directly. This is why load-shifting advice is more practical at weekends; weekday gains need timer-based automation instead.
 
 ### Peak Demand
 
-- Peak grid draw: 9.1 kW on 2026-05-15 at 18:00 (a non-charging day) — dataset-wide maximum
-- Average daily peak: ~1.8 kW on ordinary days, ~5.3 kW on charging days across the full dataset (~1.4 kW and ~4.2 kW respectively in July)
-- Peak PV output: 5.4 kW on 2026-03-15 at 12:00 — 68% of inverter AC capacity, 84% of panel nameplate
-- No clipping recorded against either the panel nameplate or the inverter in 242 days
+- Peak grid draw: 9.1 kW on 2026-05-15 at 18:00 (ordinary day)
+- Average daily peak: ~1.8 kW (ordinary), ~5.6 kW (charging days)
+- Peak PV output: 5.4 kW on 2026-03-15 at 12:00 (68% of inverter capacity)
+- No inverter limiting observed at any point in 273 days
 
 ## System Size Assessment
 
 No roof expansion is assumed in this report.
 
-### PV Array (6.5 kWp): correctly sized for base load, short on charging days
+### PV Array (6.5 kWp): correctly sized for base load, short in the wet season
 
 - Peak output reached 5,436 W (84% of nameplate, 68% of inverter capacity)
-- Zero clipping hours against either limit — output has never been constrained by equipment
-- Peak sun hours range from ~2.5/day in December to ~4.3/day in April–May; July at ~3.9
-- Non-charging PV/load ratio of ~0.76 means the array covers roughly three-quarters of ordinary household demand outright
-- On charging days the array covers ~55% of load (~28.5 kWh against ~51.5 kWh) — the deficit is generation, not timing or storage
+- Zero clipping hours against either panel nameplate or inverter AC rating across 273 days
+- Peak sun hours ranged from 2.4/day (August) to 4.3/day (April–May); dataset average 3.48
+- Ordinary-day PV/load ratio is 0.74 — generation covers roughly three-quarters of an ordinary day's consumption
+- On charging days the array covers ~51% of load (~24.8 kWh against ~48.4 kWh) — the deficit is generation, not timing or storage
+- August exposed the floor: at ~15.8 kWh/day the array covered ~54% of a reduced ~29.5 kWh/day load
 
-### Battery (14.3 kWh): adequate on ordinary days, not the bottleneck
+### Battery (14.3 kWh): adequate, and not the bottleneck
 
-- Ordinary days cycle to ~61% depth, charging ~9.1 kWh and discharging ~8.7 kWh — meaningful headroom remains
-- Charging days cycle to the same ~61% depth but from a lower ceiling, and empty by evening; a larger pack would have nothing extra to store
-- Avoidable import averages ~1.4 kWh/day across the dataset (~344 kWh total), which bounds what better battery scheduling could recover
-- Round-trip efficiency observed at 94.5–98.3% across the first seven months; July's ~92% reading resolves to ~96% once the month-boundary SOC gain is credited
+- Ordinary days: ~8.6 kWh charged, ~8.2 kWh discharged, ~58% cycle depth — meaningful headroom remains on a typical day
+- Charging days: ~59% cycle depth, emptying every evening because generation runs out before the battery fills
+- August: ~140 kWh charged against July's ~281 kWh — the battery spent the month cycling in a narrow low band with nothing to store
+- Round-trip efficiency ~95–99% once month-boundary carry-over is accounted for
+- Avoidable import averages ~1.3 kWh/day (~359 kWh total), bounding what better scheduling could recover
 
 ### Verdict
 
-The system is well-sized for how the household actually uses it. Storage is not the limiting factor, and the inverter has never been the limiting factor. Ordinary days already run at ~75% self-sufficiency and the remaining import is concentrated overnight, where no amount of generation or storage retiming reaches it — only load reduction does. Charging days are limited by total generation, which only more panels would address. Optimization therefore lies in the overnight load floor first, charge scheduling second.
+The system is well-sized for how the household actually uses it, and August did not change that assessment — it stress-tested it. Storage has never been the limiting factor and the inverter has never come close. Ordinary days still run near ~75% self-sufficiency in normal weather, with residual import concentrated overnight where only load reduction reaches it. Charging days and monsoon weeks are both limited by total generation, which only more panels would address. Optimization lies in the overnight load floor first, charge scheduling second, and added capacity third if roof area appears.
 
 ## Battery Health
 
 - Nominal capacity: 14.3 kWh, estimated usable: ~14.2 kWh (99% of nominal)
-- Round-trip efficiency: 94.5–98.3% over the first seven months; July's raw ~91.9% is a calendar artefact and resolves to ~96.0% adjusted for the 11%→92% SOC swing across the month boundary
-- Daily equivalent full cycles: ~0.61 (~224 per year); ~157 cycles used to date
-- Estimated cycle life remaining: ~26 years at current usage (based on a 6,000-cycle LFP rating)
+- Daily equivalent full cycles: ~0.58 (~213 per year); ~169 cycles used to date
+- Estimated cycle life remaining: ~27 years at current usage (based on a 6,000-cycle LFP rating)
 
-There is no efficiency trend to act on. Eight months of readings sit in a band consistent with a healthy LFP pack, and the one out-of-band month has a mechanical explanation. This is worth re-checking in the August report, where the reverse artefact should appear — August opens with a nearly full battery and will discharge energy it did not charge, which should push its raw efficiency *above* the true value.
+Raw monthly round-trip efficiency is distorted whenever a month starts and ends at very different states of charge, because energy charged in one month is discharged in the next. Adjusting for that carry-over using the ~14.2 kWh usable estimate:
+
+| Month | Raw | SOC start → end | Carry-over | Adjusted |
+|---|---|---|---|---|
+| Dec 2025 | 98.3% | 23% → 20% | −0.5 kWh | 98.1% |
+| Jan 2026 | 96.7% | 17% → 46% | +4.1 kWh | 98.3% |
+| Feb 2026 | 96.3% | 42% → 22% | −2.9 kWh | 95.3% |
+| Mar 2026 | 94.5% | 22% → 53% | +4.4 kWh | 95.8% |
+| Apr 2026 | 98.0% | 22% → 21% | −0.1 kWh | 97.9% |
+| May 2026 | 97.4% | 21% → 11% | −1.4 kWh | 96.9% |
+| Jun 2026 | 96.2% | 11% → 11% | ±0.0 kWh | 96.2% |
+| Jul 2026 | 91.9% | 11% → 92% | +11.5 kWh | 95.8% |
+| **Aug 2026** | **105.8%** | **91% → 24%** | **−9.5 kWh** | **99.1%** |
+
+August's impossible 105.8% is the exact mirror of July's depressed 91.9%: the battery entered August nearly full with energy the July meter had already counted as charged, then discharged it. Adjusted, the nine-month range is 95.3%–99.1% with no downward trend — healthy for LFP, which is typically rated 92–95%. The August adjusted figure sits at the top of the range partly because the month's low throughput (~140 kWh) makes the ratio more sensitive to the carry-over estimate; it should not be read as an improvement.
 
 ## Month-over-Month Trends
 
-| Metric | Jun 2026 | Jul 2026 | Change |
+| Metric | Jul 2026 | Aug 2026 | Change |
 |---|---|---|---|
-| Avg daily PV | ~23.4 kWh | ~25.4 kWh | +8% |
-| Avg daily load | ~38.4 kWh | ~36.3 kWh | −5% |
-| Self-sufficiency | 59.9% | 66.5% | +7pp |
-| Grid dependence | 40% | 34% | −7pp |
-| Battery efficiency (raw) | 96.2% | 91.9% | −4.3pp |
+| Avg daily PV | ~25.4 kWh | ~15.8 kWh | −38% |
+| Avg daily load | ~36.3 kWh | ~29.5 kWh | −19% |
+| Self-sufficiency | 66.5% | 51.8% | −15pp |
+| Grid dependence | 34% | 48% | +15pp |
+| Battery efficiency (adjusted) | 95.8% | 99.1% | +3.3pp |
 
-July's improvement comes from both sides at once: better generation and lighter consumption. The generation recovery is modest against the dry-season peak (~27.8 kWh/day in May) and consistent with a wet-season month that had fewer washouts than June — six deeply overcast days in June versus one in July. The load easing tracks the drop in charging days, from 12 in June to 9 in July. Neither change looks structural; expect August to sit in the same wet-season band.
+The generation fall is weather. The load fall is behavioural: consumption dropped ~211 kWh month-over-month, of which roughly 92 kWh is the five fewer charging days (each adds ~18.3 kWh over an ordinary day) and the remainder a broad easing across the household. Those two moves partly cancel — had load held at July's level, August's self-sufficiency would have landed nearer 42% than 52%.
 
-The battery efficiency line is the one number in this table not to read at face value — see Battery Health above.
+Set against the full nine months, self-sufficiency traces the seasons clearly: a December floor of 54.3%, a March peak of 76.5%, then a wet-season decline through June (59.9%), a July recovery (66.5%), and now an August low of 51.8%. The August figure is the deepest point recorded and the first time any month fell below the December baseline.
 
 ## Annual Projection
 
-- Data coverage: 8 months (high confidence)
-- Seasonal context: December–July covers both the dry-season peak and the first two wet-season months; de-seasonalized baseline ~23.1 kWh/day
-- Projected annual generation: ~8,432 kWh (year 1), ~8,020 kWh (year 10), ~7,439 kWh (year 25)
-- Projected annual self-consumed: ~7,880 kWh
-- Projected annual grid export: ~552 kWh
-- Environmental impact: ~5.4 tonnes CO₂ avoided annually (at 0.68 kg CO₂/kWh), equivalent to ~244 trees planted or ~25,500 km not driven
+- Data coverage: 9 months (high confidence)
+- Seasonal context: tropical profile, dry months ×1.07, wet ×0.93, transitional ×1.0
+- De-seasonalized baseline: ~22.3 kWh/day
+- Projected annual generation: ~8,153 kWh (year 1), ~7,754 kWh (year 10), ~7,193 kWh (year 25)
+- Projected annual self-consumed: ~7,641 kWh
+- Projected annual grid export: ~512 kWh
+- Environmental impact: ~5.2 tonnes CO₂ avoided annually (at 0.68 kg CO₂/kWh), equivalent to ~236 trees planted or ~24,700 km not driven
 
-The tropical seasonal profile is shallow compared with temperate latitudes — the spread between the dry-season peak (~27.8 kWh/day in May) and the wet-season floor (~23.4 kWh/day in June) is only ~16%, against the 2–3× swing a temperate installation sees. August through November should stay in the wet-season band before recovering from December. With eight months covering both seasons, this projection is now on a firm footing; the main remaining uncertainty is how deep the August–October wet season runs.
+### August is an outlier, not a season
+
+August was an exceptional weather event — the monsoon produced widespread flooding across Luzon, with waters still not subsided in parts of the island into early September. It should not be treated as a normal August or folded into a revised wet-season factor.
+
+Excluding it changes the annual projection less than expected: the de-seasonalized baseline rises from ~22.3 to ~23.0 kWh/day, lifting projected annual generation from ~8,153 to ~8,386 kWh, **~3%**. August does not dominate the average because December and January are independently weak.
+
+That points at a separate and more consequential issue: the assumed tropical seasonal factors do not match this site. Comparing each month's observed output against the nine-month mean:
+
+| Month | Observed factor | Assumed factor |
+|---|---|---|
+| Dec 2025 | 0.73 | 1.00 |
+| Jan 2026 | 0.74 | 1.07 |
+| Feb 2026 | 1.04 | 1.07 |
+| Mar 2026 | 1.20 | 1.07 |
+| Apr 2026 | 1.22 | 1.07 |
+| May 2026 | 1.23 | 1.07 |
+| Jun 2026 | 1.03 | 0.93 |
+| Jul 2026 | 1.12 | 0.93 |
+| Aug 2026 | 0.70 | 0.93 |
+
+The real shape is a strong March–May peak (~1.20–1.23 against an assumed 1.07) and a weak December–January trough (~0.73–0.74 against an assumed 1.00–1.07). The model has the amihan months roughly 35% too high. July, meanwhile, is one of the stronger months observed (1.12) despite being classed as wet — so a blanket July–October downgrade would be wrong.
+
+Correcting this needs a second year of data before the empirical factors can be trusted, since each is currently a single observation and December–January carries only two months. Until then the projection stands as computed, with the caveat that its month-to-month distribution is less reliable than its annual total.
 
 ## Methodology Notes
 
-This section documents the heuristics, assumptions, and caveats behind the computations. All numerical results are produced by a deterministic script; the items below describe modelling choices that affect interpretation.
-
 ### Data Processing
 - Energy values assume 1-hour buckets (each row = 1 hour). Days with ≤20 of 24 hourly rows are excluded from daily statistics as partial days.
-- Self-consumed energy is calculated as `total_load − grid_import`, which measures actual solar offset and avoids inflating the figure with battery round-trip losses.
-- **July data completeness**: 159 of 8,928 expected five-minute samples are missing from the source data, 101 of them during dark hours. Hourly energy is summed over the samples present rather than interpolated, so gaps are dropped rather than estimated. This understates July generation by ~1.25% (~9.8 kWh) overall, concentrated on 2026-07-07 (~10%), 2026-07-09 (~8%), and 2026-07-21 (~6%). Day-level comparisons involving those three dates should allow for it; monthly figures are essentially unaffected.
+- Self-consumed energy is calculated as `total_load - grid_import`, which measures actual solar offset and avoids inflating by battery round-trip losses.
 
 ### EV Detection
-- Charging days are detected using a threshold of 10.0 kWh above the 33.3 kWh daily average (formula: `max(8, avg_daily_load × 0.3)`).
-- Days near the threshold may be misclassified, and the heuristic cannot distinguish PHEV charging from other high-load events such as guests or extended aircon use.
+- Charging days are detected using a threshold of 9.9 kWh above the 32.9 kWh daily average (formula: `max(8, avg_daily_load × 0.3)`).
+- Days near the threshold may be misclassified. The heuristic cannot distinguish charging from other high-load events such as guests or unusual appliance use.
 
 ### Battery Analysis
-- **Usable capacity** is estimated from the deepest monotonic SOC decline per day, using only days with >30% SOC swing (220 qualifying days). BMS-reported SOC may not be linear at extremes.
-- **Round-trip efficiency** is computed on monthly aggregates. Where SOC differs materially between the start and end of a month, the raw figure is skewed — July is a clear instance, and the adjusted value is given alongside it.
-- **Avoidable import** is a daily upper-bound estimate that overstates the recoverable amount, since it ignores hourly timing mismatches.
+- **Usable capacity** is estimated from the deepest monotonic SOC decline per day, using only days with >30% SOC swing (235 qualifying days). BMS-reported SOC may not be linear at extremes.
+- **Round-trip efficiency** is computed on monthly aggregates. The adjusted column corrects for start/end SOC imbalance using the ~14.2 kWh usable estimate; that correction is itself an approximation, and is most sensitive in low-throughput months.
+- **Avoidable import** is a daily upper-bound estimate that overstates savings — it ignores hourly timing mismatches between surplus generation and demand.
 
 ### Anomaly Detection
-- **PV anomalies**: days generating <60% of the rolling 14-day mean (first 3 days excluded). Weather and equipment faults are indistinguishable to this test.
-- **Load anomalies**: non-charging days exceeding the mean by more than 2 standard deviations. None were flagged in the dataset.
-- **Battery anomalies**: days with round-trip efficiency <80% where start and end SOC are within 5% and charging exceeds 1 kWh.
+- **PV anomalies**: flags days generating <60% of the rolling 14-day mean (first 3 days excluded). Cannot distinguish equipment faults from weather; a monsoon month triggers heavy false positives, as August demonstrates.
+- **Load anomalies**: flags non-EV days exceeding mean + 2 standard deviations. None were found.
+- **Battery anomalies**: flags days with round-trip efficiency <80% where start/end SOC are within 5% and charging exceeds 1 kWh.
 
 ### Financial Estimates
-- Past months are billed at the rate in effect that month; the annual projection and ROI use the current ₱16.00/₱9.27 tariff.
-- Feed-in credit applies a flat rate regardless of time of day.
-- ROI uses 0.5%/year panel degradation. It does not model inverter replacement (~10–15 years), battery degradation beyond cycle count, or electricity price inflation — the last of which is conservative, since the import rate has risen ~11% across the eight months tracked.
-- Battery cycle life uses a 6,000-cycle LFP rating. Actual life varies with depth of discharge, temperature, and charge rate; calendar ageing is not modelled.
+- Past months are billed at the rate in effect that month; the annual projection and ROI use the current ₱16.75/₱9.23 tariff.
+- Feed-in credit applies a flat rate regardless of period.
+- ROI uses 0.5%/year panel degradation. It does not model inverter replacement (~10–15 years), battery degradation beyond cycle count, or electricity price inflation — the last of which is material here, since the import rate has risen from ₱14.41 to ₱16.75 in nine months.
+- The without-battery projection is computed separately from `analyze.py`, which does not model it: direct self-consumption (`min(pv, load)` in generating hours) is valued at the import rate, and export plus battery discharge at the feed-in rate.
+- Battery cycle life uses a 6,000-cycle LFP rating. Calendar aging is not modelled.
 
 ### Projections
-- The annual projection de-seasonalizes observed data using tropical seasonal factors (dry months ×1.07, wet ×0.93, transitional ×1.0), then re-applies all 12 months, assuming 30.44 days/month.
-- Additional-panel scenarios are not modelled in this report.
+- The annual projection de-seasonalizes observed data using tropical seasonal factors, then re-applies all 12 months, assuming 30.44 days/month. See the caveat above regarding the wet-season factor.
 
 ### Environmental
-- Avoided CO₂ is computed as self-consumed kWh × grid factor, not gross PV × grid factor. This is conservative — exported kWh also displace grid generation.
-- Carbon equivalents use fixed values: 22 kg CO₂/tree/year and 0.21 kg CO₂/km.
+- Avoided CO₂ is computed as self-consumed kWh × grid factor, not gross PV × grid factor. This is conservative — exported kWh also displace fossil generation.
+- Carbon equivalents use fixed values: 22 kg CO₂/tree/year, 0.21 kg CO₂/km.
 
 ## Appendix
 
 ### Best and Worst Days
 
-**Best day: 2026-03-19** — PV: 30.0 kWh, Load: 25.5 kWh, Import: 1.4 kWh, Export: 6.4 kWh. Non-charging day. Peak dry-season generation met a light load, filling the battery to 100% and leaving genuine surplus to export. Self-sufficiency: 95%.
+**Best day: 2026-03-19** — PV: 30.0 kWh, Load: 25.5 kWh, Import: 1.4 kWh, Export: 6.4 kWh. Ordinary day. Peak dry-season generation against a modest load, with the battery reaching 100% and carrying the evening almost unaided. Self-sufficiency: 95%.
 
-**Worst day: 2026-01-02** — PV: 4.7 kWh, Load: 15.6 kWh, Import: 12.5 kWh, Export: 0. Non-charging day. A near-total generation washout in the lowest-sun month; the battery never rose above 30% and the grid carried the day. Self-sufficiency: 20%.
-
-**July's worst: 2026-07-29** — PV: 7.3 kWh against ~27 expected. A wet-season washout, described in Alerts above.
+**Worst day: 2026-08-29** — PV: 1.4 kWh, Load: 21.4 kWh, Import: 20.0 kWh, Export: 0 kWh. Ordinary day. The deepest point of the August monsoon; the array produced almost nothing, the battery never rose above 23% SOC, and effectively the entire day ran on grid import. Self-sufficiency: 6%.
 
 ### Capacity Factor
 
@@ -269,18 +319,20 @@ This section documents the heuristics, assumptions, and caveats behind the compu
 | May 2026 | 27.8 | 4.3 | 17.8% | 30% |
 | Jun 2026 | 23.4 | 3.6 | 15.0% | 40% |
 | Jul 2026 | 25.4 | 3.9 | 16.3% | 34% |
+| Aug 2026 | 15.8 | 2.4 | 10.1% | 48% |
 
 ### Next Steps
 
-- Meter the overnight load floor over one week per Recommendation 1 — this is now the largest identified saving and the only one that repeats every night
-- Configure the EVSE schedule for a 09:00–14:00 window and compare next month's charging-day evening import and peak draw
-- Re-run this analysis after August to extend wet-season coverage; expect August's raw battery efficiency to read *high* as the mirror image of July's artefact
-- Continue tracking monthly round-trip efficiency; flag genuinely if an adjusted figure drops below 90%
-- Watch whether the import rate keeps climbing — it has risen from ₱14.41 to ₱16.00 in eight months, which shortens payback further than modelled
+- Meter the overnight load floor over one week per Recommendation 1 — it survived a month in which everything else moved, and remains the largest identified saving
+- Re-run this analysis after September and October — but expect early September to stay depressed while Luzon flooding subsides; those months extend the wet-season record rather than settling the seasonal-factor question, which needs a second December–January to resolve
+- Expect September's raw battery efficiency to read *low*, as the mirror of August's high reading — the battery entered September at ~24% SOC
+- Watch the battery's incremental payback recover from ~5.4 years as dry-season throughput returns; treat a figure that stays above ~5.5 years into the dry season as worth investigating
+- Continue tracking the import rate, now ₱16.75 and up ~16% in nine months, which shortens payback faster than modelled
+- Record notable weather or occupancy events in `data/month_notes.md` as they happen — the August entry is what separates this month's eleven anomaly flags from a fault investigation
 
 ### Disclaimer
 
-This report was generated by an AI model. While the numerical computations are performed by a deterministic script (`analyze.py`), the narrative interpretation, recommendations, and contextual inferences (seasonal factors, grid emission factors, sizing assessments) are AI-generated and may contain inaccuracies. Verify critical findings — especially financial estimates and equipment diagnostics — against your own records, manufacturer specifications, or a qualified solar professional before making decisions based on this report.
+This report was generated by an AI model. While the numerical computations are performed by a deterministic script (`analyze.py`), the narrative interpretation, recommendations, and contextual inferences (seasonal factors, grid emission factors, sizing assessments) are AI-generated and may contain inaccuracies. The without-battery ROI and the SOC-adjusted battery efficiency figures are computed outside that script and carry the extra assumptions noted in the methodology. Verify critical findings — especially financial estimates and equipment diagnostics — against your own records, manufacturer specifications, or a qualified solar professional before making decisions based on this report.
 
 ### Data Sources
 
@@ -292,3 +344,5 @@ This report was generated by an AI model. While the numerical computations are p
 - `data/solar_hourly_2026-05.csv` — 31 days
 - `data/solar_hourly_2026-06.csv` — 30 days
 - `data/solar_hourly_2026-07.csv` — 31 days
+- `data/solar_hourly_2026-08.csv` — 31 days
+- `data/month_notes.md` — August monsoon context
