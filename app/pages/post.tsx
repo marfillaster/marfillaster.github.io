@@ -28,6 +28,10 @@ export function PostPage(handle: Handle<PostPageProps>) {
     const description = post.hero?.description ?? post.description;
     const eyebrow = post.hero?.eyebrow ?? post.eyebrow;
     const displayDate = post.publishedLabel ?? formatPostDate(post.datePublished);
+    const updatedDate =
+      post.dateModified && post.dateModified !== post.datePublished
+        ? formatPostDate(post.dateModified)
+        : undefined;
     const seriesCurrent = post.series === false ? undefined : post.series?.current;
 
     const article = (
@@ -56,6 +60,12 @@ export function PostPage(handle: Handle<PostPageProps>) {
             <p className="mt-2 text-sm text-muted-foreground">{description}</p>
             <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
               <time dateTime={post.datePublished}>Published {displayDate}</time>
+              {updatedDate ? (
+                <span>
+                  {" · "}
+                  <time dateTime={post.dateModified}>Updated {updatedDate}</time>
+                </span>
+              ) : null}
               <PageStats path={post.href} title={post.title} />
             </p>
           </article>
