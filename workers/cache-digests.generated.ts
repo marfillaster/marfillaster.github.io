@@ -8,7 +8,7 @@ export const BUILD_DIGEST = "03871121837719d5";
 /** Rendered document paths → digest of everything that page renders from. */
 export const PATH_DIGESTS: Readonly<Record<string, string>> = {
   "/": "bdfdd34db9f43015",
-  "/bdo-to-pagibig-refinancing/": "6d753f1a290b10e0",
+  "/bdo-to-pagibig-refinancing/": "c9a8491477e796ba",
   "/converge-gpon-sfp-stick-mikrotik/": "fb1bc27d4e0891cf",
   "/encrypted-dns-stable-resolver-mikrotik/": "6568da963387b5b7",
   "/mikrotik-home-network/": "1913b0ccae0aceee",
