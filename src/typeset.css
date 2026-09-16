@@ -525,26 +525,23 @@
     --typeset-flow: 0.9em;
   }
 
-  /* Section headings get outsized breathing room relative to flow, echoing
-     doc.tsx's H2 (mt-16) / H3 (mt-10) / H4 (mt-6) treatment. Ids now sit
-     directly on h2/h3/h4 (no wrapping <section>/<div>), so scroll-margin
-     goes on the headings themselves — sized to clear SiteShell's sticky
-     header, same as the old `scroll-mt-20`. */
+  /* Compact section spacing in rem keeps gaps independent of heading size.
+     Scroll margins clear SiteShell's sticky header when following anchors. */
   .typeset-post :where(h2, h3, h4) {
     scroll-margin-top: 5rem;
   }
   .typeset-post :where(h2) {
-    margin-block-start: calc(var(--typeset-flow) * 4.4);
+    margin-block-start: 2.5rem;
     font-size: 1.375em;
     letter-spacing: -0.01em;
   }
   .typeset-post :where(h3) {
-    margin-block-start: calc(var(--typeset-flow) * 3.1);
+    margin-block-start: 1.75rem;
     font-size: 1.125em;
     letter-spacing: -0.01em;
   }
   .typeset-post :where(h4) {
-    margin-block-start: calc(var(--typeset-flow) * 2);
+    margin-block-start: 1.5rem;
     font-size: 0.9em;
   }
   .typeset-post :where(h1 + *, h2 + *, h3 + *, h4 + *) {
@@ -582,6 +579,9 @@
      hard section break. */
   .typeset-post :where(hr) {
     margin-block-start: calc(var(--typeset-flow) * 5.3);
+  }
+  .typeset-post :where(hr + h1, hr + h2, hr + h3, hr + h4) {
+    margin-block-start: 1.5rem;
   }
 
   /* Renderer contract: every table is wrapped in `.table-scroll` (not the
