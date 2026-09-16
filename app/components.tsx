@@ -85,7 +85,7 @@ export function TableOfContents(handle: Handle<{ items: PostToc }>) {
     return (
       <nav
         aria-label="Table of contents"
-        className="not-prose mt-10 rounded-md border bg-muted/30 p-4"
+        className="not-prose mt-10 mb-8 rounded-md border bg-muted/30 p-4"
       >
         <p className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
           On this page

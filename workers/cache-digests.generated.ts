@@ -3,34 +3,34 @@
 // post-deploy reconcile diff all read from here.
 
 /** Digest of the shared code and styles, folded into every path digest. */
-export const BUILD_DIGEST = "00c0e1c1bb38876b";
+export const BUILD_DIGEST = "12f9761b1a1e6953";
 
 /** Rendered document paths → digest of everything that page renders from. */
 export const PATH_DIGESTS: Readonly<Record<string, string>> = {
-  "/": "2ae19ff670a6ed6d",
-  "/bdo-to-pagibig-refinancing/": "adc29e040134190e",
-  "/converge-gpon-sfp-stick-mikrotik/": "b174c438cb237a9e",
-  "/encrypted-dns-stable-resolver-mikrotik/": "4653047d106e9fca",
-  "/mikrotik-home-network/": "27145e39af5ccf77",
-  "/mikrotik-ipv6-failover-bgp-bfd/": "d3564f75b83b4dcc",
-  "/mikrotik-ipv6-failover-bgp-bfd/chr/": "0cc94159ce4da265",
-  "/mikrotik-ipv6-failover-bgp-bfd/vyos/": "069cd00b4697727f",
-  "/mikrotik-per-vlan-ipv6/": "bf1599c77fd20c36",
-  "/mikrotik-vlan-guest-iot/": "4351b81724a372bf",
-  "/multi-homed-ipv6-cgnat-mikrotik/": "3dc97085701de6dd",
-  "/net-metering-general-trias/": "1b866a3403e6a73d",
-  "/nev-mileage/": "616b35432629831a",
-  "/nev-mileage/full-report": "43cb4b3a23f4c03a",
-  "/route64-ipv6-cgnat-mikrotik/": "38fd1be9e8b5ca0b",
-  "/rss.xml": "2ae19ff670a6ed6d",
-  "/sitemap.xml": "2ae19ff670a6ed6d",
-  "/solar-application-lancaster/": "eb66750a2b3aa5d4",
-  "/solar-report/": "162d7efc7d8a1cc8",
-  "/solar-report/full-report": "cdb86bd1e7aaacef",
-  "/unifi-controller-routeros-containers-mikrotik/": "4bfc1fe7c072644f",
-  "/vps-ipv6-cgnat-mikrotik/": "93b838fe43dc7880",
-  "/vps-ipv6-cgnat-mikrotik/chr/": "7310e40b38391a4a",
-  "/vps-ipv6-cgnat-mikrotik/vyos/": "a595e32b0ad9ce84",
+  "/": "4197470c70ea3eb4",
+  "/bdo-to-pagibig-refinancing/": "bb8ad55ebd32cf8e",
+  "/converge-gpon-sfp-stick-mikrotik/": "fb19a7f38cf17329",
+  "/encrypted-dns-stable-resolver-mikrotik/": "215ab3887975e164",
+  "/mikrotik-home-network/": "8b2f1a8691d320bc",
+  "/mikrotik-ipv6-failover-bgp-bfd/": "9eec4ff89b7c7279",
+  "/mikrotik-ipv6-failover-bgp-bfd/chr/": "f71205391ace0796",
+  "/mikrotik-ipv6-failover-bgp-bfd/vyos/": "8f4c0b48dc0d3eb3",
+  "/mikrotik-per-vlan-ipv6/": "18002d2b31b03d29",
+  "/mikrotik-vlan-guest-iot/": "958f5d2fc7fdfee0",
+  "/multi-homed-ipv6-cgnat-mikrotik/": "c8d6b26f3510aa68",
+  "/net-metering-general-trias/": "8081be4b8895909f",
+  "/nev-mileage/": "e409d0dcca46c1cd",
+  "/nev-mileage/full-report": "4c50c88d06d81c62",
+  "/route64-ipv6-cgnat-mikrotik/": "f58137db0c3483ec",
+  "/rss.xml": "4197470c70ea3eb4",
+  "/sitemap.xml": "4197470c70ea3eb4",
+  "/solar-application-lancaster/": "b7461fb80b674519",
+  "/solar-report/": "7c697cffa1c70a60",
+  "/solar-report/full-report": "1e37d1abe3cfceda",
+  "/unifi-controller-routeros-containers-mikrotik/": "3b58d974fd15c4cb",
+  "/vps-ipv6-cgnat-mikrotik/": "7a75f55f6af25a8f",
+  "/vps-ipv6-cgnat-mikrotik/chr/": "7d490b191b537ff4",
+  "/vps-ipv6-cgnat-mikrotik/vyos/": "cce343d268d58da6",
 };
 
 /** Non-fingerprinted public/ files → digest of their bytes. */
