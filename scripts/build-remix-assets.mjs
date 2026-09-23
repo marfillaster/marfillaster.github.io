@@ -128,7 +128,8 @@ for (const logicalName of ALWAYS_LOADED) {
 // under /assets/ is content-fingerprinted (immutable); other static files
 // (images, og.png, downloads) get a modest TTL. Matching rules combine
 // (values comma-join), so the /assets/* rule must detach the broad rule's
-// Cache-Control with `!` before setting its own.
+// Cache-Control with `!` before setting its own. The raw-markdown downloads
+// duplicate their full-report pages, so they are kept out of the index.
 await writeFile(
   join(outDir, "_headers"),
   `/*
@@ -136,6 +137,10 @@ await writeFile(
 /assets/*
   ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable
+/solar-report/full-report.md
+  X-Robots-Tag: noindex
+/nev-mileage/full-report.md
+  X-Robots-Tag: noindex
 `,
 );
 

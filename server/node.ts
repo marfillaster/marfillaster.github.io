@@ -81,16 +81,19 @@ async function serveAsset(request: Request): Promise<Response | null> {
 
   const body = readFileSync(filePath);
   // Mirrors the _headers file Workers Assets serves in production: /assets/*
-  // is content-fingerprinted, everything else gets a modest TTL.
+  // is content-fingerprinted, everything else gets a modest TTL, and the
+  // raw-markdown report downloads are noindex.
   const cacheControl = pathname.startsWith("/assets/")
     ? "public, max-age=31536000, immutable"
     : "public, max-age=3600";
-  return new Response(new Uint8Array(body), {
-    headers: {
-      "Content-Type": MIME[extname(filePath)] ?? "application/octet-stream",
-      "Cache-Control": cacheControl,
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": MIME[extname(filePath)] ?? "application/octet-stream",
+    "Cache-Control": cacheControl,
+  };
+  if (pathname.endsWith("/full-report.md")) {
+    headers["X-Robots-Tag"] = "noindex";
+  }
+  return new Response(new Uint8Array(body), { headers });
 }
 
 // In-memory page-view store. Unset paths get a stable pseudo-random count so
