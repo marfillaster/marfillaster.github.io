@@ -2,6 +2,7 @@
 
 import type { Handle } from "remix/ui";
 import type { MetaDescriptor } from "../head.ts";
+import { breadcrumbList } from "../site.ts";
 import { Comments, SiteShell } from "../components.tsx";
 import { PageStats, ShareLinks } from "../interactive.tsx";
 
@@ -58,6 +59,12 @@ export const solarReportDescriptors: MetaDescriptor[] = [
   { name: "twitter:image", content: ogImage },
   { tagName: "link", rel: "canonical", href: url },
   { "script:ld+json": structuredData },
+  {
+    "script:ld+json": breadcrumbList([
+      { name: "marfillaster · notes", item: "https://blog.homestack.space/" },
+      { name: "Solar report", item: "https://blog.homestack.space/solar-report/" },
+    ]),
+  },
 ];
 
 const systemChips = [
@@ -160,8 +167,16 @@ export function SolarReportPage(_: Handle) {
             collapses, that draw is the one load neither panels nor battery can
             reach. If you're sizing a system here, the variable that
             generalizes from this single-site data is the always-on load floor,
-            not panel count. Once it was running I also took it through
-            Meralco net metering — that paperwork is its own story:{" "}
+            not panel count. Installing it needed the subdivision
+            developer's approval first:{" "}
+            <a
+              href="/solar-application-lancaster/"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Solar Panel Installation Application Guide for Lancaster New City
+            </a>
+            . Once it was running I also took it through Meralco net metering —
+            that paperwork is its own story:{" "}
             <a
               href="/net-metering-general-trias/"
               className="underline underline-offset-4 hover:text-primary"

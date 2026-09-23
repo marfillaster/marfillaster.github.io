@@ -11,8 +11,8 @@ import type { MetaDescriptor } from "./head.ts";
 export const siteUrl = "https://blog.homestack.space";
 export const siteName = "marfillaster · notes";
 export const defaultAuthor = "marfillaster";
-const defaultOgImage = `${siteUrl}/og.png`;
-const defaultOgImageAlt = "marfillaster · notes — Home · Network · Solar · EV";
+export const defaultOgImage = `${siteUrl}/og.png`;
+export const defaultOgImageAlt = "marfillaster · notes — Home · Network · Solar · EV";
 const defaultSeries = {
   name: "MikroTik RB5009 home network behind CGNAT",
   url: `${siteUrl}/mikrotik-home-network/`,
@@ -103,6 +103,10 @@ function breadcrumbStructuredData(post: PostMeta) {
     },
   ];
 
+  return breadcrumbList(items);
+}
+
+export function breadcrumbList(items: Array<{ name: string; item: string }>) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

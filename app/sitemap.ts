@@ -33,10 +33,6 @@ export function buildSitemapXml(routablePosts: PostMeta[]): string {
   // Hand-curated image entries carried over from the old static sitemap for
   // pages whose frontmatter doesn't declare seo.ogImage/ogImageAlt.
   const imageOverrides: Record<string, { loc: string; title: string }> = {
-    "/mikrotik-home-network/": {
-      loc: `${siteUrl}/mikrotik-home-network/og.png`,
-      title: "A small home network behind CGNAT — RB5009 series index",
-    },
     "/solar-report/": {
       loc: `${siteUrl}/solar-report/og-image.png`,
       title:

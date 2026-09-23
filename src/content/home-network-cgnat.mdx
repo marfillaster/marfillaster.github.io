@@ -12,6 +12,9 @@ sectionOrder: 1
 order: 1
 sectionBlurb: >-
   A nine-part series building one MikroTik RB5009 from a flat LAN into a segmented, IPv6-capable, self-hosted home network behind residential CGNAT. Start at the index, or jump to a layer — each post stands alone. Steps 4 and 5 are two equal paths to routable IPv6; step 9 is the clean-slate multi-homed finale.
+seo:
+  ogImage: "https://blog.homestack.space/mikrotik-home-network/og.png"
+  ogImageAlt: "A small home network behind CGNAT — RB5009 series index"
 hero:
   eyebrow: "Series index · MikroTik RB5009 · CGNAT"
   description: >-
@@ -55,7 +58,9 @@ alone: encrypted DNS with a stable resolver address
 UniFi controller running on this same router
 ([here](/unifi-controller-routeros-containers-mikrotik/)), and fast IPv6
 failover with BGP&nbsp;+&nbsp;BFD
-([here](/mikrotik-ipv6-failover-bgp-bfd/), VPS path only). References point
+([here](/mikrotik-ipv6-failover-bgp-bfd/), VPS path only). A separate build
+replaces the Converge ONT with a GPON SFP stick in the RB5009's SFP+ cage
+([here](/converge-gpon-sfp-stick-mikrotik/)). References point
 at the original gists.
 
 ## Design decisions
@@ -469,6 +474,7 @@ out by default.
 - [Fast IPv6 failover (BGP&nbsp;+&nbsp;BFD) — companion post, VPS path only](/mikrotik-ipv6-failover-bgp-bfd/)
 - [Multi-homing IPv6 over CGNAT on RouterOS — series finale, both paths active under one /48](/multi-homed-ipv6-cgnat-mikrotik/)
 - [Running the UniFi controller on the RB5009 — companion post](/unifi-controller-routeros-containers-mikrotik/)
+- [Replacing a Converge ONT with a GPON SFP stick on the RB5009 — companion build](/converge-gpon-sfp-stick-mikrotik/)
 - [RFC&nbsp;3849 — IPv6 address prefix reserved for documentation](https://datatracker.ietf.org/doc/html/rfc3849) (`2001:db8::/32`)
 - [RFC&nbsp;4193 — Unique Local IPv6 unicast addresses](https://datatracker.ietf.org/doc/html/rfc4193) (`fd00::/8`)
 - [RFC&nbsp;8305 — Happy Eyeballs v2](https://datatracker.ietf.org/doc/html/rfc8305) (why a flagged IPv6 path is tried before native IPv4, §5)

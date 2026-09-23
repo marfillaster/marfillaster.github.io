@@ -3,6 +3,7 @@
 
 import type { Handle } from "remix/ui";
 import type { MetaDescriptor } from "../head.ts";
+import { breadcrumbList } from "../site.ts";
 import { SiteShell, TableOfContents } from "../components.tsx";
 import { PageStats } from "../interactive.tsx";
 
@@ -59,6 +60,13 @@ export const solarReportFullDescriptors: MetaDescriptor[] = [
   { name: "twitter:image", content: ogImage },
   { tagName: "link", rel: "canonical", href: url },
   { "script:ld+json": structuredData },
+  {
+    "script:ld+json": breadcrumbList([
+      { name: "marfillaster · notes", item: "https://blog.homestack.space/" },
+      { name: "Solar report", item: "https://blog.homestack.space/solar-report/" },
+      { name: "Full report", item: "https://blog.homestack.space/solar-report/full-report" },
+    ]),
+  },
 ];
 
 const navItems: Array<[string, string]> = [

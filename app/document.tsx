@@ -13,9 +13,6 @@ import { ASSET_MANIFEST, PRELOAD_MODULES } from "./assets-manifest.generated.ts"
 
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
 
-const favicon =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231c1917'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-family='Arial,sans-serif' font-size='21' font-weight='700' fill='%23fafaf9'%3Em%3C/text%3E%3C/svg%3E";
-
 const gtagInit = `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${GA_MEASUREMENT_ID}');`;
 
 const themeInit = `(function(){try{var s=localStorage.getItem("theme");var d=s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#0c0a09":"#fafaf9");}catch(e){}})();`;
@@ -102,7 +99,11 @@ export function Document(handle: Handle<DocumentProps>) {
         />
         <script innerHTML={gtagInit} />
         <HeadDescriptors descriptors={handle.props.descriptors} />
-        <link rel="icon" href={favicon} />
+        {/* Real URLs, not a data: URI — Google Search only shows a favicon it
+            can fetch. public/favicon.{svg,ico} and apple-touch-icon.png. */}
+        <link rel="icon" href="/favicon.ico" sizes="48x48" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link
           rel="alternate"
           type="application/rss+xml"

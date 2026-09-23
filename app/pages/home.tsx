@@ -4,12 +4,30 @@ import type { Handle } from "remix/ui";
 import type { PostIndex } from "../../src/lib/post-meta.mjs";
 import type { MetaDescriptor } from "../head.ts";
 import { SiteShell } from "../components.tsx";
+import { defaultAuthor, defaultOgImage, defaultOgImageAlt } from "../site.ts";
 
 const title = "Home-lab build logs — MikroTik, solar, EV, home finance · marfillaster";
 const siteName = "marfillaster · notes";
 const description =
   "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, plug-in EV running costs, and home-finance field logs — long-running experiments.";
 const url = "https://blog.homestack.space/";
+
+// Gives Google a site name and an entity for the author; posts already carry
+// TechArticle/BlogPosting, so the homepage is the one place WebSite belongs.
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: siteName,
+  alternateName: ["marfillaster", "blog.homestack.space"],
+  url,
+  description,
+  inLanguage: "en",
+  author: {
+    "@type": "Person",
+    name: defaultAuthor,
+    url: "https://github.com/marfillaster",
+  },
+};
 
 export const homeDescriptors: MetaDescriptor[] = [
   { title },
@@ -19,10 +37,16 @@ export const homeDescriptors: MetaDescriptor[] = [
   { property: "og:url", content: url },
   { property: "og:type", content: "website" },
   { property: "og:site_name", content: siteName },
+  { property: "og:image", content: defaultOgImage },
+  { property: "og:image:width", content: "1200" },
+  { property: "og:image:height", content: "630" },
+  { property: "og:image:alt", content: defaultOgImageAlt },
   { name: "twitter:card", content: "summary_large_image" },
   { name: "twitter:title", content: title },
   { name: "twitter:description", content: description },
+  { name: "twitter:image", content: defaultOgImage },
   { tagName: "link", rel: "canonical", href: url },
+  { "script:ld+json": structuredData },
 ];
 
 export function HomePage(handle: Handle<{ index: PostIndex }>) {

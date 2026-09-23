@@ -4,6 +4,7 @@
 import type { Handle } from "remix/ui";
 import { ogVersion } from "../../src/content/nev-og-version.ts";
 import type { MetaDescriptor } from "../head.ts";
+import { breadcrumbList } from "../site.ts";
 import { SiteShell, TableOfContents } from "../components.tsx";
 import { PageStats } from "../interactive.tsx";
 
@@ -60,6 +61,13 @@ export const nevMileageFullDescriptors: MetaDescriptor[] = [
   { name: "twitter:image", content: ogImage },
   { tagName: "link", rel: "canonical", href: url },
   { "script:ld+json": structuredData },
+  {
+    "script:ld+json": breadcrumbList([
+      { name: "marfillaster · notes", item: "https://blog.homestack.space/" },
+      { name: "PHEV mileage report", item: "https://blog.homestack.space/nev-mileage/" },
+      { name: "Full report", item: "https://blog.homestack.space/nev-mileage/full-report" },
+    ]),
+  },
 ];
 
 const navItems: Array<[string, string]> = [
