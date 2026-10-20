@@ -4,6 +4,8 @@
 // for workerd). The app layer imports nothing but Web APIs and this interface.
 // -----------------------------------------------------------------------------
 
+import type { ScriptManifest } from "./script-manifest.ts";
+
 export interface Platform {
   /**
    * Post source files keyed by content-relative filename (e.g.
@@ -26,6 +28,13 @@ export interface Platform {
    * versionId and freshness comes from re-reading disk.
    */
   digests: CacheDigests;
+
+  /**
+   * Browser scripts: import map, preloads and module URLs from Remix's asset
+   * server. The build-time export on workerd; a live asset server on Node,
+   * which compiles app/client/ on request.
+   */
+  scripts: ScriptManifest;
 
   /**
    * Serve a static asset for this request, or null when the platform has no

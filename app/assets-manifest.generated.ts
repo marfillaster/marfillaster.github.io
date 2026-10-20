@@ -4,158 +4,142 @@
 // Committed so the app layer stays importable without a prior asset build;
 // `pnpm remix:assets` rewrites it.
 
+import type { ScriptManifest } from "./script-manifest.ts";
+
 export const ASSET_MANIFEST: Record<string, string> = {
   "code-highlight.css": "/assets/code-highlight-e2f9f068.css",
   "styles.css": "/assets/styles-b9a2c8b0.css"
 };
 
-export interface ImportMapImports {
-  imports: Record<string, string>;
-}
-
-export interface ScriptEntry {
-  href: string;
-  preloads: string[];
-  importMap: ImportMapImports;
-}
-
-/**
- * The document-level module scripts, plus the import map and preloads (in
- * dependency order) for everything loaded on every page.
- */
-export const DOCUMENT_SCRIPTS: {
-  boot: string;
-  enhance: string;
-  importMap: ImportMapImports;
-  preloads: string[];
-} = {
-  "boot": "/assets/app/client/boot.%402d89iw.ts",
-  "enhance": "/assets/app/client/enhance.%4086WwJ9.ts",
-  "importMap": {
-    "imports": {
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/run.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/run.%40iFqQ2q.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/stylesheet.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/stylesheet.%4027higg.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/frame.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/frame.%402J1X66.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/vdom.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/vdom.%40RjOTZP.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/error-event.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/error-event.%401g_XgR.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/navigation.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/navigation.%40XxzfSY.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/typed-event-target.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/typed-event-target.%40HHE5hP.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/jsx.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/jsx.%40Bi6bAA.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/component.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/component.%40wAT5nL.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/invariant.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/invariant.%4037Pp5R.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/diff-dom.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/diff-dom.%40TQi8QL.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/stream-protocol.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/stream-protocol.%40jHPc2z.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/module-preloader.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/module-preloader.%40EAc72Z.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/frame-resolution.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/frame-resolution.%40yJpeh8.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/client-entry-boundary.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/client-entry-boundary.%40VsmQI1.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/import-map-manager.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/import-map-manager.%40bVKmlq.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/document-reload.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/document-reload.%406CG38G.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/scheduler.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/scheduler.%40RtpMLY.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/reconcile.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/reconcile.%40vIsKZQ.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/to-vnode.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/to-vnode.%40tkVWMV.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/vnode.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/vnode.%40yx0dkR.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/diff-props.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/diff-props.%40CXGHPM.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/refresh.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/refresh.%40fkn_t7.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/layers.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/layers.%40_xzmKp.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/form-navigation.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/form-navigation.%40Zj57-A.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/vnode.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/vnode.%40si3UOY.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/spa-response.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/spa-response.%40LQQXa0.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/document-state.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/document-state.%40X6hT0k.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/props.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/props.%40-mAJz5.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/client-entries.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/client-entries.%40fcPmpr.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/mixins/mixin.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/mixins/mixin.%40c2dt_m.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/mixins/on-mixin.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/mixins/on-mixin.%40L-8vjX.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/children.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/children.%40yLkAL4.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/mix.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/mix.%406IseuW.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/unsafe-html.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/unsafe-html.%40N1vyTz.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/attributes.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/attributes.%40nSFwan.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/style.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/style.%40_a8vEt.js",
-      "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/svg-attributes.js": "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/svg-attributes.%401xXdCq.js",
-      "/assets/app/interactive.tsx": "/assets/app/interactive.%40nSaeO3.tsx",
-      "/assets/app/icons.tsx": "/assets/app/icons.%40tXN5C5.tsx"
-    }
-  },
-  "preloads": [
-    "/assets/app/client/boot.%402d89iw.ts",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/run.%40iFqQ2q.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/frame.%402J1X66.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/vdom.%40RjOTZP.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/stylesheet.%4027higg.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/error-event.%401g_XgR.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/navigation.%40XxzfSY.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/typed-event-target.%40HHE5hP.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/jsx.%40Bi6bAA.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/component.%40wAT5nL.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/invariant.%4037Pp5R.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/diff-dom.%40TQi8QL.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/stream-protocol.%40jHPc2z.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/module-preloader.%40EAc72Z.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/frame-resolution.%40yJpeh8.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/client-entry-boundary.%40VsmQI1.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/import-map-manager.%40bVKmlq.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/document-reload.%406CG38G.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/scheduler.%40RtpMLY.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/reconcile.%40vIsKZQ.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/to-vnode.%40tkVWMV.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/vnode.%40yx0dkR.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/diff-props.%40CXGHPM.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/refresh.%40fkn_t7.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/layers.%40_xzmKp.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/form-navigation.%40Zj57-A.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/vnode.%40si3UOY.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/spa-response.%40LQQXa0.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/document-state.%40X6hT0k.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/props.%40-mAJz5.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/client-entries.%40fcPmpr.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/mixins/mixin.%40c2dt_m.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/mixins/on-mixin.%40L-8vjX.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/children.%40yLkAL4.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/mix.%406IseuW.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/unsafe-html.%40N1vyTz.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/core/attributes.%40nSFwan.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/style/style.%40_a8vEt.js",
-    "/assets/npm/.pnpm/%40remix-run%2Bcomponent%401.0.0/node_modules/%40remix-run/component/dist/runtime/svg-attributes.%401xXdCq.js",
-    "/assets/app/client/enhance.%4086WwJ9.ts",
-    "/assets/app/client/theme-toggle.entry.%40uPF0Cj.ts",
-    "/assets/app/interactive.%40nSaeO3.tsx",
-    "/assets/app/icons.%40tXN5C5.tsx"
-  ]
-};
-
-/** Client entries, each with only what it adds to DOCUMENT_SCRIPTS. */
-export const SCRIPT_ENTRIES: Record<string, ScriptEntry> = {
-  "theme-toggle": {
-    "href": "/assets/app/client/theme-toggle.entry.%40uPF0Cj.ts",
-    "preloads": [],
+/** Browser scripts, from the asset server export (see app/script-manifest.ts). */
+export const SCRIPT_MANIFEST: ScriptManifest = {
+  "document": {
+    "boot": "/assets/app/client/boot.%40SlM9As.ts",
+    "enhance": "/assets/app/client/enhance.%4086WwJ9.ts",
     "importMap": {
-      "imports": {}
-    }
-  },
-  "share-links": {
-    "href": "/assets/app/client/share-links.entry.%40svzZ_B.ts",
+      "imports": {
+        "/assets/npm/%40remix-run/component/dist/runtime/run.js": "/assets/npm/%40remix-run/component/dist/runtime/run.%400hr5c6.js",
+        "/assets/npm/%40remix-run/component/dist/style/stylesheet.js": "/assets/npm/%40remix-run/component/dist/style/stylesheet.%4027higg.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/frame.js": "/assets/npm/%40remix-run/component/dist/runtime/frame.%40BN09rq.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/vdom.js": "/assets/npm/%40remix-run/component/dist/runtime/vdom.%40RjOTZP.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/error-event.js": "/assets/npm/%40remix-run/component/dist/runtime/error-event.%401g_XgR.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/navigation.js": "/assets/npm/%40remix-run/component/dist/runtime/navigation.%40XxzfSY.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/typed-event-target.js": "/assets/npm/%40remix-run/component/dist/runtime/typed-event-target.%40HHE5hP.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/jsx.js": "/assets/npm/%40remix-run/component/dist/runtime/jsx.%40Bi6bAA.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/component.js": "/assets/npm/%40remix-run/component/dist/runtime/component.%40wAT5nL.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/invariant.js": "/assets/npm/%40remix-run/component/dist/runtime/invariant.%4037Pp5R.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/diff-dom.js": "/assets/npm/%40remix-run/component/dist/runtime/diff-dom.%40TQi8QL.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/stream-protocol.js": "/assets/npm/%40remix-run/component/dist/runtime/stream-protocol.%40jHPc2z.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/module-preloader.js": "/assets/npm/%40remix-run/component/dist/runtime/module-preloader.%40EAc72Z.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/frame-resolution.js": "/assets/npm/%40remix-run/component/dist/runtime/frame-resolution.%40yJpeh8.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/client-entry-boundary.js": "/assets/npm/%40remix-run/component/dist/runtime/client-entry-boundary.%40VsmQI1.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/import-map-manager.js": "/assets/npm/%40remix-run/component/dist/runtime/import-map-manager.%40bVKmlq.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/document-reload.js": "/assets/npm/%40remix-run/component/dist/runtime/document-reload.%406CG38G.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/scheduler.js": "/assets/npm/%40remix-run/component/dist/runtime/scheduler.%40RtpMLY.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/reconcile.js": "/assets/npm/%40remix-run/component/dist/runtime/reconcile.%40vIsKZQ.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/to-vnode.js": "/assets/npm/%40remix-run/component/dist/runtime/to-vnode.%40tkVWMV.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/vnode.js": "/assets/npm/%40remix-run/component/dist/runtime/vnode.%40yx0dkR.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/diff-props.js": "/assets/npm/%40remix-run/component/dist/runtime/diff-props.%40XoC3zM.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/refresh.js": "/assets/npm/%40remix-run/component/dist/runtime/refresh.%40fkn_t7.js",
+        "/assets/npm/%40remix-run/component/dist/style/layers.js": "/assets/npm/%40remix-run/component/dist/style/layers.%40_xzmKp.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/form-navigation.js": "/assets/npm/%40remix-run/component/dist/runtime/form-navigation.%40Zj57-A.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/core/vnode.js": "/assets/npm/%40remix-run/component/dist/runtime/core/vnode.%40si3UOY.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/spa-response.js": "/assets/npm/%40remix-run/component/dist/runtime/spa-response.%40LQQXa0.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/document-state.js": "/assets/npm/%40remix-run/component/dist/runtime/document-state.%40X6hT0k.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/core/props.js": "/assets/npm/%40remix-run/component/dist/runtime/core/props.%40-mAJz5.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/client-entries.js": "/assets/npm/%40remix-run/component/dist/runtime/client-entries.%40fcPmpr.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/mixins/mixin.js": "/assets/npm/%40remix-run/component/dist/runtime/mixins/mixin.%40c2dt_m.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/mixins/on-mixin.js": "/assets/npm/%40remix-run/component/dist/runtime/mixins/on-mixin.%40L-8vjX.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/core/children.js": "/assets/npm/%40remix-run/component/dist/runtime/core/children.%40yLkAL4.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/core/mix.js": "/assets/npm/%40remix-run/component/dist/runtime/core/mix.%406IseuW.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/unsafe-html.js": "/assets/npm/%40remix-run/component/dist/runtime/unsafe-html.%40N1vyTz.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/core/attributes.js": "/assets/npm/%40remix-run/component/dist/runtime/core/attributes.%40nSFwan.js",
+        "/assets/npm/%40remix-run/component/dist/style/style.js": "/assets/npm/%40remix-run/component/dist/style/style.%40_a8vEt.js",
+        "/assets/npm/%40remix-run/component/dist/runtime/svg-attributes.js": "/assets/npm/%40remix-run/component/dist/runtime/svg-attributes.%401xXdCq.js",
+        "/assets/app/interactive.tsx": "/assets/app/interactive.%405YD5ib.tsx",
+        "/assets/app/icons.tsx": "/assets/app/icons.%40UmeA3i.tsx"
+      }
+    },
     "preloads": [
-      "/assets/app/client/share-links.entry.%40svzZ_B.ts"
-    ],
-    "importMap": {
-      "imports": {}
-    }
+      "/assets/app/client/boot.%40SlM9As.ts",
+      "/assets/npm/%40remix-run/component/dist/runtime/run.%400hr5c6.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/frame.%40BN09rq.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/vdom.%40RjOTZP.js",
+      "/assets/npm/%40remix-run/component/dist/style/stylesheet.%4027higg.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/error-event.%401g_XgR.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/navigation.%40XxzfSY.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/typed-event-target.%40HHE5hP.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/jsx.%40Bi6bAA.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/component.%40wAT5nL.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/invariant.%4037Pp5R.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/diff-dom.%40TQi8QL.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/stream-protocol.%40jHPc2z.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/module-preloader.%40EAc72Z.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/frame-resolution.%40yJpeh8.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/client-entry-boundary.%40VsmQI1.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/import-map-manager.%40bVKmlq.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/document-reload.%406CG38G.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/scheduler.%40RtpMLY.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/reconcile.%40vIsKZQ.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/to-vnode.%40tkVWMV.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/vnode.%40yx0dkR.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/diff-props.%40XoC3zM.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/refresh.%40fkn_t7.js",
+      "/assets/npm/%40remix-run/component/dist/style/layers.%40_xzmKp.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/form-navigation.%40Zj57-A.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/core/vnode.%40si3UOY.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/spa-response.%40LQQXa0.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/document-state.%40X6hT0k.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/core/props.%40-mAJz5.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/client-entries.%40fcPmpr.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/mixins/mixin.%40c2dt_m.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/mixins/on-mixin.%40L-8vjX.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/core/children.%40yLkAL4.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/core/mix.%406IseuW.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/unsafe-html.%40N1vyTz.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/core/attributes.%40nSFwan.js",
+      "/assets/npm/%40remix-run/component/dist/style/style.%40_a8vEt.js",
+      "/assets/npm/%40remix-run/component/dist/runtime/svg-attributes.%401xXdCq.js",
+      "/assets/app/client/enhance.%4086WwJ9.ts",
+      "/assets/app/client/theme-toggle.entry.%40uPF0Cj.ts",
+      "/assets/app/interactive.%405YD5ib.tsx",
+      "/assets/app/icons.%40UmeA3i.tsx"
+    ]
   },
-  "page-stats": {
-    "href": "/assets/app/client/page-stats.entry.%40cxT4TC.ts",
-    "preloads": [
-      "/assets/app/client/page-stats.entry.%40cxT4TC.ts"
-    ],
-    "importMap": {
-      "imports": {}
-    }
-  },
-  "comments": {
-    "href": "/assets/app/client/comments.entry.%40Wjz77C.ts",
-    "preloads": [
-      "/assets/app/client/comments.entry.%40Wjz77C.ts"
-    ],
-    "importMap": {
-      "imports": {}
+  "entries": {
+    "theme-toggle": {
+      "href": "/assets/app/client/theme-toggle.entry.%40uPF0Cj.ts",
+      "preloads": [],
+      "importMap": {
+        "imports": {}
+      }
+    },
+    "share-links": {
+      "href": "/assets/app/client/share-links.entry.%40svzZ_B.ts",
+      "preloads": [
+        "/assets/app/client/share-links.entry.%40svzZ_B.ts"
+      ],
+      "importMap": {
+        "imports": {}
+      }
+    },
+    "page-stats": {
+      "href": "/assets/app/client/page-stats.entry.%40cxT4TC.ts",
+      "preloads": [
+        "/assets/app/client/page-stats.entry.%40cxT4TC.ts"
+      ],
+      "importMap": {
+        "imports": {}
+      }
+    },
+    "comments": {
+      "href": "/assets/app/client/comments.entry.%40Wjz77C.ts",
+      "preloads": [
+        "/assets/app/client/comments.entry.%40Wjz77C.ts"
+      ],
+      "importMap": {
+        "imports": {}
+      }
     }
   }
 };

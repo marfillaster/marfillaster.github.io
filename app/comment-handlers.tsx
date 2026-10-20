@@ -153,11 +153,15 @@ export async function handleCommentsGet(
   const rendered = fragment
     ? renderNode(<CommentsFragment {...props} />)
     : renderNode(
-        <Document descriptors={commentsDescriptors(post.title)}>
+        <Document
+          descriptors={commentsDescriptors(post.title)}
+          scripts={platform.scripts.document}
+        >
           <CommentsPage
             {...props}
             postTitle={post.title}
             postHref={post.href}
+            commentsScript={platform.scripts.entries.comments.href}
           />
         </Document>,
       );
@@ -217,7 +221,10 @@ export async function handleCommentsPost(
       null,
     );
     const rendered = renderNode(
-      <Document descriptors={commentsDescriptors(post.title)}>
+      <Document
+          descriptors={commentsDescriptors(post.title)}
+          scripts={platform.scripts.document}
+        >
         <CommentsPage
           postSlug={post.href}
           comments={view.comments}
@@ -228,6 +235,7 @@ export async function handleCommentsPost(
           previewHtml={bodyHtml}
           postTitle={post.title}
           postHref={post.href}
+          commentsScript={platform.scripts.entries.comments.href}
         />
       </Document>,
     );

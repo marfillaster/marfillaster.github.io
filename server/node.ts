@@ -4,6 +4,10 @@
 //   pnpm remix:assets   (once, and after CSS/static changes)
 //   pnpm dev:remix      (node --import remix/node-tsx server/node.ts)
 //
+// Browser scripts need no build here: a live Remix asset server compiles
+// app/client/ on request and watches it, the way remix/assets is meant to
+// run. The build-time export in .remix-assets/ is only what workerd serves.
+//
 // Serves the same app the workerd adapter serves. The only file besides
 // workers/remix-app.ts that knows what runtime it's on.
 // -----------------------------------------------------------------------------
@@ -13,13 +17,46 @@ import { readdirSync, readFileSync, existsSync, mkdirSync, statSync } from "node
 import { execSync } from "node:child_process";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { createAssetServer } from "remix/assets";
+import { loadConfig } from "remix/cli";
 import { createRequestListener } from "remix/node-fetch-server";
 import { createApp } from "../app/app.tsx";
 import type { CommentRow, CommentsStore, Platform } from "../app/platform.ts";
+import {
+  buildScriptManifest,
+  SCRIPT_FILES,
+  type ScriptEntry,
+  type ScriptName,
+} from "../app/script-manifest.ts";
 
 const repoRoot = resolve(import.meta.dirname, "..");
 const contentDir = join(repoRoot, "src/content");
 const assetsDir = join(repoRoot, ".remix-assets");
+
+// Same remix.json config the build-time export uses. Unfingerprinted, so a
+// module keeps its URL as it is edited: the script entries recorded at
+// startup stay valid, and the browser revalidates each module by ETag.
+const { assets: assetsConfig } = await loadConfig(repoRoot);
+if (!assetsConfig) {
+  throw new Error("remix.json has no assets configuration");
+}
+const assetServer = createAssetServer({ ...assetsConfig, rootDir: repoRoot, watch: true });
+const assetBase = `${assetsConfig.basePath ?? "/assets"}/`;
+const stylesAndStatic = (pathname: string) =>
+  !pathname.startsWith(`${assetBase}app/`) && !pathname.startsWith(`${assetBase}npm/`);
+
+async function liveScripts() {
+  const entries = {} as Record<ScriptName, ScriptEntry>;
+  for (const [name, file] of Object.entries(SCRIPT_FILES) as [ScriptName, string][]) {
+    const entry = await assetServer.getScriptEntry(file);
+    entries[name] = {
+      href: entry.href,
+      preloads: [...entry.preloads],
+      importMap: { imports: { ...(entry.importMap?.imports ?? {}) } },
+    };
+  }
+  return buildScriptManifest(entries);
+}
 
 function loadContent(): Map<string, string> {
   const map = new Map<string, string>();
@@ -66,6 +103,9 @@ const MIME: Record<string, string> = {
 
 async function serveAsset(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
+  if (!stylesAndStatic(url.pathname)) {
+    return assetServer.fetch(request);
+  }
   let pathname = decodeURIComponent(url.pathname);
   if (pathname.includes("..")) {
     return null;
@@ -196,6 +236,7 @@ const platform: Platform = {
   // Dev reads content from disk per request, so freshness comes from there
   // rather than from a build-time digest; every ETag falls back to versionId.
   digests: { build: "", paths: {}, assets: {} },
+  scripts: await liveScripts(),
   assets: serveAsset,
   views: {
     async get(path) {
@@ -257,3 +298,11 @@ const server = createServer(
 server.listen(port, () => {
   console.log(`remix dev server → http://localhost:${port}`);
 });
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, async () => {
+    server.close();
+    await assetServer.close();
+    process.exit(0);
+  });
+}

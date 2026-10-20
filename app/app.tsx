@@ -32,7 +32,7 @@ import { SiteShell } from "./components.tsx";
 import { postMetaDescriptors } from "./site.ts";
 import { buildRssXml } from "./rss.ts";
 import { buildSitemapXml } from "./sitemap.ts";
-import { resolveClientEntry } from "./client-entries.ts";
+import { createClientEntryResolver } from "./client-entries.ts";
 import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
 import { handleCachePurge } from "./cache-purge.ts";
 import { httpCaching } from "./http-caching.ts";
@@ -57,7 +57,7 @@ export function createApp(platform: Platform) {
   const renderNode = (node: RemixNode, init?: ResponseInit) =>
     createHtmlResponse(
       renderToStream(node, {
-        resolveClientEntry,
+        resolveClientEntry: createClientEntryResolver(platform.scripts),
         resolveFrame: (src: string, name?: string) => {
           if (name === "comments") {
             const standalone = src.replace(/\?fragment=1$/, "");
@@ -80,7 +80,7 @@ export function createApp(platform: Platform) {
   let notFoundHtml: Promise<string> | null = null;
   const notFoundBody = () =>
     (notFoundHtml ??= renderNode(
-      <Document descriptors={notFoundDescriptors}>
+      <Document descriptors={notFoundDescriptors} scripts={platform.scripts.document}>
         <NotFoundPage />
       </Document>,
     ).text());
@@ -148,7 +148,11 @@ export function createApp(platform: Platform) {
     codeHighlight = false,
   ) {
     return renderNode(
-      <Document descriptors={descriptors} codeHighlight={codeHighlight}>
+      <Document
+        descriptors={descriptors}
+        codeHighlight={codeHighlight}
+        scripts={platform.scripts.document}
+      >
         {node}
       </Document>,
     );

@@ -35,6 +35,7 @@ import type {
 } from "../app/platform.ts";
 import { ASSET_DIGESTS, BUILD_DIGEST, PATH_DIGESTS } from "./cache-digests.generated.ts";
 import { CONTENT } from "./remix-content.generated.ts";
+import { SCRIPT_MANIFEST } from "../app/assets-manifest.generated.ts";
 
 interface RemixEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
@@ -202,6 +203,7 @@ function getApp(env: RemixEnv) {
       ));
   const platform: Platform = {
     content: () => new Map(CONTENT),
+    scripts: SCRIPT_MANIFEST,
     versionId: env.CF_VERSION_METADATA?.id ?? "workerd-dev",
     digests: {
       build: BUILD_DIGEST,

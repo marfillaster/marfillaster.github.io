@@ -10,7 +10,7 @@ import type { Handle, RemixNode } from "remix/component";
 import { unsafeHTML } from "remix/component";
 import type { MetaDescriptor } from "./head.ts";
 import { ImportMap } from "remix/component/server";
-import { DOCUMENT_SCRIPTS } from "./client-entries.ts";
+import type { DocumentScripts } from "./script-manifest.ts";
 import { ASSET_MANIFEST } from "./assets-manifest.generated.ts";
 
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
@@ -48,6 +48,8 @@ export interface DocumentProps {
    * adding a fence to a page turns it on without a code change here.
    */
   codeHighlight?: boolean;
+  /** Platform.scripts.document. */
+  scripts: DocumentScripts;
   children?: RemixNode;
 }
 
@@ -95,8 +97,8 @@ export function Document(handle: Handle<DocumentProps>) {
             fingerprinted files, so it must precede every module load. The
             renderer merges the import maps of the client entries a page
             renders into this one, and adds their preloads before </head>. */}
-        <ImportMap value={DOCUMENT_SCRIPTS.importMap} />
-        {DOCUMENT_SCRIPTS.preloads.map((href) => (
+        <ImportMap value={handle.props.scripts.importMap} />
+        {handle.props.scripts.preloads.map((href) => (
           <link rel="modulepreload" href={href} />
         ))}
         <script innerHTML={unsafeHTML(themeInit)} />
@@ -121,8 +123,8 @@ export function Document(handle: Handle<DocumentProps>) {
       </head>
       <body>
         {handle.props.children}
-        <script type="module" src={DOCUMENT_SCRIPTS.boot} />
-        <script type="module" src={DOCUMENT_SCRIPTS.enhance} />
+        <script type="module" src={handle.props.scripts.boot} />
+        <script type="module" src={handle.props.scripts.enhance} />
       </body>
     </html>
   );

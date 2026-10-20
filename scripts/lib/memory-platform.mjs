@@ -2,6 +2,8 @@
 // verify-caching.mjs). Shared rather than duplicated so that adding to the
 // Platform port means updating one stub, not hunting for every copy.
 
+import { SCRIPT_MANIFEST } from "../../app/assets-manifest.generated.ts";
+
 /**
  * @param {object} [options]
  * @param {boolean} [options.limited]    rate limiter reports the key exhausted
@@ -41,6 +43,7 @@ export function memoryPlatform({
       content: () => new Map(content),
       versionId,
       digests: { build: "test-build", paths: pathDigests, assets: assetDigests },
+      scripts: SCRIPT_MANIFEST,
       assets: async () => null,
       views: { get: async () => 0, put: async () => {} },
       comments: {

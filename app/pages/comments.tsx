@@ -1,6 +1,5 @@
 import { unsafeHTML } from "remix/component";
 import type { Handle } from "remix/component";
-import { COMMENTS_SCRIPT } from "../client-entries.ts";
 import type { MetaDescriptor } from "../head.ts";
 import {
   MAX_COMMENT_DEPTH,
@@ -339,7 +338,14 @@ export function CommentsFragment(handle: Handle<CommentsFragmentProps>) {
 }
 
 export function CommentsPage(
-  handle: Handle<CommentsFragmentProps & { postTitle: string; postHref: string }>,
+  handle: Handle<
+    CommentsFragmentProps & {
+      postTitle: string;
+      postHref: string;
+      /** The comments entry module (Platform.scripts.entries.comments.href). */
+      commentsScript: string;
+    }
+  >,
 ) {
   return () => (
     <SiteShell>
@@ -362,7 +368,7 @@ export function CommentsPage(
         {/* The entry module arms the same viewport-triggered Turnstile loader
             the post pages use, so the third-party script isn't requested until
             the widget is near the viewport. */}
-        <script type="module" src={COMMENTS_SCRIPT} />
+        <script type="module" src={handle.props.commentsScript} />
       </div>
     </SiteShell>
   );
