@@ -11,7 +11,7 @@ import { unsafeHTML } from "remix/component";
 import type { MetaDescriptor } from "./head.ts";
 import { ImportMap } from "remix/component/server";
 import type { DocumentScripts } from "./script-manifest.ts";
-import { ASSET_MANIFEST } from "./assets-manifest.generated.ts";
+import { ASSET_MANIFEST, INLINE_CSS } from "./assets-manifest.generated.ts";
 
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
 
@@ -87,11 +87,12 @@ export function Document(handle: Handle<DocumentProps>) {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#fafaf9" />
-        {/* Render-blocking stylesheets first so the preload scanner starts
-            them ahead of the third-party analytics connection below. */}
+        {/* The render-blocking stylesheet first so the preload scanner starts
+            it ahead of the third-party analytics connection below. The code
+            block CSS is small enough to inline rather than block on. */}
         <link rel="stylesheet" href={ASSET_MANIFEST["styles.css"]} />
         {handle.props.codeHighlight ? (
-          <link rel="stylesheet" href={ASSET_MANIFEST["code-highlight.css"]} />
+          <style innerHTML={unsafeHTML(INLINE_CSS["code-highlight.css"])} />
         ) : null}
         {/* The import map resolves the modules' stable URLs to their
             fingerprinted files, so it must precede every module load. The
