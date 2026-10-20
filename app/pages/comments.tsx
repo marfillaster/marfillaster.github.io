@@ -1,4 +1,5 @@
-import type { Handle } from "remix/ui";
+import { unsafeHTML } from "remix/component";
+import type { Handle } from "remix/component";
 import { ASSET_MANIFEST } from "../assets-manifest.generated.ts";
 import type { MetaDescriptor } from "../head.ts";
 import {
@@ -32,7 +33,7 @@ export function CommentBody(handle: Handle<{ bodyHtml: string }>) {
   return () => (
     <div
       className="typeset mt-3 max-w-none text-sm"
-      innerHTML={handle.props.bodyHtml}
+      innerHTML={unsafeHTML(handle.props.bodyHtml)}
     />
   );
 }

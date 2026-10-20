@@ -1,6 +1,6 @@
 // Port of src/routes/_index.tsx (homepage). Meta descriptors copied verbatim.
 
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 import type { PostIndex } from "../../src/lib/post-meta.mjs";
 import type { MetaDescriptor } from "../head.ts";
 import { SiteShell } from "../components.tsx";

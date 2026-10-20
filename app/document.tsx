@@ -6,7 +6,8 @@
 // theme before first paint (the RR7 app did this post-hydration).
 // -----------------------------------------------------------------------------
 
-import type { Handle, RemixNode } from "remix/ui";
+import type { Handle, RemixNode } from "remix/component";
+import { unsafeHTML } from "remix/component";
 import type { MetaDescriptor } from "./head.ts";
 import { CLIENT_BOOT_SCRIPT, ENHANCE_SCRIPT } from "./client-entries.ts";
 import { ASSET_MANIFEST, PRELOAD_MODULES } from "./assets-manifest.generated.ts";
@@ -60,7 +61,7 @@ function HeadDescriptors(handle: Handle<{ descriptors: MetaDescriptor[] }>) {
           return (
             <script
               type="application/ld+json"
-              innerHTML={JSON.stringify(d["script:ld+json"])}
+              innerHTML={unsafeHTML(JSON.stringify(d["script:ld+json"]))}
             />
           );
         }
@@ -92,12 +93,12 @@ export function Document(handle: Handle<DocumentProps>) {
         {PRELOAD_MODULES.map((href) => (
           <link rel="modulepreload" href={href} />
         ))}
-        <script innerHTML={themeInit} />
+        <script innerHTML={unsafeHTML(themeInit)} />
         <script
           async
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
         />
-        <script innerHTML={gtagInit} />
+        <script innerHTML={unsafeHTML(gtagInit)} />
         <HeadDescriptors descriptors={handle.props.descriptors} />
         {/* Real URLs, not a data: URI — Google Search only shows a favicon it
             can fetch. public/favicon.{svg,ico} and apple-touch-icon.png. */}
@@ -110,7 +111,7 @@ export function Document(handle: Handle<DocumentProps>) {
           title="marfillaster · notes RSS"
           href="/rss.xml"
         />
-        <script type="speculationrules" innerHTML={speculationRules} />
+        <script type="speculationrules" innerHTML={unsafeHTML(speculationRules)} />
       </head>
       <body>
         {handle.props.children}

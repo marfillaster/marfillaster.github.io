@@ -1,4 +1,4 @@
-import type { RemixNode } from "remix/ui";
+import type { RemixNode } from "remix/component";
 import type { PostMeta } from "../src/lib/post-meta.mjs";
 import { renderCommentMarkdown } from "./comment-markdown.ts";
 import {

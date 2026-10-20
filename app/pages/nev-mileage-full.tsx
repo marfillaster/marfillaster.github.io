@@ -1,7 +1,8 @@
 // Port of src/routes/nev-mileage-full.tsx. The report body renders at request
 // time from src/content/nev-full-report.md via the shared renderer.
 
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
+import { unsafeHTML } from "remix/component";
 import { ogVersion } from "../../src/content/nev-og-version.ts";
 import type { MetaDescriptor } from "../head.ts";
 import { breadcrumbList } from "../site.ts";
@@ -118,7 +119,7 @@ export function NevMileageFullPage(handle: Handle<{ html: string }>) {
 
         <TableOfContents items={navItems} />
 
-        <article className="typeset typeset-post" innerHTML={handle.props.html} />
+        <article className="typeset typeset-post" innerHTML={unsafeHTML(handle.props.html)} />
       </div>
     </SiteShell>
   );

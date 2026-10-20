@@ -6,7 +6,7 @@
 // the RR7 app emitted before hydration.
 // -----------------------------------------------------------------------------
 
-import { clientEntry, on, type EntryComponent, type Handle } from "remix/ui";
+import { clientEntry, on, type EntryComponent, type Handle } from "remix/component";
 import {
   IconCheck,
   IconFacebook,

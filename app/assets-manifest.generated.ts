@@ -3,14 +3,14 @@
 // the app layer (client-entries.ts, document.tsx) stays importable without a
 // prior asset build; `pnpm remix:assets` rewrites it.
 export const ASSET_MANIFEST: Record<string, string> = {
-  "boot": "/assets/entries/boot-Z7WOOGZO.js",
+  "boot": "/assets/entries/boot-AV6J763Q.js",
   "code-highlight.css": "/assets/code-highlight-e2f9f068.css",
-  "comments": "/assets/entries/comments-J5VJZPP3.js",
+  "comments": "/assets/entries/comments-C7J3Q7ZL.js",
   "enhance": "/assets/entries/enhance-MUYSOEY7.js",
-  "page-stats": "/assets/entries/page-stats-CIA3TCDC.js",
-  "share-links": "/assets/entries/share-links-5DHF332Y.js",
+  "page-stats": "/assets/entries/page-stats-XDN6NP2W.js",
+  "share-links": "/assets/entries/share-links-7UQZO3MD.js",
   "styles.css": "/assets/styles-b9a2c8b0.css",
-  "theme-toggle": "/assets/entries/theme-toggle-TIBUEPUP.js"
+  "theme-toggle": "/assets/entries/theme-toggle-QCCU2DKU.js"
 };
 
 // Modules loaded on every page (boot + enhance + theme-toggle and the shared
@@ -18,9 +18,9 @@ export const ASSET_MANIFEST: Record<string, string> = {
 // <link rel="modulepreload"> so the browser starts all of them in parallel
 // instead of discovering each one a round-trip at a time.
 export const PRELOAD_MODULES: string[] = [
-  "/assets/entries/chunk-6AVIBSFS.js",
-  "/assets/entries/boot-Z7WOOGZO.js",
+  "/assets/entries/chunk-5CK453NO.js",
+  "/assets/entries/boot-AV6J763Q.js",
   "/assets/entries/enhance-MUYSOEY7.js",
-  "/assets/entries/chunk-DMUQKI35.js",
-  "/assets/entries/theme-toggle-TIBUEPUP.js"
+  "/assets/entries/chunk-VRGFPASN.js",
+  "/assets/entries/theme-toggle-QCCU2DKU.js"
 ];

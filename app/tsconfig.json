@@ -1,6 +1,6 @@
 {
   // Remix 3 app layer + adapters. Separate project so JSX compiles against
-  // remix/ui while src/ stays on React JSX. Wired into the root `tsc -b`.
+  // remix/component while src/ stays on React JSX. Wired into the root `tsc -b`.
   "compilerOptions": {
     "composite": true,
     "strict": true,
@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "types": ["node"],
     "jsx": "react-jsx",
-    "jsxImportSource": "remix/ui",
+    "jsxImportSource": "remix/component",
     "rootDir": "..",
     "outDir": "../.react-router/tsc-remix",
     "declarationDir": "../.react-router/tsc-remix",

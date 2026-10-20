@@ -4,7 +4,7 @@
 // same markup and classes. Browser entries provide progressive enhancement.
 // -----------------------------------------------------------------------------
 
-import { Frame, type Handle, type RemixNode } from "remix/ui";
+import { Frame, type Handle, type RemixNode } from "remix/component";
 import { CommentsThread, ThemeToggle } from "./interactive.tsx";
 import { commentRoutePath } from "./comments.ts";
 import { SERIES } from "../src/lib/series.ts";

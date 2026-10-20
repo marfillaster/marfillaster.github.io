@@ -3,7 +3,8 @@
 // PageStats renders nothing server-side in the RR7 app (fetch-after-hydrate),
 // so it is simply absent here until Phase 3.
 
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
+import { unsafeHTML } from "remix/component";
 import type { PostMeta } from "../../src/lib/post-meta.mjs";
 import {
   Comments,
@@ -35,7 +36,7 @@ export function PostPage(handle: Handle<PostPageProps>) {
     const seriesCurrent = post.series === false ? undefined : post.series?.current;
 
     const article = (
-      <article className="typeset typeset-post" innerHTML={html} />
+      <article className="typeset typeset-post" innerHTML={unsafeHTML(html)} />
     );
 
     return (
@@ -46,7 +47,7 @@ export function PostPage(handle: Handle<PostPageProps>) {
           <script
             type="application/json"
             id="hash-redirects"
-            innerHTML={JSON.stringify(post.redirects)}
+            innerHTML={unsafeHTML(JSON.stringify(post.redirects))}
           />
         ) : null}
         <div className="container max-w-[48rem] py-12 leading-relaxed">

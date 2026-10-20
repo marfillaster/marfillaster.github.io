@@ -6,11 +6,11 @@
 // -----------------------------------------------------------------------------
 
 import { createRouter } from "remix/router";
-import { renderWith } from "remix/render-middleware";
+import { renderWith } from "remix/middleware/render";
 import { createHtmlResponse } from "remix/response/html";
 import { createRedirectResponse } from "remix/response/redirect";
-import { renderToStream } from "remix/ui/server";
-import type { RemixNode } from "remix/ui";
+import { renderToStream } from "remix/component/server";
+import type { RemixNode } from "remix/component";
 import type { Platform } from "./platform.ts";
 import { createAppData } from "./post-index.ts";
 import { routes } from "./routes.ts";

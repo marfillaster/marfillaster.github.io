@@ -1,6 +1,6 @@
 // Port of src/routes/solar-report.tsx (solar report summary).
 
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 import type { MetaDescriptor } from "../head.ts";
 import { breadcrumbList } from "../site.ts";
 import { Comments, SiteShell } from "../components.tsx";

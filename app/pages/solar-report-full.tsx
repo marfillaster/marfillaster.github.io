@@ -1,7 +1,8 @@
 // Port of src/routes/solar-report-full.tsx. Body renders at request time from
 // src/content/full-report.md via the shared renderer.
 
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
+import { unsafeHTML } from "remix/component";
 import type { MetaDescriptor } from "../head.ts";
 import { breadcrumbList } from "../site.ts";
 import { SiteShell, TableOfContents } from "../components.tsx";
@@ -121,7 +122,7 @@ export function SolarReportFullPage(handle: Handle<{ html: string }>) {
 
         <TableOfContents items={navItems} />
 
-        <article className="typeset typeset-post" innerHTML={handle.props.html} />
+        <article className="typeset typeset-post" innerHTML={unsafeHTML(handle.props.html)} />
       </div>
     </SiteShell>
   );

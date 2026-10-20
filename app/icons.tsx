@@ -4,7 +4,7 @@
 // so browser bundles stay small.
 // -----------------------------------------------------------------------------
 
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 
 function iconProps(className = "h-4 w-4") {
   return {

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------------
-// @remix-run/fetch-router matches routes on exact HTTP method and never derives
-// HEAD from GET, so every route registered with router.get() 404s on HEAD
-// unless something rewrites the method first. context.method (not
-// context.request.method) is what dispatch matches against — this is the same
-// mechanism the framework's own methodOverride middleware uses — so we flip it
-// to GET for matching, then strip the body from whatever GET would have sent.
+// remix/router (fetch-router 1.0) serves HEAD from GET routes on its own, but
+// only at dispatch — router middleware still sees context.method === "HEAD".
+// httpCaching keys its document cache, ETags and 304s on GET, so flip HEAD to
+// GET before it runs (context.method is what dispatch and middleware read; the
+// framework's own methodOverride middleware uses the same mechanism), then
+// strip the body from whatever GET would have sent.
 // -----------------------------------------------------------------------------
 
 import type { Middleware } from "remix/router";

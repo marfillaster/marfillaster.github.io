@@ -1,7 +1,7 @@
 // Port of src/routes/nev-mileage.tsx (PHEV report summary). Meta and copy
 // unchanged; Link → <a>.
 
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 import { ogVersion } from "../../src/content/nev-og-version.ts";
 import type { MetaDescriptor } from "../head.ts";
 import { breadcrumbList } from "../site.ts";

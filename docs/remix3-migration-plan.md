@@ -9,7 +9,11 @@ live in production** — worker `blog` deployed directly via `wrangler deploy`
 main fail CI harmlessly and deploys are manual). Phase 1 spike GO
 (`docs/remix3-spike-report.md`). Remaining: RR7 cleanup (plan §7 Phase 5 tail)
 and Phase 6 (comments).
-Written 2026-07-18 against Remix `3.0.0-beta.5`.
+Written 2026-07-18 against Remix `3.0.0-beta.5`. Moved to stable `3.0.0` on
+2026-10-20: `remix/ui` became `remix/component` (also `jsxImportSource`),
+`remix/render-middleware` became `remix/middleware/render`, raw `innerHTML`
+is wrapped in `unsafeHTML()`, frame resolvers take an options object, and
+framework attributes use `data-rmx-*`. Paths and versions below are as of beta.5.
 
 ## Context
 

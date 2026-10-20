@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHtmlResponse } from "remix/response/html";
-import { createElement } from "remix/ui";
-import { renderToStream } from "remix/ui/server";
+import { createElement } from "remix/component";
+import { renderToStream } from "remix/component/server";
 import { Comments } from "../app/components.tsx";
 import { renderCommentMarkdown } from "../app/comment-markdown.ts";
 import {

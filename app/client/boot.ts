@@ -2,7 +2,7 @@
 // markers and hydrates each by dynamically importing its precompiled module.
 // Precompiled to /assets/entries/boot.js by scripts/build-remix-assets.mjs.
 
-import { run } from "remix/ui";
+import { run } from "remix/component";
 
 // run() installs a Navigation API interceptor for frame-targeted links. Keep
 // ordinary links on full-document navigation, which is this site's caching
@@ -12,7 +12,7 @@ import { run } from "remix/ui";
   (event) => {
     const source = (event as { sourceElement?: unknown }).sourceElement;
     const link = source instanceof Element ? source.closest("a, area") : null;
-    if (link?.hasAttribute("rmx-target")) return;
+    if (link?.hasAttribute("data-rmx-target")) return;
     event.stopImmediatePropagation();
   },
 );
@@ -22,7 +22,7 @@ const app = run({
     const mod = await import(moduleUrl);
     return mod[exportName];
   },
-  async resolveFrame(src: string, signal?: AbortSignal) {
+  async resolveFrame(src: string, { signal } = {}) {
     const response = await fetch(src, {
       signal,
       headers: { Accept: "text/html" },

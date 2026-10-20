@@ -60,12 +60,12 @@ const built = await esbuild.build({
   },
   outdir: join(outDir, "assets/entries"),
   bundle: true,
-  splitting: true, // shares the remix/ui runtime as one chunk
+  splitting: true, // shares the remix/component runtime as one chunk
   format: "esm",
   platform: "browser",
   target: ["es2022"],
   jsx: "automatic",
-  jsxImportSource: "remix/ui",
+  jsxImportSource: "remix/component",
   entryNames: "[name]-[hash]",
   chunkNames: "chunk-[hash]",
   minify: true,
@@ -88,7 +88,7 @@ for (const [outputPath, output] of Object.entries(outputs)) {
 // Modules every page loads: the two document-level <script type=module> tags,
 // plus theme-toggle (SiteShell renders it on every page, so boot always
 // dynamically imports it). Walking their transitive *static* imports picks up
-// the shared remix/ui runtime chunk, which every other client entry depends on
+// the shared remix/component runtime chunk, which every other client entry depends on
 // too — so preloading this set also flattens the waterfall for the
 // page-specific entries (share-links, page-stats, comments).
 //
