@@ -33,7 +33,7 @@ export const routes = route({
     resync: get("/api/analytics/resync"),
   },
 
-  // Live comment routes deliberately bypass the version-keyed document cache.
+  // Live comment routes deliberately bypass the document cache.
   comments: {
     show: get("/comments/:slug"),
     create: post("/comments/:slug"),

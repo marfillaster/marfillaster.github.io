@@ -40,7 +40,7 @@ const QUERY_CONSUMING_PREFIXES = ["/api/", "/comments/"];
 
 /**
  * Prefixes whose freshness is managed by an explicit purge rather than by a
- * TTL or by the Worker version. Purges are scoped to the entrypoint that issues
+ * TTL or by the deploy reconcile. Purges are scoped to the entrypoint that issues
  * them, and every purge here is issued from inside `Site`, so a copy held by
  * the gateway's cache would survive one and serve a comment thread that is
  * known to be stale. The gateway marks these uncacheable at its own layer;

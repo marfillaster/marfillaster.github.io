@@ -25,14 +25,34 @@ import type { Platform } from "./platform.ts";
 // keeps a document for a week while a browser rechecks every minute. Whether
 // Workers Cache reads Cloudflare-CDN-Cache-Control is undocumented; s-maxage
 // is honored by any shared cache, so the TTL lands either way. A week rather
-// than a year is deliberate: entries are version-keyed, so a deploy already
-// retires them — the week is only a floor for anything a deploy somehow
-// misses.
+// than a year is deliberate: entries survive deploys, and a deploy purges
+// what it changed (workers/cache-reconcile.ts) — the week is only a floor for
+// anything that purge somehow misses.
 export const DOCUMENT_CACHE_CONTROL =
   "public, max-age=60, s-maxage=604800, stale-while-revalidate=86400, stale-if-error=86400";
 
 export const DOCUMENT_CDN_CACHE_CONTROL =
   "public, max-age=604800, stale-while-revalidate=86400, stale-if-error=86400";
+
+// The homepage can't be purged on its own: purges go by path prefix, and `/`
+// prefixes every path. It changes only when a post's title, date or
+// description does, so five minutes at the edge stands in for the purge.
+const HOME_CACHE_CONTROL =
+  "public, max-age=60, s-maxage=300, stale-while-revalidate=86400, stale-if-error=86400";
+const HOME_CDN_CACHE_CONTROL =
+  "public, max-age=300, stale-while-revalidate=86400, stale-if-error=86400";
+
+export function documentCacheHeaders(pathname: string): {
+  "Cache-Control": string;
+  "Cloudflare-CDN-Cache-Control": string;
+} {
+  return pathname === "/"
+    ? { "Cache-Control": HOME_CACHE_CONTROL, "Cloudflare-CDN-Cache-Control": HOME_CDN_CACHE_CONTROL }
+    : {
+        "Cache-Control": DOCUMENT_CACHE_CONTROL,
+        "Cloudflare-CDN-Cache-Control": DOCUMENT_CDN_CACHE_CONTROL,
+      };
+}
 
 
 const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
@@ -114,11 +134,7 @@ export function httpCaching(platform: Platform): Middleware {
     if (etagMatches(context.request.headers.get("If-None-Match"), etag)) {
       return new Response(null, {
         status: 304,
-        headers: {
-          ETag: etag,
-          "Cache-Control": DOCUMENT_CACHE_CONTROL,
-          "Cloudflare-CDN-Cache-Control": DOCUMENT_CDN_CACHE_CONTROL,
-        },
+        headers: { ETag: etag, ...documentCacheHeaders(pathname) },
       });
     }
 
@@ -149,11 +165,9 @@ export function httpCaching(platform: Platform): Middleware {
 
     const decorated = new Response(response.body, response);
     decorated.headers.set("ETag", etag);
-    decorated.headers.set("Cache-Control", DOCUMENT_CACHE_CONTROL);
-    decorated.headers.set(
-      "Cloudflare-CDN-Cache-Control",
-      DOCUMENT_CDN_CACHE_CONTROL,
-    );
+    for (const [name, value] of Object.entries(documentCacheHeaders(pathname))) {
+      decorated.headers.set(name, value);
+    }
     // Set unconditionally, not only when this response is gzipped: an
     // identity copy stored without Vary could otherwise be handed to a client
     // that asked for gzip.

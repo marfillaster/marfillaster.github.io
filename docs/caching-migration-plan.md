@@ -1,5 +1,12 @@
 # Caching adjustment: Workers Cache, canonical keys, content digests
 
+> **Superseded 2026-10-21:** `cross_version_cache` is back on, with a reconcile
+> that purges by path prefix only (the form that crosses versions) from both
+> entrypoints, and that the Worker runs itself (first request per isolate, an
+> hourly cron, and `GET /api/cache/reconcile` after deploy), so no single
+> trigger has to succeed. See `workers/cache-reconcile.ts` and CLAUDE.md.
+> The record below is kept for the measurements.
+
 > **Status: shipped 2026-07-25** (`a3358b3`), staging-verified then deployed.
 > Production confirms digest ETags survive the zone's respect_strong_etags rule,
 > query variants share one entry, gzip and 304 revalidation both work, and a

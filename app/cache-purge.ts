@@ -1,10 +1,9 @@
 // -----------------------------------------------------------------------------
 // Manual edge-cache purge.
 //
-// Deploys need no purge: Workers Cache keys include the Worker version (see
-// wrangler.jsonc), so shipping a new version makes every previous entry
-// unreachable on its own. This endpoint exists for the cases a deploy cannot
-// express — clearing something now, without shipping.
+// Deploys purge what they changed on their own (workers/cache-reconcile.ts).
+// This endpoint exists for the cases a deploy cannot express — clearing
+// something now, without shipping.
 //
 // It clears the edge layer only. The inner response cache in
 // app/http-caching.ts is digest-keyed and cannot be purged; it turns over when

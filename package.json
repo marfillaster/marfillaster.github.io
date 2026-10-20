@@ -12,7 +12,7 @@
     "gen:cache-digests": "node scripts/generate-cache-digests.mjs",
     "remix:assets": "node --import remix/node-tsx scripts/build-remix-assets.mjs",
     "cf:build": "pnpm gen:remix-content && pnpm remix:assets && pnpm gen:cache-digests",
-    "cf:deploy": "wrangler deploy",
+    "cf:deploy": "wrangler deploy && node scripts/reconcile-cache.mjs",
     "dev:remix": "node --import remix/node-tsx server/node.ts",
     "dev:remix-workerd": "CI=true wrangler d1 migrations apply blog-comments-dev --local -c wrangler.remix.jsonc && wrangler dev -c wrangler.remix.jsonc"
   },

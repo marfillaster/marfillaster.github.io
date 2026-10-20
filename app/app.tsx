@@ -120,9 +120,9 @@ export function createApp(platform: Platform) {
       }
     }
 
-    // Cacheable, unlike before: entries are keyed by Worker version, so a
-    // path that becomes real is published by a deploy — which retires this
-    // 404 at exactly the moment it stops being true. Scanner traffic repeats
+    // Cacheable: a path that becomes real is published by a deploy, and the
+    // deploy reconcile purges every added path (workers/cache-reconcile.ts),
+    // which retires this 404 at the moment it stops being true. Scanner traffic repeats
     // the same few hundred paths, and this collapses each to one render.
     return notFound({
       "Cache-Control": "public, max-age=60, s-maxage=86400",

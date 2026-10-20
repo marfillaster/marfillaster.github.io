@@ -80,7 +80,7 @@ export interface Platform {
 
   /**
    * HTTP response cache: short-TTL entries for the analytics API and
-   * version-keyed rendered documents (app/http-caching.ts). `caches.default`
+   * digest-keyed rendered documents (app/http-caching.ts). `caches.default`
    * on workerd; null on Node, where freshness is the point.
    */
   httpCache: Cache | null;

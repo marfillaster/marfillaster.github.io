@@ -50,7 +50,8 @@ function posixPath(absolute, base) {
 }
 
 // Everything whose bytes can change any rendered page: the app layer, the
-// shared libraries, the stylesheets, and the workerd adapter. The generated
+// shared libraries, the stylesheets, the dependencies, and the workerd
+// adapter. The generated
 // output lives in workers/ and is not matched — hashing it would make the
 // build non-idempotent.
 async function buildDigest(repoRoot, epoch) {
@@ -70,8 +71,11 @@ async function buildDigest(repoRoot, epoch) {
     }
   }
 
-  for (const stylesheet of ["src/styles.css", "src/code-highlight.css"]) {
-    hashes.push([stylesheet, sha256(await readFile(join(repoRoot, stylesheet)))]);
+  // The lockfile stands in for dependencies: an upgrade can change rendered
+  // output (markdown, highlighting, the component renderer) without touching
+  // any file above, and a cached page from before it must not survive.
+  for (const file of ["src/styles.css", "src/code-highlight.css", "pnpm-lock.yaml"]) {
+    hashes.push([file, sha256(await readFile(join(repoRoot, file)))]);
   }
 
   hashes.sort(([left], [right]) => left.localeCompare(right));
@@ -139,10 +143,10 @@ export async function computeDigests(repoRoot, epoch) {
     paths[href] = indexDigest;
   }
 
-  // Non-fingerprinted static files. Served by Workers Assets rather than the
-  // Worker, so no deploy retires them the way version keying retires a
-  // document — the reconcile needs to know when their bytes change. /assets/*
-  // is deliberately absent, being content-addressed already.
+  // Non-fingerprinted static files, by their bytes. Served by Workers Assets
+  // rather than the Worker, outside both Workers Cache layers and the deploy
+  // reconcile. /assets/* is deliberately absent, being content-addressed
+  // already.
   const publicDir = join(repoRoot, "public");
   const assets = {};
   for (const path of await listFiles(publicDir)) {

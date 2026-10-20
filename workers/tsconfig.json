@@ -20,6 +20,7 @@
     "remix-app.ts",
     "remix-content.generated.ts",
     "cache-digests.generated.ts",
+    "cache-reconcile.ts",
     "remix-env.d.ts"
   ]
 }

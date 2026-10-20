@@ -26,6 +26,7 @@ import { createApp } from "../app/app.tsx";
 import { createGaClient, syncViewsForDate } from "../app/analytics.ts";
 import { canonicalUrl, isPurgeManaged } from "../app/cache-key.ts";
 import { ADMIN_PURGE_PATH } from "../app/cache-purge.ts";
+import { RECONCILE_PATH, reconcileCache, type ReconcileResult } from "./cache-reconcile.ts";
 import type {
   CommentRow,
   CommentsStore,
@@ -158,6 +159,9 @@ function createCommentsStore(db: D1Database | undefined, enabled: boolean): Comm
     },
   };
 }
+
+/** Must match the analytics entry in wrangler.jsonc `triggers.crons`. */
+const ANALYTICS_CRON = "0 18 * * *";
 
 interface SchedulerContext {
   waitUntil(promise: Promise<unknown>): void;
@@ -303,10 +307,42 @@ export class Site extends WorkerEntrypoint<RemixEnv> {
     currentCtx = this.ctx;
     return getApp(this.env).router.fetch(request);
   }
+
+  /**
+   * Purges this entrypoint's layer. A purge only reaches the entrypoint that
+   * issues it, so the gateway's deploy reconcile calls this over RPC — not
+   * reachable from HTTP — to clear `Site`'s copies alongside its own.
+   */
+  purge(options: PurgeOptions): Promise<PurgeResult> {
+    return purgeEdge(options);
+  }
 }
 
 interface GatewayContext extends SchedulerContext {
-  exports: { Site: { fetch(request: Request): Promise<Response> } };
+  exports: {
+    Site: {
+      fetch(request: Request): Promise<Response>;
+      purge(options: PurgeOptions): Promise<PurgeResult>;
+    };
+  };
+}
+
+// One reconcile per isolate (workers/cache-reconcile.ts). Every request
+// awaits it, so nothing is served or stored ahead of the purge; once it has
+// resolved the await is free. A failure clears it, so the next request retries.
+let reconciling: Promise<ReconcileResult> | null = null;
+
+function reconcileOnce(env: RemixEnv, ctx: GatewayContext): Promise<ReconcileResult> {
+  reconciling ??= reconcileCache({
+    env,
+    purgeGateway: purgeEdge,
+    purgeSite: (options) => ctx.exports.Site.purge(options),
+    waitUntil: (promise) => ctx.waitUntil(promise),
+  }).catch((error: unknown) => {
+    reconciling = null;
+    throw error;
+  });
+  return reconciling;
 }
 
 export default {
@@ -315,10 +351,32 @@ export default {
   // back what the cache saves.
   async fetch(
     request: Request,
-    _env: RemixEnv,
+    env: RemixEnv,
     ctx: GatewayContext,
   ): Promise<Response> {
     const url = new URL(request.url);
+
+    // On demand (the post-deploy step calls it): reports, and retries if the
+    // isolate's last attempt failed.
+    if (url.pathname === RECONCILE_PATH && request.method === "GET") {
+      try {
+        return Response.json(await reconcileOnce(env, ctx), {
+          headers: { "Cache-Control": "no-store" },
+        });
+      } catch (error) {
+        return Response.json(
+          { error: String(error) },
+          { status: 503, headers: { "Cache-Control": "no-store" } },
+        );
+      }
+    }
+
+    // A failed reconcile must not take the site down with it; the next
+    // request retries.
+    await reconcileOnce(env, ctx).catch((error: unknown) =>
+      console.error("cache reconcile failed", error),
+    );
+
     const canonical = canonicalUrl(url);
     const response = await ctx.exports.Site.fetch(
       canonical ? new Request(canonical, request) : request,
@@ -344,10 +402,15 @@ export default {
     return uncached;
   },
 
-  scheduled(_event: unknown, env: RemixEnv, ctx: SchedulerContext): void {
-    const { platform } = getApp(env);
-    ctx.waitUntil(
-      syncViewsForDate(platform, createGaClient(platform), "yesterday", "yesterday"),
-    );
+  scheduled(event: { cron: string }, env: RemixEnv, ctx: GatewayContext): void {
+    // Hourly: the reconcile backstop for an isolate-free stretch after a
+    // deploy (no traffic reaching the Worker, and the post-deploy call failed).
+    ctx.waitUntil(reconcileOnce(env, ctx));
+    if (event.cron === ANALYTICS_CRON) {
+      const { platform } = getApp(env);
+      ctx.waitUntil(
+        syncViewsForDate(platform, createGaClient(platform), "yesterday", "yesterday"),
+      );
+    }
   },
 };

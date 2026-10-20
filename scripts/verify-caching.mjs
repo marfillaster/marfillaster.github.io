@@ -1,5 +1,6 @@
 // Verification for the caching layer: URL canonicalization, content digests,
-// document headers, and the manual purge endpoint. Run with `pnpm test:caching`.
+// document headers, the deploy reconcile, and the manual purge endpoint. Run
+// with `pnpm test:caching`.
 //
 // The invariant worth the most here is header coverage. Workers Cache applies
 // a default TTL to any response that carries no Cache-Control (two hours for a
@@ -15,6 +16,8 @@ import { handleCachePurge } from "../app/cache-purge.ts";
 import { createAppData } from "../app/post-index.ts";
 import { CACHE_EPOCH } from "../src/lib/cache-epoch.mjs";
 import { computeDigests, listFiles } from "./lib/cache-digests.mjs";
+import { BUILD_DIGEST, PATH_DIGESTS } from "../workers/cache-digests.generated.ts";
+import { planPurge, reconcileCache } from "../workers/cache-reconcile.ts";
 import { memoryPlatform } from "./lib/memory-platform.mjs";
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), "../..");
@@ -56,7 +59,7 @@ assert.equal(canonical("/solar-report/full-report/?ref=hn&z=2"), "/solar-report/
 
 // Both entrypoints cache, and a purge only reaches the one that issued it. A
 // comment thread's freshness comes from a purge inside `Site`, so the gateway
-// must not hold a copy; everything else is retired by the Worker version.
+// must not hold a copy; everything else is purged by the deploy reconcile.
 assert.equal(isPurgeManaged("/comments/mikrotik-vlan-guest-iot"), true);
 assert.equal(isPurgeManaged("/"), false);
 assert.equal(isPurgeManaged("/mikrotik-vlan-guest-iot/"), false);
@@ -113,6 +116,10 @@ const home = await get("/");
 assert.equal(home.status, 200);
 assert.equal(home.headers.get("ETag"), `"${digests.paths["/"]}"`);
 assert.match(home.headers.get("Cache-Control"), /stale-if-error=86400/);
+// The homepage can't be prefix-purged without purging the site, so its edge
+// TTL is what retires it; every other document waits for a purge.
+assert.match(home.headers.get("Cache-Control"), /s-maxage=300\b/);
+assert.match(home.headers.get("Cloudflare-CDN-Cache-Control"), /max-age=300\b/);
 // Set unconditionally: an identity copy stored without Vary could otherwise
 // be handed to a client that asked for gzip.
 assert.equal(home.headers.get("Vary"), "Accept-Encoding");
@@ -127,6 +134,7 @@ assert.equal((await get("/", { "If-None-Match": '"stale"' })).status, 200);
 const postResponse = await get(samplePost.href);
 assert.equal(postResponse.headers.get("ETag"), `"${digests.paths[samplePost.href]}"`);
 assert.notEqual(postResponse.headers.get("ETag"), home.headers.get("ETag"));
+assert.match(postResponse.headers.get("Cache-Control"), /s-maxage=604800\b/);
 
 // Every route emits an explicit Cache-Control — see the note at the top.
 const routes = [
@@ -162,8 +170,8 @@ assert.equal(redirected.headers.get("Location"), samplePost.href);
 
 // --- unmatched paths ------------------------------------------------------
 // A 404 is the one route an attacker chooses, so it has to be cheap and
-// repeatable. Caching it is safe because entries are keyed by Worker version:
-// a path that becomes real is published by a deploy, which retires this.
+// repeatable. Caching it is safe because a path that becomes real is published
+// by a deploy, and the deploy reconcile purges every added path.
 const missing = await get("/no-such-page-at-all");
 assert.equal(missing.status, 404);
 assert.match(missing.headers.get("Cache-Control"), /s-maxage=86400/);
@@ -197,6 +205,104 @@ assert.equal(refused.headers.get("Cache-Control"), "no-store");
 assert.equal(refused.headers.get("Retry-After"), "10");
 // Real routes are unaffected by the ceiling.
 assert.equal((await fetchFrom(floodedApp, "/")).status, 200);
+
+// --- deploy reconcile ------------------------------------------------------
+// Cached pages survive deploys, so each deploy purges what its digests say
+// changed. Code, styles and dependencies move BUILD_DIGEST: everything goes,
+// because a cached page from the old build points at assets the new one no
+// longer serves.
+const current = { build: BUILD_DIGEST, paths: PATH_DIGESTS };
+const postPath = "/mikrotik-ipv6-failover-bgp-bfd/";
+assert.ok(PATH_DIGESTS[postPath] && PATH_DIGESTS[`${postPath}vyos/`], "fixture paths exist");
+
+assert.deepEqual(planPurge(null, current), { purgeEverything: true });
+assert.deepEqual(planPurge({ ...current, build: "old" }, current), { purgeEverything: true });
+assert.equal(planPurge(current, current), null);
+
+const withPaths = (changes) => ({ build: current.build, paths: { ...current.paths, ...changes } });
+// One post edited: its prefix without the slash, which also takes its
+// redirect and its variants.
+assert.deepEqual(planPurge(withPaths({ [postPath]: "old" }), current), {
+  pathPrefixes: ["/mikrotik-ipv6-failover-bgp-bfd"],
+});
+// A variant and its parent collapse onto the parent's prefix.
+assert.deepEqual(
+  planPurge(withPaths({ [postPath]: "old", [`${postPath}vyos/`]: "old" }), current),
+  { pathPrefixes: ["/mikrotik-ipv6-failover-bgp-bfd"] },
+);
+// A new post: its path was absent, and may hold a cached 404.
+const { [postPath]: _removed, ...withoutPost } = current.paths;
+assert.deepEqual(planPurge({ build: current.build, paths: withoutPost }, current), {
+  pathPrefixes: ["/mikrotik-ipv6-failover-bgp-bfd"],
+});
+// A removed post: purged so it stops being served.
+assert.deepEqual(
+  planPurge(withPaths({ "/retired-post/": "x" }), current),
+  { pathPrefixes: ["/retired-post"] },
+);
+// A frontmatter edit moves the index pages. RSS and the sitemap purge by
+// prefix; `/` is left to its short TTL, since its prefix is every path.
+const indexEdit = planPurge(
+  withPaths({ "/": "old", "/rss.xml": "old", "/sitemap.xml": "old" }),
+  current,
+);
+assert.deepEqual(indexEdit, { pathPrefixes: ["/rss.xml", "/sitemap.xml"] });
+assert.equal(planPurge(withPaths({ "/": "old" }), current), null);
+// Past Cloudflare's 30-prefix limit, purge everything.
+const manyChanged = Object.fromEntries(
+  Array.from({ length: 31 }, (_, i) => [`/gone-${i}-post/`, "x"]),
+);
+assert.deepEqual(planPurge(withPaths(manyChanged), current), { purgeEverything: true });
+
+// The stored state only advances once both layers purged, so a failure is
+// retried by the next request, cron run or post-deploy call.
+function reconcileHarness({ stored, failSite = false } = {}) {
+  const kv = new Map(stored ? [["cache:reconciled", JSON.stringify(stored)]] : []);
+  const calls = { gateway: [], site: [], settled: [] };
+  return {
+    kv,
+    calls,
+    deps: {
+      env: {
+        PAGE_VIEWS: { get: async (k) => kv.get(k) ?? null, put: async (k, v) => void kv.set(k, v) },
+        CF_VERSION_METADATA: { id: "v2" },
+      },
+      purgeGateway: async (options) => (calls.gateway.push(options), { success: true }),
+      purgeSite: async (options) =>
+        (calls.site.push(options), { success: !failSite, errors: failSite ? [{ code: 1, message: "x" }] : [] }),
+      waitUntil: (promise) => calls.settled.push(promise),
+    },
+  };
+}
+
+const fresh = reconcileHarness();
+assert.deepEqual(await reconcileCache(fresh.deps), {
+  action: "purged",
+  versionId: "v2",
+  build: BUILD_DIGEST,
+  purge: { everything: true },
+});
+assert.deepEqual(fresh.calls.gateway, [{ purgeEverything: true }]);
+assert.deepEqual(fresh.calls.site, [{ purgeEverything: true }]);
+assert.equal(fresh.calls.settled.length, 1, "a settle purge is scheduled");
+const advanced = JSON.parse(fresh.kv.get("cache:reconciled"));
+assert.equal(advanced.build, BUILD_DIGEST);
+assert.equal(advanced.versionId, "v2");
+
+const steady = reconcileHarness({ stored: { ...advanced } });
+assert.equal((await reconcileCache(steady.deps)).action, "none");
+assert.equal(steady.calls.gateway.length + steady.calls.site.length, 0);
+
+const failing = reconcileHarness({
+  stored: { ...advanced, paths: { ...advanced.paths, [postPath]: "old" } },
+  failSite: true,
+});
+await assert.rejects(reconcileCache(failing.deps), /cache purge failed/);
+assert.equal(
+  JSON.parse(failing.kv.get("cache:reconciled")).paths[postPath],
+  "old",
+  "a failed purge leaves the state behind, so the next attempt purges again",
+);
 
 // --- manual purge ----------------------------------------------------------
 const purgeRequest = (body, token) =>
