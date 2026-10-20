@@ -328,9 +328,13 @@ interface GatewayContext extends SchedulerContext {
 }
 
 // One reconcile per isolate (workers/cache-reconcile.ts). Every request
-// awaits it, so nothing is served or stored ahead of the purge; once it has
-// resolved the await is free. A failure clears it, so the next request retries.
+// awaits it (bounded, see below), so nothing is served or stored ahead of the
+// purge; once it has resolved the await is free. A failure clears it, so the
+// next request retries.
 let reconciling: Promise<ReconcileResult> | null = null;
+
+/** The most a request waits on the reconcile; normally it's one KV read. */
+const RECONCILE_WAIT_MS = 2_000;
 
 function reconcileOnce(env: RemixEnv, ctx: GatewayContext): Promise<ReconcileResult> {
   reconciling ??= reconcileCache({
@@ -371,11 +375,15 @@ export default {
       }
     }
 
-    // A failed reconcile must not take the site down with it; the next
-    // request retries.
-    await reconcileOnce(env, ctx).catch((error: unknown) =>
-      console.error("cache reconcile failed", error),
-    );
+    // A failed or stalled reconcile must not take the site down with it. A
+    // failure is retried by the next request; a stall holds each request for
+    // at most RECONCILE_WAIT_MS, and the reconcile carries on regardless.
+    await Promise.race([
+      reconcileOnce(env, ctx).catch((error: unknown) =>
+        console.error("cache reconcile failed", error),
+      ),
+      new Promise((resolve) => setTimeout(resolve, RECONCILE_WAIT_MS)),
+    ]);
 
     const canonical = canonicalUrl(url);
     const response = await ctx.exports.Site.fetch(
