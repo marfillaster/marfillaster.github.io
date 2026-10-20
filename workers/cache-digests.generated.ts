@@ -24,7 +24,7 @@ export const PATH_DIGESTS: Readonly<Record<string, string>> = {
   "/route64-ipv6-cgnat-mikrotik/": "623d6b81ca11261d",
   "/rss.xml": "f41481d1b4f7e32a",
   "/sitemap.xml": "f41481d1b4f7e32a",
-  "/solar-application-lancaster/": "15eabaa34f5b9544",
+  "/solar-application-lancaster/": "dad3b6d9f7cc811a",
   "/solar-report/": "023c111f0a053797",
   "/solar-report/full-report": "6a50eec62f5eee55",
   "/unifi-controller-routeros-containers-mikrotik/": "1937151269a38a14",
