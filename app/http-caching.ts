@@ -42,13 +42,15 @@ const CACHEABLE_TYPES = ["text/html", "application/rss+xml", "application/xml"];
 // from any HTML *it* compresses; with the rule enabled it keeps one when the
 // origin's encoding already matches the visitor's Accept-Encoding. So
 // documents leave here gzip-encoded when the client and runtime allow (see
-// maybeGzip) and the browser gets working 304 revalidation. What production
-// actually returns is the weakened form (`W/"<digest>"`), which costs nothing:
-// etagMatches compares weakly, and 304s were verified against the live site.
-// If HTML ETags vanish again:
-// check the cache rule, then the HTML-rewriting zone features (Email
-// Obfuscation, Automatic HTTPS Rewrites, Rocket Loader, Speed Brain — all
-// deliberately off).
+// maybeGzip) and the browser gets working 304 revalidation. Production
+// returns the strong form, unchanged; etagMatches compares weakly either way.
+// Both zone rules are scoped to the blog host: the cache rule, and a
+// configuration rule turning off the HTML-rewriting features (Email
+// Obfuscation, Automatic HTTPS Rewrites, Rocket Loader, Server Side Excludes)
+// that are on elsewhere in the zone. They are tracked declaratively in a
+// private repo, not here. If HTML ETags vanish again, check those two rules.
+// The cache rule also stops Cloudflare compressing anything with a strong
+// ETag, which is why _headers strips ETags from the immutable /assets/*.
 //
 // The digest replaces the deploy version here. Paths with no digest — none
 // today, but a new route added without regenerating would be one — fall back
