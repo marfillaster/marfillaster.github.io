@@ -3,8 +3,8 @@
 // compilers (oxc, lightningcss) are native addons and it reads source from
 // disk. Workers have neither, so this runs the real asset server once at build
 // time and writes what it would have served into the static asset directory.
-// The runtime half is app/script-entries.ts, which hands the recorded
-// getScriptEntry() results to the renderer.
+// The runtime half is app/script-manifest.ts and app/client-entries.ts, which
+// hand the recorded getScriptEntry() results to the renderer.
 //
 // Files keep the exact URLs the asset server chose. Emitted modules import
 // each other with relative and root-relative specifiers that resolve to the
