@@ -27,15 +27,16 @@
   // build digests changed, or everything when code, styles or dependencies
   // did (workers/cache-reconcile.ts).
   //
-  // Deliberately no top-level `cache` block: both entrypoints set their own
-  // value, so it would never be read — and enabling caching Worker-wide is
-  // what makes otherwise-free static asset requests bill at the standard
-  // request rate. Whether the asset path follows the top-level flag or "any
-  // entrypoint caches" is undocumented; listing only entrypoints is the
-  // configuration that can't cost more than it has to.
+  // cross_version_cache is Worker-level only: an export's `cache` takes just
+  // `enabled` (wrangler drops anything else, though the JSON schema shares the
+  // type and accepts it). The top-level block keeps `enabled: false` because
+  // enabling caching Worker-wide is what makes otherwise-free static asset
+  // requests bill at the standard request rate; the entrypoints enable their
+  // own.
+  "cache": { "enabled": false, "cross_version_cache": true },
   "exports": {
-    "default": { "type": "worker", "cache": { "enabled": true, "cross_version_cache": true } },
-    "Site": { "type": "worker", "cache": { "enabled": true, "cross_version_cache": true } }
+    "default": { "type": "worker", "cache": { "enabled": true } },
+    "Site": { "type": "worker", "cache": { "enabled": true } }
   },
   "assets": {
     "binding": "ASSETS",
