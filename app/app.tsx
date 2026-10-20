@@ -34,7 +34,7 @@ import { buildRssXml } from "./rss.ts";
 import { buildSitemapXml } from "./sitemap.ts";
 import { resolveClientEntry } from "./client-entries.ts";
 import { createGaClient, handlePageviews, handleResync } from "./analytics.ts";
-import { ADMIN_PURGE_PATH, handleCachePurge } from "./cache-purge.ts";
+import { handleCachePurge } from "./cache-purge.ts";
 import { httpCaching } from "./http-caching.ts";
 import { headRequests } from "./head-requests.ts";
 import {
@@ -91,53 +91,56 @@ export function createApp(platform: Platform) {
       headers: { "Content-Type": "text/html; charset=utf-8", ...headers },
     });
 
+  // Every unmatched path ends here: the defaultHandler, and the post patterns
+  // when the path names no post. Unmatched paths are the one route an attacker
+  // picks, so this is also where the per-IP ceiling sits.
+  async function unmatched(request: Request, url: URL): Promise<Response> {
+    // Per-IP ceiling on unmatched paths. Repeats of one bad URL are absorbed
+    // by the edge cache below and never reach here; this bounds the other
+    // shape of the problem, a spray of paths that are each distinct.
+    const client = request.headers.get("CF-Connecting-IP") ?? "anonymous";
+    if (await platform.floodLimit.hit(`404:${client}`)) {
+      return new Response("Too many requests.\n", {
+        status: 429,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+          "Retry-After": "10",
+        },
+      });
+    }
+
+    // Workers Assets serves real files without invoking this Worker, so a
+    // request arriving here has already missed. Only paths shaped like a
+    // file are worth a binding round-trip to confirm it.
+    if (/\.[a-z0-9]+$/i.test(url.pathname)) {
+      const asset = await platform.assets(request);
+      if (asset && asset.status !== 404) {
+        return asset;
+      }
+    }
+
+    // Cacheable, unlike before: entries are keyed by Worker version, so a
+    // path that becomes real is published by a deploy — which retires this
+    // 404 at exactly the moment it stops being true. Scanner traffic repeats
+    // the same few hundred paths, and this collapses each to one render.
+    return notFound({
+      "Cache-Control": "public, max-age=60, s-maxage=86400",
+    });
+  }
+
   const router = createRouter({
     middleware: [headRequests, httpCaching(platform), render],
-    async defaultHandler({ request, url }) {
-      // Per-IP ceiling on unmatched paths. Repeats of one bad URL are absorbed
-      // by the edge cache below and never reach here; this bounds the other
-      // shape of the problem, a spray of paths that are each distinct.
-      const client = request.headers.get("CF-Connecting-IP") ?? "anonymous";
-      if (await platform.floodLimit.hit(`404:${client}`)) {
-        return new Response("Too many requests.\n", {
-          status: 429,
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Cache-Control": "no-store",
-            "Retry-After": "10",
-          },
-        });
-      }
-
-      // Workers Assets serves real files without invoking this Worker, so a
-      // request arriving here has already missed. Only paths shaped like a
-      // file are worth a binding round-trip to confirm it.
-      if (/\.[a-z0-9]+$/i.test(url.pathname)) {
-        const asset = await platform.assets(request);
-        if (asset && asset.status !== 404) {
-          return asset;
-        }
-      }
-
-      // Cacheable, unlike before: entries are keyed by Worker version, so a
-      // path that becomes real is published by a deploy — which retires this
-      // 404 at exactly the moment it stops being true. Scanner traffic repeats
-      // the same few hundred paths, and this collapses each to one render.
-      return notFound({
-        "Cache-Control": "public, max-age=60, s-maxage=86400",
-      });
-    },
+    defaultHandler: ({ request, url }) => unmatched(request, url),
   });
 
   // 301 to the canonical form (report summaries and posts end in a slash,
   // full-report pages don't — matching each page's rel=canonical).
-  const redirectTo =
-    (target: string) =>
-    ({ url }: { url: URL }) =>
-      createRedirectResponse(`${target}${url.search}`, {
-        status: 301,
-        headers: { "Cache-Control": "public, max-age=86400" },
-      });
+  const redirectTo = (target: string, url: URL) =>
+    createRedirectResponse(`${target}${url.search}`, {
+      status: 301,
+      headers: { "Cache-Control": "public, max-age=86400" },
+    });
 
   function page(
     descriptors: MetaDescriptor[],
@@ -157,6 +160,15 @@ export function createApp(platform: Platform) {
   // which routes have code means adding a fence to any markdown page pulls the
   // stylesheet in on its own.
   const hasCodeFigure = (html: string) => html.includes('class="code-snippet"');
+
+  // Posts the shared post page serves, by canonical href. Hrefs with a
+  // dedicated page component are left out, so their paths fall through to
+  // the fixed routes above (static patterns outrank the post pattern).
+  const sharedPosts = new Map(
+    data.routablePosts
+      .filter((post) => !customHrefs.has(post.href))
+      .map((post) => [post.href, post]),
+  );
 
   router.map(routes, {
     actions: {
@@ -187,76 +199,73 @@ export function createApp(platform: Platform) {
           hasCodeFigure(html),
         );
       },
-      analyticsPageviews: ({ request }) =>
-        handlePageviews(request, platform, ga),
-      analyticsResync: ({ request }) => handleResync(request, platform, ga),
+      post: ({ request, url }) => {
+        const post = sharedPosts.get(url.pathname);
+        if (!post) {
+          return unmatched(request, url);
+        }
+        const html = data.postHtml(post);
+        return page(
+          postMetaDescriptors(post),
+          <PostPage
+            post={post}
+            html={html}
+            commentsEnabled={platform.comments.enabled}
+          />,
+          hasCodeFigure(html),
+        );
+      },
+      cachePurge: ({ request }) => handleCachePurge(request, platform),
     },
   });
 
-  // Non-canonical twins of the fixed pages.
-  router.get("/solar-report", redirectTo("/solar-report/"));
-  router.get("/nev-mileage", redirectTo("/nev-mileage/"));
-  router.get("/solar-report/full-report/", redirectTo("/solar-report/full-report"));
-  router.get("/nev-mileage/full-report/", redirectTo("/nev-mileage/full-report"));
+  router.map(routes.analytics, {
+    actions: {
+      pageviews: ({ request }) => handlePageviews(request, platform, ga),
+      resync: ({ request }) => handleResync(request, platform, ga),
+    },
+  });
 
-  // Pre-rename slugs (6170e0d): 404ing instead of redirecting means Google
-  // keeps re-crawling a dead end instead of folding signal into the live URL.
-  router.get(
-    "/lan-segmentation-vlans-mikrotik",
-    redirectTo("/mikrotik-vlan-guest-iot/"),
-  );
-  router.get(
-    "/lan-segmentation-vlans-mikrotik/",
-    redirectTo("/mikrotik-vlan-guest-iot/"),
-  );
+  router.map(routes.comments, {
+    actions: {
+      show: ({ request, params }) =>
+        handleCommentsGet(
+          request,
+          params.slug,
+          data.routablePosts,
+          platform,
+          renderNode,
+        ),
+      create: ({ request, params }) =>
+        handleCommentsPost(
+          request,
+          params.slug,
+          data.routablePosts,
+          platform,
+          renderNode,
+        ),
+      hide: ({ request }) => handleCommentModeration(request, platform),
+    },
+  });
 
-  // Live comment routes deliberately bypass the version-keyed document cache.
-  router.get("/comments/:slug", ({ request, params }) =>
-    handleCommentsGet(
-      request,
-      params.slug,
-      data.routablePosts,
-      platform,
-      renderNode,
-    ),
-  );
-  router.post("/comments/:slug", ({ request, params }) =>
-    handleCommentsPost(
-      request,
-      params.slug,
-      data.routablePosts,
-      platform,
-      renderNode,
-    ),
-  );
-  router.post("/api/comments/hide", ({ request }) =>
-    handleCommentModeration(request, platform),
-  );
-
-  router.post(ADMIN_PURGE_PATH, ({ request }) =>
-    handleCachePurge(request, platform),
-  );
-
-  // Shared post routes, derived from frontmatter exactly like src/routes.ts.
-  for (const post of data.routablePosts) {
-    if (customHrefs.has(post.href)) {
-      continue;
-    }
-
-    router.get(`/${post.routePath}/`, () => {
-      const html = data.postHtml(post);
-      return page(
-        postMetaDescriptors(post),
-        <PostPage
-          post={post}
-          html={html}
-          commentsEnabled={platform.comments.enabled}
-        />,
-        hasCodeFigure(html),
-      );
-    });
-    router.get(`/${post.routePath}`, redirectTo(`/${post.routePath}/`));
-  }
+  router.map(routes.redirects, {
+    actions: {
+      solarReport: ({ url }) => redirectTo(routes.solarReport.href(), url),
+      nevMileage: ({ url }) => redirectTo(routes.nevMileage.href(), url),
+      solarReportFull: ({ url }) =>
+        redirectTo(routes.solarReportFull.href(), url),
+      nevMileageFull: ({ url }) =>
+        redirectTo(routes.nevMileageFull.href(), url),
+      vlanGuestIot: ({ url }) =>
+        redirectTo(routes.post.href({ slug: "mikrotik-vlan-guest-iot" }), url),
+      post: ({ request, url }) => {
+        const canonical = `${url.pathname}/`;
+        return sharedPosts.has(canonical)
+          ? redirectTo(canonical, url)
+          : unmatched(request, url);
+      },
+    },
+  });
 
   return router;
 }

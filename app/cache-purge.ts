@@ -15,13 +15,14 @@
 // -----------------------------------------------------------------------------
 
 import type { Platform, PurgeOptions } from "./platform.ts";
+import { routes } from "./routes.ts";
 
 /**
  * Where the handler below is mounted. The gateway watches for it too: this
  * handler runs inside `Site` and a purge only reaches the entrypoint that
  * issues it, so the gateway has to clear its own layer on the way out.
  */
-export const ADMIN_PURGE_PATH = "/api/cache/purge";
+export const ADMIN_PURGE_PATH = routes.cachePurge.href();
 
 function noStore(body: unknown, status = 200): Response {
   return Response.json(body, {

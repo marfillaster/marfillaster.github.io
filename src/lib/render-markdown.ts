@@ -8,10 +8,8 @@
 // -----------------------------------------------------------------------------
 
 import type { Element, ElementContent, Root } from "hast";
-import { toString as hastToString } from "hast-util-to-string";
 import rehypeRaw from "rehype-raw";
 import rehypeStringify from "rehype-stringify";
-import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
@@ -23,7 +21,7 @@ import langJavascript from "shiki/langs/javascript.mjs";
 import themeOneDark from "shiki/themes/one-dark-pro.mjs";
 import themeOneLight from "shiki/themes/one-light.mjs";
 import { unified } from "unified";
-import { visit } from "unist-util-visit";
+import { textContent, visitElements } from "./hast.ts";
 import { SERIES } from "./series.ts";
 
 export type RenderOptions = {
@@ -212,18 +210,14 @@ function rehypeBlogTransforms(options: RenderOptions) {
     const seen = new Map<string, number>();
     const prefix = options.headingPrefix ?? "";
 
-    visit(tree, "element", (node, index, parent) => {
-      if (!parent || index === undefined) {
-        return;
-      }
-
+    visitElements(tree, (node, index, parent) => {
       if (node.tagName === "h1") {
         parent.children.splice(index, 1);
         return index;
       }
 
       if (/^h[2-6]$/.test(node.tagName)) {
-        const baseSlug = slugifyHeading(hastToString(node));
+        const baseSlug = slugifyHeading(textContent(node));
         if (baseSlug) {
           const count = seen.get(baseSlug) ?? 0;
           seen.set(baseSlug, count + 1);
@@ -256,7 +250,7 @@ function rehypeBlogTransforms(options: RenderOptions) {
         }
 
         const codeElement = node.children[0] as Element;
-        const raw = hastToString(codeElement).replace(/\n$/, "");
+        const raw = textContent(codeElement).replace(/\n$/, "");
 
         if (info.lang === "ascii" || info.lang === "diagram") {
           const text = raw.replace(/^\n/, "").replace(/\n$/, "");
@@ -300,16 +294,21 @@ function rehypeBlogTransforms(options: RenderOptions) {
 // Entry point.
 // -----------------------------------------------------------------------------
 
+// Frontmatter is metadata (read by post-meta.mjs), never body. Same fence rule
+// as readFrontmatter(): a leading ---/--- block.
+function stripFrontmatter(source: string): string {
+  return source.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, "");
+}
+
 export function renderMarkdown(source: string, options: RenderOptions = {}): RenderResult {
   const file = unified()
     .use(remarkParse)
-    .use(remarkFrontmatter)
     .use(remarkGfm)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeRaw)
     .use(rehypeBlogTransforms, options)
     .use(rehypeStringify, { allowDangerousHtml: true })
-    .processSync(preprocess(source));
+    .processSync(preprocess(stripFrontmatter(source)));
 
   return { html: String(file) };
 }

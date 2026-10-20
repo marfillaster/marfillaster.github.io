@@ -11,5 +11,5 @@
     "declarationDir": ".react-router/tsc-node",
     "emitDeclarationOnly": true
   },
-  "include": ["src/lib/render-markdown.ts", "src/lib/series.ts"]
+  "include": ["src/lib/render-markdown.ts", "src/lib/series.ts", "src/lib/hast.ts"]
 }

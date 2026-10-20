@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
-import { visit } from "unist-util-visit";
+import { visitElements } from "../src/lib/hast.ts";
 
 // Comments intentionally use a smaller vocabulary than posts. Raw HTML is
 // omitted by remark-rehype, then this allowlist removes everything outside the
@@ -37,7 +37,7 @@ const commentSchema: SanitizeOptions = {
 
 function markUserLinks() {
   return (tree: Root) => {
-    visit(tree, "element", (node: Element) => {
+    visitElements(tree, (node: Element) => {
       if (node.tagName === "a") {
         node.properties = {
           ...node.properties,
