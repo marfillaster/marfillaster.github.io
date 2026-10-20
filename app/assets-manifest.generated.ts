@@ -24,3 +24,18 @@ export const PRELOAD_MODULES: string[] = [
   "/assets/entries/chunk-VRGFPASN.js",
   "/assets/entries/theme-toggle-QCCU2DKU.js"
 ];
+
+// Page-specific client entries → the modules each needs beyond
+// PRELOAD_MODULES. Returned as the entry's preloads by resolveClientEntry, so
+// the renderer emits them only on pages that render the entry.
+export const ENTRY_PRELOADS: Record<string, string[]> = {
+  "share-links": [
+    "/assets/entries/share-links-7UQZO3MD.js"
+  ],
+  "page-stats": [
+    "/assets/entries/page-stats-XDN6NP2W.js"
+  ],
+  "comments": [
+    "/assets/entries/comments-C7J3Q7ZL.js"
+  ]
+};

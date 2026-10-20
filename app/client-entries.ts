@@ -6,11 +6,17 @@
 // generated manifest); served statically by both adapters.
 // -----------------------------------------------------------------------------
 
-import { ASSET_MANIFEST } from "./assets-manifest.generated.ts";
+import { ASSET_MANIFEST, ENTRY_PRELOADS } from "./assets-manifest.generated.ts";
 
 export interface ClientEntryResolution {
   href: string;
   exportName: string;
+  /**
+   * Modules to <link rel="modulepreload"> on pages that render this entry.
+   * The renderer adds them to <head>; without them the browser only finds the
+   * module once boot.js has run and scanned the DOM for entry markers.
+   */
+  preloads?: string[];
 }
 
 const CLIENT_ENTRIES: Record<string, ClientEntryResolution> = {
@@ -20,14 +26,17 @@ const CLIENT_ENTRIES: Record<string, ClientEntryResolution> = {
   },
   "share-links": {
     href: ASSET_MANIFEST["share-links"],
+    preloads: ENTRY_PRELOADS["share-links"],
     exportName: "ShareLinks",
   },
   "page-stats": {
     href: ASSET_MANIFEST["page-stats"],
+    preloads: ENTRY_PRELOADS["page-stats"],
     exportName: "PageStats",
   },
   comments: {
     href: ASSET_MANIFEST["comments"],
+    preloads: ENTRY_PRELOADS["comments"],
     exportName: "CommentsThread",
   },
 };

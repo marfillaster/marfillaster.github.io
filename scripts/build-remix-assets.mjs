@@ -98,30 +98,47 @@ for (const [outputPath, output] of Object.entries(outputs)) {
 // generated PRELOAD_MODULES list is emitted as <link rel=modulepreload> by
 // app/document.tsx, collapsing that to one.
 const ALWAYS_LOADED = ["boot", "enhance", "theme-toggle"];
-const preloadModules = [];
-const visited = new Set();
 
-function collectPreloads(outputPath) {
-  if (visited.has(outputPath) || !outputs[outputPath]) {
-    return;
+// An output and its transitive *static* imports, depth-first so shared chunks
+// are listed ahead of the modules importing them — the order the browser
+// wants to start fetches in. Outputs already in `seen` are skipped.
+function staticClosure(outputPath, seen, into = []) {
+  if (seen.has(outputPath) || !outputs[outputPath]) {
+    return into;
   }
-  visited.add(outputPath);
-  // Depth-first, so shared chunks are listed ahead of the modules importing
-  // them — the order the browser wants to start fetches in.
+  seen.add(outputPath);
   for (const imported of outputs[outputPath].imports ?? []) {
     if (imported.kind === "import-statement") {
-      collectPreloads(imported.path);
+      staticClosure(imported.path, seen, into);
     }
   }
-  preloadModules.push(outputPath.replace(/^\.remix-assets/, ""));
+  into.push(outputPath.replace(/^\.remix-assets/, ""));
+  return into;
 }
 
+const alwaysLoaded = new Set();
+const preloadModules = [];
 for (const logicalName of ALWAYS_LOADED) {
   const outputPath = outputPathFor[logicalName];
   if (!outputPath) {
     throw new Error(`No build output for always-loaded entry: ${logicalName}`);
   }
-  collectPreloads(outputPath);
+  staticClosure(outputPath, alwaysLoaded, preloadModules);
+}
+
+// Page-specific client entries: whatever each one needs beyond the
+// always-loaded set (in practice the entry module itself, the runtime chunk
+// being shared). app/client-entries.ts returns these as the entry's
+// `preloads`, and the renderer adds them to <head> only on pages that render
+// that entry — so a post preloads share-links, page-stats and comments, and
+// the home page preloads none of them.
+const entryPreloads = {};
+for (const logicalName of ["share-links", "page-stats", "comments"]) {
+  const outputPath = outputPathFor[logicalName];
+  if (!outputPath) {
+    throw new Error(`No build output for client entry: ${logicalName}`);
+  }
+  entryPreloads[logicalName] = staticClosure(outputPath, new Set(alwaysLoaded));
 }
 
 // Workers Assets honors a _headers file in the asset directory. Everything
@@ -159,6 +176,11 @@ export const ASSET_MANIFEST: Record<string, string> = ${JSON.stringify(
 // <link rel="modulepreload"> so the browser starts all of them in parallel
 // instead of discovering each one a round-trip at a time.
 export const PRELOAD_MODULES: string[] = ${JSON.stringify(preloadModules, null, 2)};
+
+// Page-specific client entries → the modules each needs beyond
+// PRELOAD_MODULES. Returned as the entry's preloads by resolveClientEntry, so
+// the renderer emits them only on pages that render the entry.
+export const ENTRY_PRELOADS: Record<string, string[]> = ${JSON.stringify(entryPreloads, null, 2)};
 `;
 await writeFile(join(repoRoot, "app/assets-manifest.generated.ts"), manifestModule);
 
