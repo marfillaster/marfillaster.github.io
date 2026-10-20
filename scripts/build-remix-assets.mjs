@@ -2,9 +2,9 @@
 //   - copies public/ (minus rss.xml + sitemap.xml, which are rendered routes)
 //   - compiles src/styles.css with the Tailwind v4 CLI → assets/styles-<hash>.css
 //   - copies src/code-highlight.css → assets/code-highlight-<hash>.css
-//   - precompiles the browser client entries (boot + one module per
-//     clientEntry id + the framework-free enhance script) with esbuild →
-//     assets/entries/<name>-<hash>.js (see app/client-entries.ts)
+//   - exports the browser scripts (boot, enhance, one module per clientEntry
+//     id) from Remix's asset server, at the URLs it serves them under
+//     (assets/app/..., assets/npm/...; see scripts/lib/export-script-entries.mjs)
 //   - writes a _headers file so Workers Assets serves /assets/* immutable
 //   - regenerates app/assets-manifest.generated.ts (committed) mapping logical
 //     asset names to their fingerprinted hrefs
@@ -15,7 +15,9 @@ import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as esbuild from "esbuild";
+import { createAssetServer } from "remix/assets";
+import { loadConfig } from "remix/cli";
+import { exportScriptEntries } from "./lib/export-script-entries.mjs";
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), "../..");
 const outDir = join(repoRoot, ".remix-assets");
@@ -49,97 +51,68 @@ await fingerprintCss("styles.css", join(outDir, "assets/styles.css"));
 await cp(join(repoRoot, "src/code-highlight.css"), join(outDir, "assets/code-highlight.css"));
 await fingerprintCss("code-highlight.css", join(outDir, "assets/code-highlight.css"));
 
-const built = await esbuild.build({
-  entryPoints: {
-    boot: join(repoRoot, "app/client/boot.ts"),
-    enhance: join(repoRoot, "app/client/enhance.ts"),
-    "theme-toggle": join(repoRoot, "app/client/theme-toggle.entry.ts"),
-    "share-links": join(repoRoot, "app/client/share-links.entry.ts"),
-    "page-stats": join(repoRoot, "app/client/page-stats.entry.ts"),
-    comments: join(repoRoot, "app/client/comments.entry.ts"),
-  },
-  outdir: join(outDir, "assets/entries"),
-  bundle: true,
-  splitting: true, // shares the remix/component runtime as one chunk
-  format: "esm",
-  platform: "browser",
-  target: ["es2022"],
-  jsx: "automatic",
-  jsxImportSource: "remix/component",
-  entryNames: "[name]-[hash]",
-  chunkNames: "chunk-[hash]",
+// Browser scripts: Remix's asset server, run once here and written into the
+// static dir (scripts/lib/export-script-entries.mjs). Config is remix.json,
+// shared with the `remix assets` CLI. Fingerprints are content hashes, so an
+// unchanged module keeps its URL across deploys.
+const config = await loadConfig(repoRoot);
+const assetServer = createAssetServer({
+  ...config.assets,
+  rootDir: repoRoot,
+  fingerprint: true,
   minify: true,
-  sourcemap: false,
-  metafile: true,
-  logLevel: "info",
+  watch: false,
 });
 
-const outputs = built.metafile.outputs;
-const outputPathFor = {};
-for (const [outputPath, output] of Object.entries(outputs)) {
-  if (!output.entryPoint) {
-    continue;
+// Loaded on every page: the two document-level module scripts, plus
+// theme-toggle (SiteShell renders it everywhere, so boot always imports it).
+const DOCUMENT_ENTRIES = ["boot", "enhance", "theme-toggle"];
+
+const exported = await exportScriptEntries({
+  assetServer,
+  outDir,
+  entries: {
+    boot: "app/client/boot.ts",
+    enhance: "app/client/enhance.ts",
+    "theme-toggle": "app/client/theme-toggle.entry.ts",
+    "share-links": "app/client/share-links.entry.ts",
+    "page-stats": "app/client/page-stats.entry.ts",
+    comments: "app/client/comments.entry.ts",
+  },
+});
+await assetServer.close();
+
+// One import map and preload list for the document-level scripts; each
+// page-specific entry then carries only what it adds. The renderer merges an
+// entry's import map into the document's <ImportMap> and adds its preloads to
+// <head>, on pages that render the entry.
+const documentImports = {};
+const documentPreloads = [];
+for (const name of DOCUMENT_ENTRIES) {
+  const entry = exported.entries[name];
+  Object.assign(documentImports, entry.importMap.imports);
+  for (const url of entry.preloads) {
+    if (!documentPreloads.includes(url)) documentPreloads.push(url);
   }
-  const logicalName = basename(output.entryPoint).replace(/(\.entry)?\.ts$/, "");
-  manifest[logicalName] = outputPath.replace(/^\.remix-assets/, "");
-  outputPathFor[logicalName] = outputPath;
 }
 
-// Modules every page loads: the two document-level <script type=module> tags,
-// plus theme-toggle (SiteShell renders it on every page, so boot always
-// dynamically imports it). Walking their transitive *static* imports picks up
-// the shared remix/component runtime chunk, which every other client entry depends on
-// too — so preloading this set also flattens the waterfall for the
-// page-specific entries (share-links, page-stats, comments).
-//
-// Without these hints the browser can't discover the runtime chunk until it
-// has parsed boot.js, and can't discover theme-toggle until boot has run and
-// scanned the DOM for entry markers: four sequential round-trips. The
-// generated PRELOAD_MODULES list is emitted as <link rel=modulepreload> by
-// app/document.tsx, collapsing that to one.
-const ALWAYS_LOADED = ["boot", "enhance", "theme-toggle"];
-
-// An output and its transitive *static* imports, depth-first so shared chunks
-// are listed ahead of the modules importing them — the order the browser
-// wants to start fetches in. Outputs already in `seen` are skipped.
-function staticClosure(outputPath, seen, into = []) {
-  if (seen.has(outputPath) || !outputs[outputPath]) {
-    return into;
-  }
-  seen.add(outputPath);
-  for (const imported of outputs[outputPath].imports ?? []) {
-    if (imported.kind === "import-statement") {
-      staticClosure(imported.path, seen, into);
-    }
-  }
-  into.push(outputPath.replace(/^\.remix-assets/, ""));
-  return into;
+const scriptEntries = {};
+for (const [name, entry] of Object.entries(exported.entries)) {
+  if (name === "boot" || name === "enhance") continue;
+  const imports = Object.fromEntries(
+    Object.entries(entry.importMap.imports).filter(([stable]) => !(stable in documentImports)),
+  );
+  scriptEntries[name] = {
+    href: entry.href,
+    preloads: entry.preloads.filter((url) => !documentPreloads.includes(url)),
+    importMap: { imports },
+  };
 }
 
-const alwaysLoaded = new Set();
-const preloadModules = [];
-for (const logicalName of ALWAYS_LOADED) {
-  const outputPath = outputPathFor[logicalName];
-  if (!outputPath) {
-    throw new Error(`No build output for always-loaded entry: ${logicalName}`);
-  }
-  staticClosure(outputPath, alwaysLoaded, preloadModules);
-}
-
-// Page-specific client entries: whatever each one needs beyond the
-// always-loaded set (in practice the entry module itself, the runtime chunk
-// being shared). app/client-entries.ts returns these as the entry's
-// `preloads`, and the renderer adds them to <head> only on pages that render
-// that entry — so a post preloads share-links, page-stats and comments, and
-// the home page preloads none of them.
-const entryPreloads = {};
-for (const logicalName of ["share-links", "page-stats", "comments"]) {
-  const outputPath = outputPathFor[logicalName];
-  if (!outputPath) {
-    throw new Error(`No build output for client entry: ${logicalName}`);
-  }
-  entryPreloads[logicalName] = staticClosure(outputPath, new Set(alwaysLoaded));
-}
+console.log(
+  `exported ${exported.files} browser modules (${(exported.bytes / 1024).toFixed(1)} KiB, ` +
+    `${documentPreloads.length} on every page)`,
+);
 
 // Workers Assets honors a _headers file in the asset directory. Everything
 // under /assets/ is content-fingerprinted (immutable); other static files
@@ -154,6 +127,9 @@ await writeFile(
 /assets/*
   ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable
+/assets/app/*
+  ! Content-Type
+  Content-Type: text/javascript; charset=utf-8
 /solar-report/full-report.md
   X-Robots-Tag: noindex
 /nev-mileage/full-report.md
@@ -162,25 +138,49 @@ await writeFile(
 );
 
 const manifestModule = `// Generated by scripts/build-remix-assets.mjs — do not edit by hand.
-// Maps logical asset names to their content-fingerprinted hrefs. Committed so
-// the app layer (client-entries.ts, document.tsx) stays importable without a
-// prior asset build; \`pnpm remix:assets\` rewrites it.
+// Fingerprinted hrefs for the stylesheets, and the recorded getScriptEntry()
+// results for the browser scripts (scripts/lib/export-script-entries.mjs).
+// Committed so the app layer stays importable without a prior asset build;
+// \`pnpm remix:assets\` rewrites it.
+
 export const ASSET_MANIFEST: Record<string, string> = ${JSON.stringify(
   Object.fromEntries(Object.entries(manifest).sort(([a], [b]) => a.localeCompare(b))),
   null,
   2,
 )};
 
-// Modules loaded on every page (boot + enhance + theme-toggle and the shared
-// runtime chunks they pull in), in dependency order. Emitted as
-// <link rel="modulepreload"> so the browser starts all of them in parallel
-// instead of discovering each one a round-trip at a time.
-export const PRELOAD_MODULES: string[] = ${JSON.stringify(preloadModules, null, 2)};
+export interface ImportMapImports {
+  imports: Record<string, string>;
+}
 
-// Page-specific client entries → the modules each needs beyond
-// PRELOAD_MODULES. Returned as the entry's preloads by resolveClientEntry, so
-// the renderer emits them only on pages that render the entry.
-export const ENTRY_PRELOADS: Record<string, string[]> = ${JSON.stringify(entryPreloads, null, 2)};
+export interface ScriptEntry {
+  href: string;
+  preloads: string[];
+  importMap: ImportMapImports;
+}
+
+/**
+ * The document-level module scripts, plus the import map and preloads (in
+ * dependency order) for everything loaded on every page.
+ */
+export const DOCUMENT_SCRIPTS: {
+  boot: string;
+  enhance: string;
+  importMap: ImportMapImports;
+  preloads: string[];
+} = ${JSON.stringify(
+  {
+    boot: exported.entries.boot.href,
+    enhance: exported.entries.enhance.href,
+    importMap: { imports: documentImports },
+    preloads: documentPreloads,
+  },
+  null,
+  2,
+)};
+
+/** Client entries, each with only what it adds to DOCUMENT_SCRIPTS. */
+export const SCRIPT_ENTRIES: Record<string, ScriptEntry> = ${JSON.stringify(scriptEntries, null, 2)};
 `;
 await writeFile(join(repoRoot, "app/assets-manifest.generated.ts"), manifestModule);
 

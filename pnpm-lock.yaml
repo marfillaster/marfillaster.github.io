@@ -51,9 +51,6 @@ importers:
       '@types/node':
         specifier: ^25.0.1
         version: 25.8.0
-      esbuild:
-        specifier: ^0.27.7
-        version: 0.27.7
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3

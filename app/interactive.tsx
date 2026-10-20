@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------
 // Interactive client-entry components (Phase 3). Each is marked with
-// clientEntry('<stable-id>', ...) — the id maps to a precompiled browser
+// clientEntry('<stable-id>', ...) — the id maps to an exported browser
 // module via app/client-entries.ts. Setup code must be SSR-safe: it also runs
 // on the server, where `document` does not exist; server output matches what
 // the RR7 app emitted before hydration.

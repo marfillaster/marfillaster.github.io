@@ -1,3 +1,3 @@
-// Browser entry for the theme toggle; precompiled to
-// /assets/entries/theme-toggle.js (see app/client-entries.ts).
+// Browser entry for the theme toggle; served by the Remix
+// asset server (see app/client-entries.ts).
 export { ThemeToggle } from "../interactive.tsx";

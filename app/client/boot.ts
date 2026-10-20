@@ -1,6 +1,6 @@
 // Browser boot module: scans the server-rendered page for client-entry
-// markers and hydrates each by dynamically importing its precompiled module.
-// Precompiled to /assets/entries/boot.js by scripts/build-remix-assets.mjs.
+// markers and hydrates each by dynamically importing its exported module.
+// Exported from the Remix asset server by scripts/build-remix-assets.mjs.
 
 import { run } from "remix/component";
 

@@ -2,7 +2,7 @@
 //   - code-copy buttons (clipboard over the Shiki-rendered <figure> blocks)
 //   - legacy hash redirects (fragments never reach the server, so these must
 //     stay client-side even under SSR)
-// Precompiled to /assets/entries/enhance.js by scripts/build-remix-assets.mjs.
+// Exported from the Remix asset server by scripts/build-remix-assets.mjs.
 
 // --- Code copy (port of src/components/code-copy.tsx, event-delegated) ------
 

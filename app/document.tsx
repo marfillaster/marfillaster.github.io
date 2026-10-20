@@ -9,8 +9,9 @@
 import type { Handle, RemixNode } from "remix/component";
 import { unsafeHTML } from "remix/component";
 import type { MetaDescriptor } from "./head.ts";
-import { CLIENT_BOOT_SCRIPT, ENHANCE_SCRIPT } from "./client-entries.ts";
-import { ASSET_MANIFEST, PRELOAD_MODULES } from "./assets-manifest.generated.ts";
+import { ImportMap } from "remix/component/server";
+import { DOCUMENT_SCRIPTS } from "./client-entries.ts";
+import { ASSET_MANIFEST } from "./assets-manifest.generated.ts";
 
 const GA_MEASUREMENT_ID = "G-S37EV14XH2";
 
@@ -90,7 +91,12 @@ export function Document(handle: Handle<DocumentProps>) {
         {handle.props.codeHighlight ? (
           <link rel="stylesheet" href={ASSET_MANIFEST["code-highlight.css"]} />
         ) : null}
-        {PRELOAD_MODULES.map((href) => (
+        {/* The import map resolves the modules' stable URLs to their
+            fingerprinted files, so it must precede every module load. The
+            renderer merges the import maps of the client entries a page
+            renders into this one, and adds their preloads before </head>. */}
+        <ImportMap value={DOCUMENT_SCRIPTS.importMap} />
+        {DOCUMENT_SCRIPTS.preloads.map((href) => (
           <link rel="modulepreload" href={href} />
         ))}
         <script innerHTML={unsafeHTML(themeInit)} />
@@ -115,8 +121,8 @@ export function Document(handle: Handle<DocumentProps>) {
       </head>
       <body>
         {handle.props.children}
-        <script type="module" src={CLIENT_BOOT_SCRIPT} />
-        <script type="module" src={ENHANCE_SCRIPT} />
+        <script type="module" src={DOCUMENT_SCRIPTS.boot} />
+        <script type="module" src={DOCUMENT_SCRIPTS.enhance} />
       </body>
     </html>
   );

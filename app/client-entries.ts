@@ -1,56 +1,45 @@
 // -----------------------------------------------------------------------------
-// Single source of truth mapping client-entry ids (the strings passed to
-// clientEntry(id, ...) in app/interactive.tsx) to their precompiled browser
-// module URL + export name. Built into .remix-assets/assets/entries/ by
-// scripts/build-remix-assets.mjs (content-fingerprinted; hrefs come from the
-// generated manifest); served statically by both adapters.
+// Runtime half of the Workers asset adapter: maps client-entry ids (the
+// strings passed to clientEntry(id, ...) in app/interactive.tsx) to what
+// Remix's asset server returned from getScriptEntry() at build time
+// (scripts/lib/export-script-entries.mjs). The renderer merges each rendered
+// entry's import map into the document's <ImportMap> and adds its preloads to
+// <head>; the modules themselves are static files in .remix-assets/.
 // -----------------------------------------------------------------------------
 
-import { ASSET_MANIFEST, ENTRY_PRELOADS } from "./assets-manifest.generated.ts";
+import {
+  DOCUMENT_SCRIPTS,
+  SCRIPT_ENTRIES,
+  type ImportMapImports,
+} from "./assets-manifest.generated.ts";
 
 export interface ClientEntryResolution {
   href: string;
   exportName: string;
-  /**
-   * Modules to <link rel="modulepreload"> on pages that render this entry.
-   * The renderer adds them to <head>; without them the browser only finds the
-   * module once boot.js has run and scanned the DOM for entry markers.
-   */
-  preloads?: string[];
+  /** Modules to <link rel="modulepreload"> on pages that render this entry. */
+  preloads: string[];
+  /** Merged into the document's import map on pages that render this entry. */
+  importMap: ImportMapImports;
 }
 
-const CLIENT_ENTRIES: Record<string, ClientEntryResolution> = {
-  "theme-toggle": {
-    href: ASSET_MANIFEST["theme-toggle"],
-    exportName: "ThemeToggle",
-  },
-  "share-links": {
-    href: ASSET_MANIFEST["share-links"],
-    preloads: ENTRY_PRELOADS["share-links"],
-    exportName: "ShareLinks",
-  },
-  "page-stats": {
-    href: ASSET_MANIFEST["page-stats"],
-    preloads: ENTRY_PRELOADS["page-stats"],
-    exportName: "PageStats",
-  },
-  comments: {
-    href: ASSET_MANIFEST["comments"],
-    preloads: ENTRY_PRELOADS["comments"],
-    exportName: "CommentsThread",
-  },
+const EXPORT_NAMES: Record<string, string> = {
+  "theme-toggle": "ThemeToggle",
+  "share-links": "ShareLinks",
+  "page-stats": "PageStats",
+  comments: "CommentsThread",
 };
 
-/** Browser boot module: calls run({ loadModule }) to hydrate client entries. */
-export const CLIENT_BOOT_SCRIPT = ASSET_MANIFEST["boot"];
+/** Import map, preloads and module scripts every page loads. */
+export { DOCUMENT_SCRIPTS };
 
-/** Framework-free progressive enhancement (code copy and hash redirects). */
-export const ENHANCE_SCRIPT = ASSET_MANIFEST["enhance"];
+/** The comments entry module, loaded directly by the standalone comments page. */
+export const COMMENTS_SCRIPT = SCRIPT_ENTRIES.comments.href;
 
 export function resolveClientEntry(entryId: string): ClientEntryResolution {
-  const hit = CLIENT_ENTRIES[entryId];
-  if (!hit) {
+  const entry = SCRIPT_ENTRIES[entryId];
+  const exportName = EXPORT_NAMES[entryId];
+  if (!entry || !exportName) {
     throw new Error(`Unknown client entry: ${entryId}`);
   }
-  return hit;
+  return { ...entry, exportName };
 }

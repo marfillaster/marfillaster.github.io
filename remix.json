@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/remix/schema/remix.json",
+  "assets": {
+    "basePath": "/assets",
+    "allowFiles": ["app/client/**", "app/interactive.tsx", "app/icons.tsx"],
+    "allowPackages": ["remix"],
+    "denyFiles": ["app/**/*.test.*"]
+  }
+}

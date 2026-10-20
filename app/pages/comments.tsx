@@ -1,6 +1,6 @@
 import { unsafeHTML } from "remix/component";
 import type { Handle } from "remix/component";
-import { ASSET_MANIFEST } from "../assets-manifest.generated.ts";
+import { COMMENTS_SCRIPT } from "../client-entries.ts";
 import type { MetaDescriptor } from "../head.ts";
 import {
   MAX_COMMENT_DEPTH,
@@ -362,7 +362,7 @@ export function CommentsPage(
         {/* The entry module arms the same viewport-triggered Turnstile loader
             the post pages use, so the third-party script isn't requested until
             the widget is near the viewport. */}
-        <script type="module" src={ASSET_MANIFEST.comments} />
+        <script type="module" src={COMMENTS_SCRIPT} />
       </div>
     </SiteShell>
   );
