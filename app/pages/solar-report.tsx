@@ -7,14 +7,14 @@ import { Comments, SiteShell } from "../components.tsx";
 import { PageStats, ShareLinks } from "../interactive.tsx";
 
 const title =
-  "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Sep 2026)";
+  "Residential 6.5 kWp Solar Performance Summary — Cavite, Philippines (Dec 2025–Oct 2026)";
 const description =
-  "Summary of ten months of real residential solar performance from a 6.5 kWp / 14.3 kWh / 8 kW system in Cavite, Philippines: bill cut, payback, self-sufficiency, and battery behavior. Links to the full report and raw markdown.";
+  "Summary of eleven months of real residential solar performance from a 6.5 kWp / 14.3 kWh / 8 kW system in Cavite, Philippines: bill cut, payback, self-sufficiency, and battery behavior. Links to the full report and raw markdown.";
 const url = "https://blog.homestack.space/solar-report/";
 const ogImage = "https://blog.homestack.space/solar-report/og-image.png";
 const author = "Ken Marfilla";
 const datePublished = "2026-05-01";
-const dateModified = "2026-10-01";
+const dateModified = "2026-11-01";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -72,14 +72,14 @@ const systemChips = [
   "14.3 kWh battery",
   "8.0 kW AC inverter",
   "Cavite, Philippines",
-  "₱16.71/kWh flat · 58% feed-in",
+  "₱16.78/kWh flat · 60% feed-in",
 ];
 
 const headlineMetrics = [
   {
     label: "Annual bill cut",
-    value: "₱133,106",
-    note: "~66% of pre-solar bill",
+    value: "₱133,849",
+    note: "~64% of pre-solar bill",
   },
   {
     label: "Simple payback",
@@ -88,13 +88,13 @@ const headlineMetrics = [
   },
   {
     label: "Year-1 generation",
-    value: "~8,190 kWh",
-    note: "~22.4 kWh/day baseline",
+    value: "~8,230 kWh",
+    note: "~22.5 kWh/day baseline",
   },
   {
     label: "CO₂ avoided",
-    value: "~5.2 t/yr",
-    note: "≈239 trees · 25,000 km",
+    value: "~5.3 t/yr",
+    note: "≈241 trees · 25,200 km",
   },
 ];
 
@@ -109,6 +109,7 @@ const monthlyBills = [
   { month: "Jul 2026", without: "₱18,001", net: "₱12,129" },
   { month: "Aug 2026", without: "₱15,302", net: "₱8,148" },
   { month: "Sep 2026", without: "₱18,439", net: "₱10,765" },
+  { month: "Oct 2026", without: "₱21,405", net: "₱11,382" },
 ];
 
 export function SolarReportPage(_: Handle) {
@@ -117,14 +118,14 @@ export function SolarReportPage(_: Handle) {
       <div className="container max-w-[48rem] py-12 leading-relaxed">
         <article>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Case study · 6.5 kWp · Cavite, PH · Dec 2025 – Sep 2026
+            Case study · 6.5 kWp · Cavite, PH · Dec 2025 – Oct 2026
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Residential solar performance — ten months in
+            Residential solar performance — eleven months in
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
             Real generation, self-sufficiency, bill impact, and battery
-            behavior from a 6.5 kWp / 14.3 kWh / 8 kW system across 303 days of
+            behavior from a 6.5 kWp / 14.3 kWh / 8 kW system across 334 days of
             hourly data.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -155,16 +156,16 @@ export function SolarReportPage(_: Handle) {
           </p>
 
           <p className="mt-8 border-l-2 border-primary/40 pl-4 text-sm leading-relaxed text-muted-foreground">
-            The short version: ten months in, the array is still tracking to a
-            ~3.0-year payback. September recovered most of August's monsoon
-            loss — generation rose ~38% to ~21.7 kWh/day and self-sufficiency
-            climbed back to ~58.4% — but load rose ~25% alongside it, so the
-            battery hit its 10–11% floor every day and never filled, and export
-            was zero for the month. The three low-generation days in the first
-            week are the tail of the flooding that hit Luzon, not equipment. The
-            main finding holds and got sharper: the money is in the overnight
-            base load, which rose to ~890 W in September — ~4.5 kWh bought at
-            the full rate every night while the battery sits empty, ~₱2,230 for
+            The short version: eleven months in, the array is still tracking
+            to a ~3.0-year payback. October generation held level with
+            September at ~22.0 kWh/day, but load rose ~12% to ~41.1 kWh/day,
+            the highest month in the dataset, so grid import set a record
+            (~597 kWh), self-sufficiency fell to ~53.2%, and export was zero for
+            the second month running. There was no weather event behind it:
+            this is the first month whose decline came from load rather than
+            generation. The main finding got sharper again: the overnight base
+            load rose to ~1,057 W, the highest on record and up from ~738 W in
+            August, ~5.3 kWh bought at the full rate every night, ~₱2,750 for
             the month. If you're sizing a system here, the variable that
             generalizes from this single-site data is the always-on load floor,
             not panel count. Installing it needed the subdivision
@@ -213,31 +214,31 @@ export function SolarReportPage(_: Handle) {
           <p className="mt-3">
             Self-sufficiency climbed from 54.3% in December to a peak of 76.5%
             in March, eased through the wet season to 59.9% in June, recovered
-            to 66.5% in July, fell to the dataset low of 51.8% in August, and
-            came back to 58.4% in September. Generation recovered ~38% to ~21.7
-            kWh/day, but household load rose ~25% to ~36.8 kWh/day on eight
-            charging days (August had three) and a heavier overnight draw. The
-            extra load absorbed most of the recovered generation: the battery
-            peaked at 96% and never reached full, so nothing was exported.
+            to 66.5% in July, fell to the dataset low of 51.8% in August, came
+            back to 58.4% in September, and dropped to 53.2% in October.
+            Generation barely moved (+1%), but household load rose ~12% to
+            ~41.1 kWh/day: ordinary days used ~3.9 kWh more, spread across most
+            hours, and there were nine charging days. The extra ~172 kWh of
+            load against ~29 kWh of extra generation came almost entirely from
+            the grid, and the grid bill reached ₱10,023, the highest in the
+            dataset.
           </p>
           <p className="mt-3">
             No equipment fault is visible. Peak PV reached 5.44 kW (68% of
-            inverter capacity), with zero clipping in 303 days. The three
-            September days flagged as low generation (Sep 4, 5 and 7) sit in one
-            run inside the tail of the August flooding, with output suppressed
-            across the whole daylight window, and the array was back to ~30 kWh
-            days by mid-month. Battery round-trip efficiency read 96.7% raw and
-            ~96.5% adjusted for month-boundary carry-over; across ten months the
-            adjusted range is 95.3%–99.2% with no downward trend.
+            inverter capacity), with zero clipping in 334 days, and October had
+            no low-generation days. The single battery flag (Oct 18) was a
+            shallow partial cycle. Round-trip efficiency read 98.9% raw and
+            ~99.6% adjusted for month-boundary carry-over; across eleven months
+            the adjusted range is 95.3%–99.6% with no downward trend.
           </p>
           <p className="mt-3">
-            The highest-impact lever is unchanged and grew: the overnight floor
-            rose to ~890 W in September, from ~734 W in August, and with the
-            battery at its floor every night it came almost entirely from the
-            grid. Every 100 W trimmed off it is worth ~₱14,600 a year at
-            ₱16.71/kWh. The second is charge timing: September's sessions drew
-            most heavily at 06:00–07:00, before the array produces anything, and
-            moving the start to ~09:00 puts them against peak generation.{" "}
+            The highest-impact lever is unchanged and grew for a second month:
+            the overnight floor rose to ~1,057 W in October, from ~893 W in
+            September, and the battery reached its floor on 14 nights. Every
+            100 W trimmed off it is worth ~₱14,700 a year at ₱16.78/kWh. The
+            second is charge timing: sessions still start at 06:00, before the
+            array produces anything, and some now run overnight; moving the
+            start to ~09:00 puts them against peak generation.{" "}
             <a
               href="/solar-report/full-report#recommendations"
               className="underline underline-offset-4 hover:text-primary"
@@ -273,12 +274,12 @@ export function SolarReportPage(_: Handle) {
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
             Net savings peaked in May at ₱13,162, fell to ₱8,148 in the
-            August monsoon, and recovered to ₱10,765 in September. September's
-            grid bill was the highest in the dataset (₱7,674) because load rose
-            and the battery emptied every night, and the feed-in credit earned
-            nothing because nothing was exported. Each month is billed at the
+            August monsoon, and recovered to ₱10,765 in September and ₱11,382
+            in October. October's saving rose only because the solar offset a
+            larger load; its grid bill was the highest in the dataset
+            (₱10,023), and nothing was exported. Each month is billed at the
             rate that applied then (rates moved from ₱14.41 in December to
-            ₱16.71 in September); the ~₱133k annual figure is projected at
+            ₱16.78 in October); the ~₱134k annual figure is projected at
             today's rate.
           </p>
           <p className="mt-6 text-sm">
