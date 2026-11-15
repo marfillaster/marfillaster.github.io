@@ -262,6 +262,11 @@ export function createApp(platform: Platform) {
         redirectTo(routes.nevMileageFull.href(), url),
       vlanGuestIot: ({ url }) =>
         redirectTo(routes.post.href({ slug: "mikrotik-vlan-guest-iot" }), url),
+      codingAgentContext: ({ url }) =>
+        redirectTo(
+          routes.post.href({ slug: "clearing-agent-context-without-stopping-the-project" }),
+          url,
+        ),
       post: ({ request, url }) => {
         const canonical = `${url.pathname}/`;
         return sharedPosts.has(canonical)

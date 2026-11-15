@@ -1,0 +1,269 @@
+---
+feed: true
+href: "/clearing-agent-context-without-stopping-the-project/"
+eyebrow: "Field log · 2026-11"
+title: "Clearing agent context without stopping the project"
+description: >-
+  How a terminal multiplexer, an external watchdog, and committed checkpoints let
+  my coding coordinator clear its context while worker sessions keep running.
+datePublished: "2026-11-15"
+dateModified: "2026-11-15"
+category: "Software Engineering"
+sectionBlurb: "Notes on coding agents, context management, and development workflows."
+sectionOrder: 4
+order: 1
+hero:
+  eyebrow: "Field log · Coding agents · Context management"
+  description: >-
+    A coding-agent workflow that rebuilds the coordinator's context from committed
+    state and keeps workers running in independent terminal sessions.
+seo:
+  schemaType: "BlogPosting"
+  keywords:
+    - "context engineering"
+    - "coding agents"
+    - "agent orchestration"
+    - "AgentKeep"
+series: false
+---
+
+My coding coordinator clears its conversation while implementers continue
+working in their own terminal windows. An external watchdog sends the clear
+command, detects the new session, and tells it where to read the project state.
+The coordinator then resumes managing the same work.
+
+I'm using this setup to build a distributed networking app across many agent
+sessions. The coordinator plans work, launches implementers, sends their results
+through verification, and merges completed plans. Its conversation can be
+replaced because the information needed to continue lives in plans, reports,
+Git history, a tracker, and the runtime's persisted session records.
+
+I recently reduced the instructions loaded at startup, both in the project's
+`AGENTS.md` and in my shared agent context. The reusable template is in
+[AgentKeep](https://github.com/marfillaster/agentkeep). That work helps at every
+restart, but the reset procedure and the terminal runtime are what make fresh
+coordinator contexts practical during an ongoing project.
+
+My concern is decision quality as context grows. Anthropic's
+[context engineering article](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents)
+describes declining retrieval performance as context length increases. I don't
+have a measured quality curve for this project. The setup limits what enters
+each session and gives the coordinator regular opportunities to start again
+from the current state.
+
+## The runtime keeps sessions alive independently
+
+This orchestration requires a terminal runtime with multiplexing and
+programmatic control. I use Rex. It lets the coordinator launch interactive
+agents in separate windows, send text and keystrokes, inspect their status,
+capture terminal output, and close a session when its work is accepted.
+
+Each implementer gets a plan, a Git worktree, and a terminal window. A verifier
+runs in a separate session after the implementer has stopped writing. At most
+three implementers and verifiers are active at once. An implementer waiting
+idle for its verdict doesn't occupy an active slot.
+
+| Part | Responsibility | Across a coordinator clear |
+| --- | --- | --- |
+| Coordinator | Plan, dispatch, review handoffs, merge, update the tracker | Conversation is cleared; state is reconstructed from files |
+| Implementers and verifiers | Work on a bounded plan in an assigned worktree | Their independent terminal sessions remain running |
+| Watchdog | Handle usage-limit recovery and the checkpoint/clear handshake | Continues running outside the model session |
+| Session monitor | Check work progress, identity, budgets, and handoffs | State persists; the coordinator starts a new wait after recovery |
+
+The multiplexer gives each window or block an identity that can outlive the
+conversation inside it. The watchdog follows the coordinator's block and checks
+which agent session currently occupies it. It can find the replacement session
+after a clear and deliver its recovery message there.
+
+A replacement for Rex would need these capabilities, plus a way to map terminal
+processes to agent sessions and transcripts. Sending keys is only part of the
+requirement. The runtime must also make it possible to establish which session
+will receive them and whether that session is ready for input.
+
+## The watchdog requests a checkpoint, then sends clear
+
+The default coordinator recovery path uses `/clear`. Manual compaction is still
+supported, but the automated threshold message asks for a committed checkpoint
+followed by a clear.
+
+The sequence is:
+
+1. The watchdog detects that the coordinator has reached its context threshold
+   after a turn has ended and the transcript has been quiet.
+2. It asks the coordinator to update the checkpoint. The coordinator records
+   the current milestone, work in flight, open issues, and next actions in the
+   tracker's “Resume here” note and commits the state needed for recovery.
+3. The coordinator finishes its own running builds or tests and records their
+   results. It stops its monitor wait, then ends its turn with the expected
+   checkpoint acknowledgment.
+4. The watchdog waits for the completed turn and quiet transcript, then sends
+   `/clear` through the multiplexer.
+5. It detects the new session identity in the same block, updates its tracking,
+   and sends a bootstrap message directing the new coordinator to the recovery
+   instructions and tracker.
+6. The coordinator reads the applicable instructions and current state, checks
+   the watchdog and monitor, and starts a new monitor wait.
+
+The workers' terminal sessions are independent of this sequence. They can keep
+implementing or finish their reports while the coordinator recovers. Acceptance
+and dispatch decisions wait until the coordinator is ready again.
+
+The coordinator also checkpoints between planning and execution, and after
+several merges or a long run of handoffs. Those boundaries avoid carrying the
+planning session's exploration through the execution phase.
+
+The clear discards conversation history. The next session reconstructs its task
+from the maintained project artifacts. Anything important that existed only in
+the old conversation is unavailable to that recovery path. Checkpoint
+completeness is therefore a requirement of the workflow.
+
+## Handoffs identify exactly what was completed
+
+A worker report records its run ID and implementation commit, each acceptance
+criterion's status, test commands and exit codes, changed files, deviations,
+and unresolved issues. The implementation and report are separate commits.
+
+The monitor detects a candidate handoff. The coordinator then checks that the
+committed report belongs to the current run, refers to the expected
+implementation, and comes from a session that has ended its turn with a clean
+checkout and no background writer still changing it.
+
+Verification is tied to both the implementation commit and the report commit.
+A later code change requires another verification. An old report left in the
+worktree cannot satisfy a new attempt simply because its filename matches.
+
+These checks matter during recovery. A fresh coordinator needs to distinguish
+completed work from a stale report, a partial result, or a session still writing
+files. When an oversized plan is split, the tracker retains the original
+requirements and maps them to the replacement plans.
+
+The tracker itself needs maintenance. It holds one current recovery note;
+superseded notes and completed milestones move into an archive. Detailed live
+session records stay in the monitor's state file. The tracker gets the relevant
+checkpoints at handoffs.
+
+## Load only what recovery and the next task need
+
+The coordinator instructions are split into planning, execution, and runtime
+documents. Recovery names the sections needed for the work in flight. Handling
+a completed implementation needs the handoff, verification, and merge rules.
+The procedure for replacing a failed plan is loaded when that happens.
+
+The same rule applies to shared agent context. Always-loaded files carry short
+rules, triggers, and pointers to longer references. A pointer needs enough
+information for the agent to decide when to follow it.
+
+Implementer plans cite exact spec sections and file paths. Shared interfaces
+and fake ports let a worker build a component without first understanding every
+sibling component. Its searches, compiler errors, and abandoned approaches stay
+in its own session. The coordinator receives the resulting report.
+
+This can spend more tokens across the whole system. Separate sessions may read
+the same contracts and test instructions. The intended benefit is a smaller
+working context for each role. Total token usage and the context one agent must
+reason over are separate quantities.
+
+## Let code handle routine monitoring
+
+The watchdog and session monitor are Python processes. The watchdog handles
+usage-limit recovery and the coordinator's reset. The monitor checks worker
+status, transcript identity, context-growth budgets, and Git handoffs.
+
+The monitor returns events that need a coordinator decision, such as a report,
+a blocked session, or a budget threshold. It suppresses repeated reports of an
+unchanged condition. Small structured status records are the first view into a
+worker; terminal captures are available when those records need explaining.
+
+The wait must be registered with the coordinator's background-task mechanism
+so its completion wakes the agent. We had a budget event missed because the
+wait was started as an untracked background process. The worker continued past
+its intended stopping point. The execution instructions now specify how to
+start that wait so the coordinator receives its result.
+
+Before a clear, the coordinator stops that wait to avoid leaving a consumer
+whose output the next session won't receive. The monitor's state remains on
+disk, and recovery checks current conditions before starting another wait.
+
+## Keep build output on disk and preserve failure status
+
+The test helpers save complete logs and print a short success line. On failure,
+they print the process's exit code, the log path, and a bounded selection of
+error lines. The agent reads more of the log when that excerpt is insufficient.
+
+The plan instructions use this pattern:
+
+```bash
+(
+  mkdir -p target
+  if scripts/test > target/test.log 2>&1; then
+    rc=0
+  else
+    rc=$?
+  fi
+  tail -40 target/test.log || :
+  exit "$rc"
+)
+```
+
+The subshell returns the test's status even if `tail` succeeds. Shortening the
+output must preserve the distinction between a passing test and a successful
+command that merely displayed its log.
+
+## Bound the work as well as the context
+
+Plans generally target about 90,000 tokens of context growth. Workers are asked
+to stop for a partial report around 160,000, leaving room under an approximate
+180,000 budget to record their state. Sampling can overshoot these limits.
+
+The worker ledger accumulates growth across compactions that occur within a
+worker session. This is separate from the coordinator's default clear-and-recover
+procedure. The ledger measures growth from each segment's initial context;
+it measures neither current occupancy nor billed token usage. Startup size
+needs attention of its own.
+
+The watchdog's default coordinator threshold is 200,000 tokens of context,
+alongside earlier checkpoints at workflow boundaries. These numbers are working
+limits for this setup. They are not measured quality thresholds.
+
+A plan that outgrows its budget gets split. Task sizing includes expected
+output: a short UI spec can require many gallery variants, captures, and checks.
+The planning guidance limits a UI plan to roughly five components or 40 variants.
+Large milestones can be planned in passes against code already merged.
+
+## How this relates to other approaches
+
+Dex Horthy's
+[Advanced Context Engineering for Coding Agents](https://www.humanlayer.dev/blog/advanced-context-engineering)
+describes “frequent intentional compaction”: research, planning, and
+implementation connected by structured artifacts, with subagents keeping
+exploration out of the parent context. The fresh-context and artifact practices
+are closely related to this setup. Here, the coordinator's checkpoint and clear
+are driven by an external watchdog while other sessions remain active.
+
+Anthropic's
+[Effective harnesses for long-running agents](https://www.anthropic.com/research/effective-harnesses-for-long-running-agents)
+uses progress files, Git history, and incremental tasks to carry work across
+sessions. Its
+[Code execution with MCP](https://www.anthropic.com/research/code-execution-with-mcp)
+post describes filtering data and running control flow in code before returning
+results to the model. The monitor and log helpers apply that principle to a
+local development workflow.
+
+[Gas Town](https://github.com/gastownhall/gastown) is a closer architectural
+comparison: a coordinator, independently managed workers, persistent work
+tracking, supervision, and a merge queue. My setup is specific to one project,
+with three active workers at most and a coordinator that tests each merge before
+proceeding to the next.
+
+## What I still need to measure
+
+The runtime and checkpoint files are additional things to maintain. A missed
+event can leave a worker running too long. An incomplete checkpoint can force
+the next coordinator to rediscover a decision. Separate verification adds cost
+and can still share a mistaken assumption from the implementation plan.
+
+I haven't isolated the quality improvement from each choice. Useful measurements
+would include startup context, peak occupancy, recovery reads, total tokens per
+accepted plan, verifier rejection rate, and defects found after merge. The
+current ledger identifies oversized tasks, but it doesn't tell me whether a
+lower reset threshold would produce better code or simply more recovery work.

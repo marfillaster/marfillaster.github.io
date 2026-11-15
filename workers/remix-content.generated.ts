@@ -3,11 +3,11 @@
 import c0 from "../src/content/bdo-to-pagibig-refinancing.mdx";
 import c1 from "../src/content/chr-mikrotik-ipv6-failover-bgp-bfd.mdx";
 import c2 from "../src/content/chr-vps-ipv6-cgnat-mikrotik.mdx";
-import c3 from "../src/content/converge-gpon-sfp-stick-mikrotik.mdx";
-import c4 from "../src/content/encrypted-dns-stable-resolver-mikrotik.mdx";
-import c5 from "../src/content/full-report.md";
-import c6 from "../src/content/home-network-cgnat.mdx";
-import c7 from "../src/content/keeping-coding-agent-context-small.mdx";
+import c3 from "../src/content/clearing-agent-context-without-stopping-the-project.mdx";
+import c4 from "../src/content/converge-gpon-sfp-stick-mikrotik.mdx";
+import c5 from "../src/content/encrypted-dns-stable-resolver-mikrotik.mdx";
+import c6 from "../src/content/full-report.md";
+import c7 from "../src/content/home-network-cgnat.mdx";
 import c8 from "../src/content/mikrotik-ipv6-failover-bgp-bfd.mdx";
 import c9 from "../src/content/mikrotik-per-vlan-ipv6.mdx";
 import c10 from "../src/content/mikrotik-vlan-guest-iot.mdx";
@@ -27,11 +27,11 @@ export const CONTENT: ReadonlyArray<[string, string]> = [
   ["bdo-to-pagibig-refinancing.mdx", c0],
   ["chr-mikrotik-ipv6-failover-bgp-bfd.mdx", c1],
   ["chr-vps-ipv6-cgnat-mikrotik.mdx", c2],
-  ["converge-gpon-sfp-stick-mikrotik.mdx", c3],
-  ["encrypted-dns-stable-resolver-mikrotik.mdx", c4],
-  ["full-report.md", c5],
-  ["home-network-cgnat.mdx", c6],
-  ["keeping-coding-agent-context-small.mdx", c7],
+  ["clearing-agent-context-without-stopping-the-project.mdx", c3],
+  ["converge-gpon-sfp-stick-mikrotik.mdx", c4],
+  ["encrypted-dns-stable-resolver-mikrotik.mdx", c5],
+  ["full-report.md", c6],
+  ["home-network-cgnat.mdx", c7],
   ["mikrotik-ipv6-failover-bgp-bfd.mdx", c8],
   ["mikrotik-per-vlan-ipv6.mdx", c9],
   ["mikrotik-vlan-guest-iot.mdx", c10],

@@ -51,6 +51,7 @@ export const routes = route({
     // Pre-rename slug (6170e0d): 404ing instead of redirecting means Google
     // keeps re-crawling a dead end instead of folding signal into the live URL.
     vlanGuestIot: get("/lan-segmentation-vlans-mikrotik(/)"),
+    codingAgentContext: get("/keeping-coding-agent-context-small(/)"),
     // A post path without its trailing slash.
     post: get("/:slug(/:variant)"),
   },

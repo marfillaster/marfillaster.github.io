@@ -5,7 +5,7 @@ Remix 3 blog served by a Cloudflare Worker at https://blog.homestack.space/ — 
 Routes:
 
 - `/` — landing index
-- `/keeping-coding-agent-context-small/` — coding-agent context management field log
+- `/clearing-agent-context-without-stopping-the-project/` — coding-agent context management field log
 - `/mikrotik-home-network/` — MikroTik RB5009 home network build log
 - `/solar-report/` — residential 6.5 kWp solar performance case study (curated summary)
   - `/solar-report/full-report` — full markdown rendered as HTML
