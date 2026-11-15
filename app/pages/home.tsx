@@ -6,10 +6,10 @@ import type { MetaDescriptor } from "../head.ts";
 import { SiteShell } from "../components.tsx";
 import { defaultAuthor, defaultOgImage, defaultOgImageAlt } from "../site.ts";
 
-const title = "Home-lab build logs — MikroTik, solar, EV, home finance · marfillaster";
+const title = "Build logs — home lab, software, solar, EV, home finance · marfillaster";
 const siteName = "marfillaster · notes";
 const description =
-  "Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, plug-in EV running costs, and home-finance field logs — long-running experiments.";
+  "Build logs and case studies on home networking, software engineering and coding agents, residential solar and battery, plug-in EV running costs, and home finance.";
 const url = "https://blog.homestack.space/";
 
 // Gives Google a site name and an entity for the author; posts already carry
@@ -59,8 +59,8 @@ export function HomePage(handle: Handle<{ index: PostIndex }>) {
             marfillaster · notes
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            MikroTik RB5009, residential solar, plug-in EV, and home finance —
-            build logs and field notes.
+            Home networking, software engineering, residential solar, plug-in EV,
+            and home finance — build logs and field notes.
           </h1>
           <div className="mt-12 space-y-16">
             {sections.map((section) => {
@@ -120,7 +120,7 @@ export function HomePage(handle: Handle<{ index: PostIndex }>) {
             <p className="mt-3 text-sm text-muted-foreground">
               Based in Cavite, Philippines. These notes are personal build logs
               and case studies from long-running experiments at home — networking
-              behind residential CGNAT, residential solar and battery, and
+              behind residential CGNAT, software engineering, residential solar and battery, and
               whatever else turns into a project worth writing down.
             </p>
             <p className="mt-3 text-sm text-muted-foreground">

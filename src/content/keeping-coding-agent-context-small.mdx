@@ -1,0 +1,212 @@
+---
+feed: true
+href: "/keeping-coding-agent-context-small/"
+eyebrow: "Field log · 2026-11"
+title: "Keeping coding agent context small across a long project"
+description: >-
+  How I manage context in a coding-agent workflow: selective loading, fresh sessions,
+  durable handoffs, event-based monitoring, and build logs kept on disk.
+datePublished: "2026-11-15"
+dateModified: "2026-11-15"
+category: "Software Engineering"
+sectionBlurb: "Notes on coding agents, context management, and development workflows."
+sectionOrder: 4
+order: 1
+hero:
+  eyebrow: "Field log · Coding agents · Context management"
+  description: >-
+    The instructions, scripts, and handoffs I use to keep each agent's context
+    focused while a project continues across many sessions.
+seo:
+  schemaType: "BlogPosting"
+  keywords:
+    - "context engineering"
+    - "coding agents"
+    - "agent orchestration"
+    - "AgentKeep"
+series: false
+---
+
+I've been cutting down how much context my coding agents load before they start
+working. The recent changes were to my shared agent instructions, whose template
+is in [AgentKeep](https://github.com/marfillaster/agentkeep), and a project's
+`AGENTS.md`. The always-loaded files now carry short rules and pointers to detail
+that an agent reads when the task needs it.
+
+That got me looking at the rest of the setup. A smaller startup leaves more room,
+but every search result, build log, status check, and correction adds to the
+session. What enters the window during the work matters just as much.
+
+I'm building a distributed networking app with a coordinator that plans work,
+launches implementers, sends their work through verification, and merges it.
+The project continues across many sessions. The coordinator and workers need to
+recover their place without reading everything that happened before them.
+
+My concern is the quality of decisions as context grows. Anthropic's
+[context engineering article](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents)
+describes declining retrieval performance as context length increases, and treats
+context as a limited resource. I don't have a measured quality curve for this
+project or a token count at which every model starts making worse decisions.
+The workflow gives each session a bounded task and controls how much history it
+accumulates while doing it.
+
+## Give each session a bounded job
+
+The coordinator holds the plans,
+dependencies, decisions, and current project state. Implementers start in fresh
+sessions with a plan and their own Git worktree. A separate verifier checks the
+result against that plan.
+
+An implementer's searches, compiler errors, and abandoned approaches stay in
+its session. The coordinator receives a report tied to specific commits. The
+verifier reads the plan, the report, and the implementation, then runs the
+required checks.
+
+This can use more tokens across the whole system. Several sessions may read
+the same contracts or test instructions. The benefit is smaller working contexts
+for each role. Total token cost and the amount of context one agent must reason
+over are different quantities.
+
+## Load instructions with the task
+
+The coordinator has separate documents for
+planning, execution, and runtime procedures. Recovery instructions name the
+sections to read for the work currently in flight. Handling a completed
+implementation needs the handoff, verification, and merge rules. The procedure
+for splitting a failed plan is loaded when that happens.
+
+Implementer plans cite exact spec sections and file paths. A worker shouldn't
+have to reconstruct the project's requirements before it can change one
+component. Shared interfaces and fake ports also limit the amount of surrounding
+code it needs to understand.
+
+The routing files still need enough information to select the right reference.
+A short rule, its trigger, and a path are useful. A list of unexplained paths
+would leave the agent guessing what it needs to open.
+
+## Run routine monitoring in code
+
+The session monitor checks worker state,
+transcript identity, context-growth budgets, and Git handoffs. It returns events
+that need a coordinator decision, such as a completed report, a blocked worker,
+or a budget threshold. An unchanged condition is reported once until it changes.
+
+The coordinator can wait on that process while workers run. It doesn't need a
+new model turn for every status check. Small structured status records are the
+first view into a worker; terminal captures are available when a status needs
+explaining.
+
+The monitor also has to be connected to the coordinator's wake-up mechanism.
+We had a budget event missed because the wait was started as an untracked
+background process. The worker continued past its intended stopping point.
+The execution instructions now specify how to start that wait so its result
+reaches the coordinator.
+
+## Keep build output on disk
+
+The test helpers save complete logs and print a
+short success line. On failure, they print the process's exit code, the log path,
+and a bounded selection of error lines. The agent can read more of the log when
+the first excerpt doesn't explain the failure.
+
+The exit status has to survive that filtering. This is the pattern in the plan
+instructions:
+
+```bash
+(
+  mkdir -p target
+  if scripts/test > target/test.log 2>&1; then
+    rc=0
+  else
+    rc=$?
+  fi
+  tail -40 target/test.log || :
+  exit "$rc"
+)
+```
+
+The subshell returns the test's status even if `tail` succeeds. A failed test
+must remain a failed test when its output is shortened. The full log remains
+available for diagnosis, outside the conversation.
+
+## Write handoffs another session can use
+
+A worker report records
+its run ID and implementation commit, each acceptance criterion's status, test
+commands and exit codes, changed files, deviations, and unresolved issues.
+The implementation and report are separate commits.
+
+That lets the coordinator identify what the report describes. Verification is
+also tied to a particular implementation commit. A later code change requires
+another verification; an old PASS cannot cover it.
+
+The tracker holds the active milestone and a current "Resume here" note.
+Completed milestones and superseded notes move into an archive. Detailed
+machine records stay in the monitor's state file, with the relevant checkpoints
+copied into the tracker at handoffs.
+
+These files need maintenance. If old decisions remain beside their replacements
+without a clear status, a fresh session inherits ambiguity. Archiving completed
+work and replacing the recovery note are part of the checkpoint procedure.
+
+## Reset at workflow boundaries
+
+Planning loads specs, explores options,
+and produces decisions. Before execution starts, those decisions and plans are
+written to disk and the coordinator clears its context. Recovery loads the
+instructions and state needed for execution.
+
+There are further checkpoints after several merges or a long stretch of
+handoffs. Before clearing, the coordinator lets its own running tests finish,
+records their results, updates the recovery note, and stops its monitor wait.
+Worker sessions in their own windows continue. The next coordinator reads the
+monitor's persisted state and starts a new wait.
+
+A reset has a cost: the next session must read enough to resume. Selective
+recovery reads and a small active tracker keep that cost manageable.
+
+## Split work that outgrows its budget
+
+Plans generally target about 90,000
+tokens of context growth. Workers are asked to stop for a partial report at
+roughly 160,000, leaving room under the approximate 180,000 budget to record
+their state. These are working limits for this setup, with sampling that can
+overshoot.
+
+The worker ledger accumulates growth across compactions. It is separate from
+current context occupancy and from billed token usage; initial context is the
+baseline for each segment. Startup size therefore needs attention of its own.
+The coordinator has a separate default checkpoint trigger at 200,000 tokens of
+context, alongside the earlier checkpoints at workflow boundaries. None of
+these numbers is a demonstrated quality threshold.
+
+Task sizing also accounts for expected output. A short UI spec can require many
+components, gallery variants, exports, and checks. The planning guidance limits
+a UI plan to roughly five components or 40 variants. Large milestones can be
+planned in passes against the code already merged, so later plans don't depend
+on a large set of assumptions made at the start.
+
+## Related approaches
+
+Dex Horthy's
+[Advanced Context Engineering for Coding Agents](https://www.humanlayer.dev/blog/advanced-context-engineering)
+calls the approach "frequent intentional compaction" and describes research,
+planning, and implementation connected by structured artifacts. It also treats
+subagents as a way to keep exploration out of the parent context.
+
+Anthropic's
+[Effective harnesses for long-running agents](https://www.anthropic.com/research/effective-harnesses-for-long-running-agents)
+uses progress files, Git history, and incremental tasks to carry work between
+fresh sessions. Its
+[Code execution with MCP](https://www.anthropic.com/research/code-execution-with-mcp)
+post describes filtering data and running control flow in code before returning
+results to the model. The monitor and logging scripts here apply that same
+principle to a local development workflow.
+
+## What I still need to measure
+
+I haven't isolated the quality improvement from each choice. The next useful
+measurement would track startup context, peak occupancy, recovery reads, and
+rework per completed plan. The current growth ledger helps identify oversized
+tasks, but it doesn't tell me whether a lower checkpoint threshold would produce
+better code or just more recovery work.

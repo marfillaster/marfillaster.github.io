@@ -51,7 +51,7 @@ export function buildRssXml(feedItems: PostMeta[]): string {
   <channel>
     <title>marfillaster · notes</title>
     <link>${siteUrl}/</link>
-    <description>Build logs and case studies on MikroTik RB5009 home networking behind residential CGNAT, residential solar and battery, and plug-in EV running costs.</description>
+    <description>Build logs and case studies on home networking, software engineering and coding agents, residential solar and battery, plug-in EV running costs, and home finance.</description>
     <language>en</language>
     <lastBuildDate>${toRssDate(latestDate)}</lastBuildDate>
     <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
