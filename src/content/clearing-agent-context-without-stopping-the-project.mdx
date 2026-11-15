@@ -94,15 +94,22 @@ The sequence is:
    the current milestone, work in flight, open issues, and next actions in the
    tracker's “Resume here” note and commits the state needed for recovery.
 3. The coordinator finishes its own running builds or tests and records their
-   results. It stops its monitor wait, then ends its turn with the expected
-   checkpoint acknowledgment.
-4. The watchdog waits for the completed turn and quiet transcript, then sends
-   `/clear` through the multiplexer.
+   results. It stops its monitor wait and commits the final checkpoint, then
+   ends its turn with the exact phrase
+   `Ready for /clear: the coordinator checkpoint is committed.` on a line by
+   itself.
+4. The watchdog recognizes that phrase as `CLEAR_REQUEST`. Once the turn has
+   ended and the transcript has been quiet for at least 30 seconds, it sends
+   `/clear` through the multiplexer, followed by Enter.
 5. It detects the new session identity in the same block, updates its tracking,
    and sends a bootstrap message directing the new coordinator to the recovery
    instructions and tracker.
 6. The coordinator reads the applicable instructions and current state, checks
    the watchdog and monitor, and starts a new monitor wait.
+
+The phrase is the coordinator's acknowledgment that it is ready to clear. The
+watchdog does not independently check whether the checkpoint was committed;
+the coordinator is responsible for completing that step before emitting it.
 
 The workers' terminal sessions are independent of this sequence. They can keep
 implementing or finish their reports while the coordinator recovers. Acceptance
