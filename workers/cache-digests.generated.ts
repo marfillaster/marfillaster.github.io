@@ -7,9 +7,9 @@ export const BUILD_DIGEST = "d8db2382d7d7b26d";
 
 /** Rendered document paths → digest of everything that page renders from. */
 export const PATH_DIGESTS: Readonly<Record<string, string>> = {
-  "/": "a023bad077ad3042",
+  "/": "e11fd6486007d1af",
   "/bdo-to-pagibig-refinancing/": "d843013a3214a632",
-  "/clearing-agent-context-without-stopping-the-project/": "24861a240f6c0f1f",
+  "/clearing-agent-context-without-stopping-the-project/": "803358b04515b2d5",
   "/converge-gpon-sfp-stick-mikrotik/": "16801c92aabb463e",
   "/encrypted-dns-stable-resolver-mikrotik/": "a1b81d0ad0a2e934",
   "/mikrotik-home-network/": "0d3eefb535f22f93",
@@ -23,8 +23,8 @@ export const PATH_DIGESTS: Readonly<Record<string, string>> = {
   "/nev-mileage/": "ff0bebc58d76abed",
   "/nev-mileage/full-report": "ed555476e20530db",
   "/route64-ipv6-cgnat-mikrotik/": "a8948e03df1bff59",
-  "/rss.xml": "a023bad077ad3042",
-  "/sitemap.xml": "a023bad077ad3042",
+  "/rss.xml": "e11fd6486007d1af",
+  "/sitemap.xml": "e11fd6486007d1af",
   "/solar-application-lancaster/": "adb68e503a84dff7",
   "/solar-report/": "deb2340e7a8699d0",
   "/solar-report/full-report": "3cf8213bb7163eb0",
