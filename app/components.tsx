@@ -48,15 +48,6 @@ export function SiteShell(handle: Handle<{ children?: RemixNode }>) {
             </a>{" "}
             ·{" "}
             <a
-              href="https://as197291.homestack.space/"
-              className="hover:text-foreground hover:underline underline-offset-4"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              AS197291
-            </a>{" "}
-            ·{" "}
-            <a
               href="/rss.xml"
               className="hover:text-foreground hover:underline underline-offset-4"
             >
