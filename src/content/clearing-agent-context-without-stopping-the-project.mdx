@@ -7,7 +7,7 @@ description: >-
   How a terminal multiplexer, an external watchdog, and committed checkpoints let
   my coding coordinator clear its context while worker sessions keep running.
 datePublished: "2026-11-15"
-dateModified: "2026-11-16"
+dateModified: "2026-11-25"
 category: "Software Engineering"
 sectionBlurb: "Notes on coding agents, context management, and development workflows."
 sectionOrder: 4
@@ -39,6 +39,11 @@ launches implementers, sends their results
 through verification, and merges completed plans. Its conversation can be
 replaced because the information needed to continue lives in plans, reports,
 Git history, a tracker, and the runtime's persisted session records.
+
+The follow-up,
+[A long-horizon coding harness across vendors, quotas and context limits](/long-horizon-agent-harness-on-rationed-quotas/),
+covers the rest of the harness: planning, the split across vendors, quota
+handling, context budgets and verification.
 
 I recently reduced the instructions loaded at startup, both in the project's
 `AGENTS.md` and in my shared agent context. The reusable template is in

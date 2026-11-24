@@ -6,6 +6,7 @@ Routes:
 
 - `/` — landing index
 - `/clearing-agent-context-without-stopping-the-project/` — coding-agent context management field log
+- `/long-horizon-agent-harness-on-rationed-quotas/` — multi-vendor coding-agent harness: planning, quotas, context budgets, verification
 - `/mikrotik-home-network/` — MikroTik RB5009 home network build log
 - `/solar-report/` — residential 6.5 kWp solar performance case study (curated summary)
   - `/solar-report/full-report` — full markdown rendered as HTML
