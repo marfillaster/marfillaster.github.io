@@ -240,14 +240,20 @@ assert.deepEqual(
   planPurge(withPaths({ "/retired-post/": "x" }), current),
   { pathPrefixes: ["/retired-post"] },
 );
-// A frontmatter edit moves the index pages. RSS and the sitemap purge by
-// prefix; `/` is left to its short TTL, since its prefix is every path.
+// A frontmatter edit (a post added or removed, a date or title changed) moves
+// the index pages. `/` lists the posts and its prefix is every path, so the
+// only purge that reaches it is everything.
 const indexEdit = planPurge(
   withPaths({ "/": "old", "/rss.xml": "old", "/sitemap.xml": "old" }),
   current,
 );
-assert.deepEqual(indexEdit, { pathPrefixes: ["/rss.xml", "/sitemap.xml"] });
-assert.equal(planPurge(withPaths({ "/": "old" }), current), null);
+assert.deepEqual(indexEdit, { purgeEverything: true });
+assert.deepEqual(planPurge(withPaths({ "/": "old" }), current), { purgeEverything: true });
+// A new post moves the index digest too, so it takes `/` with it.
+assert.deepEqual(
+  planPurge({ build: current.build, paths: { ...withoutPost, "/": "old" } }, current),
+  { purgeEverything: true },
+);
 // Past Cloudflare's 30-prefix limit, purge everything.
 const manyChanged = Object.fromEntries(
   Array.from({ length: 31 }, (_, i) => [`/gone-${i}-post/`, "x"]),

@@ -36,7 +36,9 @@ export const DOCUMENT_CDN_CACHE_CONTROL =
 
 // The homepage can't be purged on its own: purges go by path prefix, and `/`
 // prefixes every path. It changes only when a post's title, date or
-// description does, so five minutes at the edge stands in for the purge.
+// description does, and then the deploy reconcile purges everything
+// (workers/cache-reconcile.ts). Five minutes at the edge backstops a
+// reconcile that hasn't run yet.
 const HOME_CACHE_CONTROL =
   "public, max-age=60, s-maxage=300, stale-while-revalidate=86400, stale-if-error=86400";
 const HOME_CDN_CACHE_CONTROL =

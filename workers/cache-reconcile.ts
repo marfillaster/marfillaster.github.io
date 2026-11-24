@@ -15,8 +15,11 @@
 //     serves, so this one is never optional.
 //   - A content change moves only the pages that render it: purge those, plus
 //     any path that appeared (a cached 404) or disappeared.
-//   - `/` is never purged by prefix, which would be the whole site; it has a
-//     short edge TTL instead (app/http-caching.ts).
+//   - `/` can't be purged on its own: its prefix is every path. It renders
+//     the post list (titles, descriptions, dates, order), so its digest is the
+//     index digest. When that moves (a post added, removed or redated), purge
+//     everything; otherwise `/` waits for its short edge TTL
+//     (app/http-caching.ts), which also backstops a missed reconcile.
 //
 // Nothing depends on the post-deploy call succeeding. The gateway runs this
 // before the first request each isolate serves, the hourly cron runs it, and
@@ -35,8 +38,8 @@ const STATE_KEY = "cache:reconciled";
 /** Cloudflare accepts at most 30 prefixes in one purge. */
 const MAX_PREFIXES = 30;
 
-/** Purged by TTL rather than prefix: a prefix of `/` matches every path. */
-const TTL_ONLY_PATHS = new Set(["/"]);
+/** Never purged by prefix: a prefix of `/` matches every path. */
+const HOME_PATH = "/";
 
 /**
  * In-flight requests on the previous version can store its render after the
@@ -84,6 +87,12 @@ export function planPurge(stored: Digests | null, current: Digests): PurgeOption
   if (!stored || stored.build !== current.build) {
     return { purgeEverything: true };
   }
+  // The post list changed. `/` lists it and can only go with everything else;
+  // the other pages re-render once and keep their ETags, so browsers still
+  // revalidate them with a 304.
+  if (stored.paths[HOME_PATH] !== current.paths[HOME_PATH]) {
+    return { purgeEverything: true };
+  }
 
   const changed = new Set<string>();
   for (const [path, digest] of Object.entries(current.paths)) {
@@ -97,7 +106,7 @@ export function planPurge(stored: Digests | null, current: Digests): PurgeOption
   // from before it existed) goes with `/post/`. Variants under a post share
   // its prefix; purging them too costs a re-render, nothing more.
   const prefixes = [...changed]
-    .filter((path) => !TTL_ONLY_PATHS.has(path))
+    .filter((path) => path !== HOME_PATH)
     .map((path) => path.replace(/\/$/, ""))
     .sort();
   const minimal = prefixes.filter(
