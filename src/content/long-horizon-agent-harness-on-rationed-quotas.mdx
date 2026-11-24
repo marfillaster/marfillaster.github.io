@@ -1,0 +1,357 @@
+---
+feed: true
+href: "/long-horizon-agent-harness-on-rationed-quotas/"
+eyebrow: "Field log · 2026-11"
+title: "A long-horizon coding harness across vendors, quotas and context limits"
+description: >-
+  Building a peer-to-peer mobile app with replicated state machines took more
+  than one agent, one vendor or one context window. This is the harness that
+  plans, implements, verifies and merges it on fixed subscriptions.
+datePublished: "2026-11-25"
+dateModified: "2026-11-25"
+category: "Software Engineering"
+sectionBlurb: "Notes on coding agents, context management, and development workflows."
+sectionOrder: 4
+order: 2
+hero:
+  eyebrow: "Field log · Coding agents · Usage quotas"
+  description: >-
+    A coordinator, planners, implementers and verifiers on Claude, Codex and
+    Gemini, scheduled around weekly quotas and bounded context, building one
+    app over many days.
+seo:
+  schemaType: "BlogPosting"
+  keywords:
+    - "coding agents"
+    - "agent orchestration"
+    - "long-horizon agents"
+    - "usage limits"
+    - "context engineering"
+series: false
+---
+
+The app I'm building with coding agents cannot be produced in one session. Its
+specification is about 88,000 words. Fourteen days after the spec's first
+commit, the repository holds about 170,000 lines of Rust and Swift, 218 merged
+units of work and roughly 3,000 commits. Recorded context growth across all
+agent sessions is about 93 million tokens. No single context window holds
+that.
+
+The work runs through a harness: a coordinator that plans and merges, worker
+sessions that plan, implement and verify individual pieces, and a set of
+scripts that track quotas, context and handoffs. Workers run on three vendors'
+command-line agents, on fixed subscriptions with weekly allowances. The
+[previous post](/clearing-agent-context-without-stopping-the-project/) covers
+how the coordinator clears its own context without stopping the workers; this
+one assumes that mechanism.
+
+## The app
+
+The app is a peer-to-peer mobile app. Users' phones own the application state.
+Servers relay packets, index discoverable records and answer searches, but they
+never hold the authoritative copy of anything a user does.
+
+That choice moves the hard parts onto the phones. Each shared record has one
+writer phone, which holds the record and its event log, and follower phones,
+which hold the latest snapshot they received plus their own pending intents.
+A follower never edits the record. It sends an intent; the writer's state
+machine accepts or rejects it and publishes a new snapshot. Delivery goes
+through a durable outbox with acknowledgements, retries and a reconcile step
+for when a phone comes back after hours offline, changes network, or restores
+onto a new device.
+
+Three linked lifecycle state machines sit underneath, with timers, capacity
+rules, consent steps and terminal states that both sides must agree on
+eventually. The spec lists invariants that have to hold after any interleaving
+of messages, crashes and reconnects. A test that passes with one phone proves
+little: most behaviour needs two phones exchanging messages over a link that
+drops.
+
+The stack is a Rust core shared by everything, a SwiftUI app on iOS, and Rust
+servers. The test suite runs the core headless, then drives two iOS Simulator
+phones against local servers, then exports every screen variant into a gallery
+that is compared against baseline images.
+
+## Why one session cannot build it
+
+The spec alone is roughly 120,000 tokens. A worker that implements one small
+piece reads the relevant spec sections, the code it touches, the shared
+contracts, and its test output. Implementer sessions recorded about 21 million
+tokens of context growth in total, across 240 recorded implementation
+sessions: an average near 90,000 per session, with a session budget of
+500,000. Each of
+those sessions starts from a plan, not from the spec.
+
+The weekly quotas are smaller than the work. Codex reset on 23 November at
+about 12:40; by 14:12 it showed 12% of the week used, and by 04:40 the next
+morning it was at 97%, the launch cutoff, with six days left before the next
+reset. That was one implementer and verifier slot of three, plus some
+planning.
+
+A single long session would also carry every abandoned approach, compiler error
+and log excerpt into every later decision. The previous post covers why I keep
+working contexts small: each session holds the task in front of it and little
+else.
+
+## Spec, milestones, waves, plans
+
+The spec came first and is committed alongside the code. It defines the
+components, the contracts between them, the state machines and their
+invariants, the test strategy, a decisions table, and the work packages with
+their dependencies. A browser mock of the UI flows serves as an executable
+reference for screen behaviour.
+
+Work packages group into milestones. The first milestone built foundations:
+contracts, the test runner, Simulator tooling. The second built a vertical
+slice on fakes: the full app against in-process fake servers. The third, in
+progress, puts two Simulator phones on real local servers and the real
+transport. After it come background and push behaviour, a field-test
+milestone, the servers on real hosts, and then TestFlight.
+
+Each milestone splits into waves. Plans inside a wave must be implementable in
+any order and in parallel; waves run in sequence. A plan names its files, its
+acceptance criteria with exact commands, the spec sections it relies on, and an
+estimated token cost. An implementer knows only its plan and the repository's
+`AGENTS.md`. It has not read the spec, the tracker, or any other plan.
+
+Plans get large enough to be worth a session and small enough to finish in one.
+The estimate ceiling was 90,000 tokens at the start, moved to 250,000, and has
+been 300,000 since 22 November. A plan that runs out of budget is treated as a
+planning failure and split, not retried as-is. Fifteen units have more than one
+implementation session in the log, counting relaunches and continuations; the
+most is four.
+
+## Planners build a prototype
+
+Until 19 November the coordinator wrote every plan itself. Since then planning
+has been a separate session from coordination. The coordinator writes an
+assignment: which work package, which spec sections, what has merged, what
+earlier plans assumed. A planner session reads the spec sections and the
+current code, writes the plan, and builds a prototype branch that proves the
+plan compiles and its acceptance commands pass (a requirement since 23
+November). It returns open questions with
+a recommended answer for each. The coordinator rules on them, often with a
+second model's review, and lands the plan.
+
+The implementer then works from the plan with the prototype branch as a
+starting point. That moves most of the design risk into the planner session,
+which is where the tokens go: a planner on a full plan has spent between
+300,000 and 435,000 tokens of context growth.
+
+| Role | Context growth | Share |
+| --- | --- | --- |
+| Planners | 30.3M | 33% |
+| Coordinator | 23.0M | 25% |
+| Implementers and fixers | 21.5M | 23% |
+| Verifiers | 16.8M | 18% |
+| Milestone acceptance | 1.0M | 1% |
+
+These figures are context growth: for each session, the peak context minus its
+starting context, summed across compactions. They are not billed tokens. Every
+turn re-reads its context, so billed usage is far higher, and cached reads are
+priced differently per vendor. Writing code is less than a quarter of the
+measured work. Deciding what to write, and checking it, is most of it.
+
+The coordinator figure covers 103 coordinator sessions since 14 November, one
+per clear, and includes the planning the coordinator did itself before 19
+November.
+
+## Roles and vendors
+
+| Role | Runs on (as of 25 November) | Notes |
+| --- | --- | --- |
+| Coordinator | Claude Opus 5.5 in Claude Code | Plans the project, rules on questions, merges, tracks |
+| Planner | Gemini 4 Argon high in Antigravity CLI | Fallbacks: Claude Opus 5.5 or Gemini 4 Neon inside Antigravity, or Codex |
+| Implementer, fixer | Codex (GPT 6.1 Terra, on trial) or Gemini 4 Neon | One slot is kept on Antigravity when work exists |
+| Verifier | Codex or Gemini 4 Neon | Always a fresh session, never the implementer's |
+
+The assignment of models to roles has changed several times in two weeks.
+Most changes came from quota. Two were quality calls: Opus for planning on 23
+November, and Argon for planning on 24 November.
+Claude implemented and verified alongside Codex at first. On 23 November Claude
+became coordinator-only, because the weekly Claude allowance would not last to
+its reset with workers on it. Codex and Antigravity took the workers. When the Opus quota
+inside Antigravity ran out, planners moved to Neon; when Neon's weekly quota
+ran out, they moved to Argon.
+
+Four sessions run at most: normally three workers and one planner.
+
+## Vendor-agnostic where it matters
+
+The parts that cross vendors are files and Git. Every session, whatever the
+vendor, reads the same `AGENTS.md` and works from a plan file in its own Git
+worktree. It writes a report with a fixed shape: run ID, implementation commit,
+each acceptance criterion with its command and exit code, changed files,
+deviations and open issues. The implementation and the report are separate
+commits. A verifier on another vendor checks that report against the same plan.
+A plan implemented on Codex can be verified on Gemini, and a stalled Gemini
+session can be finished by Codex in the same worktree.
+
+The runtime under that is per-vendor. Each CLI needs its own adapter:
+
+- **Launch.** Claude Code, Codex and Antigravity take different flags for
+  model, effort, permissions and workspace trust. Each role has a small launch
+  script per vendor.
+- **Transcript.** The monitor reads each session's transcript to measure
+  context and detect handoffs. Claude writes JSONL per session ID. Codex writes
+  a rollout file that has to be matched to the run by its first message, cwd
+  and launch time, never by age. Antigravity keeps a conversation per
+  workspace. Each has a locator script that pins the exact file at launch.
+- **Context size.** Each format reports usage differently: input plus cache
+  creation plus cache reads for Claude, with advisor calls excluded; input plus
+  cache reads per response step for Antigravity; the last token usage record
+  for Codex.
+- **Limits.** Claude and Codex report their usage windows, so a script reads
+  percentages and reset times. Antigravity reports nothing until a session
+  stops with a quota message on screen. The monitor matches that text, which
+  means a message I send that contains the word "quota" can raise a false
+  alarm.
+- **Input.** Codex ignores Enter while a turn is running; text has to be
+  queued with Tab or the turn interrupted. Antigravity can hold a line in a
+  queue until a specific key delivers it. A long message pasted into Claude
+  Code can arrive truncated, so long instructions go into a file and the
+  session gets a one-line pointer.
+
+All of this sits on a terminal multiplexer (Rex) that gives every session a
+window, a status, and an identity that survives the conversation inside it.
+That is the common layer the adapters plug into.
+
+## Quota awareness
+
+The watchdog from the previous post reads the Claude and Codex usage windows
+from each vendor's own usage records, so a reading is only as fresh as the last
+session that reported it. The coordinator
+checks them before every launch against cutoffs: no new Claude session above
+70% of the five-hour window or 97% of the weekly one; no new Codex session at
+97% of either window. A session that hits a limit mid-task is not a failed
+attempt. The watchdog types a continue message two minutes after the reset and
+the session picks up from its own context.
+
+Antigravity has no usage window to read; the session monitor watches its
+sessions instead. Its quotas had to be found by running into them. On 23 and 24
+November, quota stops showed that each model has its own allowance, that some
+models share one (Neon with Hydrogen, Opus with Sonnet), that the Opus and Neon
+allowances inside Antigravity are weekly, and that Argon runs on a short rolling
+window that has carried between 550,000 and 800,000 tokens of combined planner
+context growth before stopping for three to four hours. One-word headless
+probes now check which models answer before a launch. A session stopped by a
+quota keeps its context, and its model can be switched in place, so a planner
+that stops on one model can continue on another without losing its work.
+
+When no eligible launcher has room, the coordinator stops launching,
+checkpoints, schedules its own wake for the earliest useful reset, and ends its
+turn. A small JSON file lists which launcher may take which role and when each
+quota resets. A terminal panel displays it as a schedule grid.
+
+As I write this, the fourth wave of the third milestone is planned, prototyped
+and waiting. Codex is at 97% of its week until 30 November. Neon and Hydrogen
+are out until 29 November. Opus and Sonnet inside Antigravity are out until 30
+November. Claude has room, but it is reserved for the coordinator. Argon has
+room, but it is reserved for planning. Nothing is broken: every quota my rules
+allow an implementer to use is spent, and whether Argon may implement until
+Neon returns is a ruling waiting on me.
+
+## Context awareness
+
+Every worker has a context budget, enforced by the monitor and not by the
+vendor. Implementers and fixers stop at 500,000 tokens of accumulated context
+growth and write a partial report; planners and verifiers stop at 400,000. The
+monitor reads each pinned transcript incrementally and raises a budget event
+when a session crosses its limit.
+
+These numbers have moved since the previous post. Worker budgets were 180,000
+then; they rose on 21 and 22 November along with plan size. The coordinator's
+checkpoint threshold was 200,000; since 21 November the watchdog asks for a
+checkpoint at 500,000 and demands one at 700,000. None of these is a measured
+quality threshold.
+
+The coordinator's own reading is routed. The tracker's top file holds one
+recovery note, a status line per milestone and pointers; per-plan records,
+attempts, the backlog and open questions live in separate files read by
+`grep` for the plan IDs in flight. The coordinator instructions are split by
+task so recovery loads only what the work in flight needs. After a clear and
+recovery, the coordinator's context is about 67,000 tokens, Claude Code's own
+startup context included.
+
+## Verification is a separate session
+
+A verifier starts fresh, reads the plan and the report, checks out the
+implementation commit, runs the acceptance commands and reads the diff against
+the plan. Its verdict is a commit. A FAIL goes back to the implementer's session
+or to a fresh fixer with the verifier's findings; the fixed commit gets a new
+verification.
+
+Some failures it has caught:
+
+- A test that the plan required to cover two failure conditions exercised only
+  one. Runtime behaviour was correct; the test was not proving it.
+- Redaction in the diagnostics export clipped long log lines before matching
+  secrets, so a secret longer than the line limit leaked its first 64 bytes
+  into every export.
+- A plan stated a lookup was O(1); the implementation used an ordered map. The
+  code was fine and the plan was wrong. The coordinator corrected the plan and
+  the verifier re-checked that one finding.
+
+Other failures only appear when a wave's plans meet. Plans merge without a test
+run each; once a wave's last plan merges, one test run covers everything the
+wave changed. Before the fifth wave, an integration run of its prototypes
+failed because one prototype skipped a fixture step its own plan required, and
+the test selector skipped crates the prototype had not touched, so its own
+checks never ran them. Plans now name such tests explicitly.
+
+Some failures are in the harness. A Simulator device that had just been
+created returned an empty accessibility tree for its first test run and worked
+on the second. An HTTP test on `main` returns a transient 503 under load. Both
+became backlog items with a plan that owns the fix.
+
+## Simulators are a quota too
+
+Two phones need two Simulators, and Simulators are memory-hungry. Tests lease
+devices from a shared pool, boot them only for the stages that need them, and
+wait when the pool is busy. This Mac runs at most three test Simulators, the
+third gated on free memory and swap. A second Mac runs up to three more. Workers
+reach it only through the terminal multiplexer: the test script ships the
+checkout there, builds and runs the Simulator stages remotely, and pulls the
+results back. A stage
+group runs locally when a slot is free and on the second Mac otherwise.
+
+UI changes produce a gallery: every screen in every variant, exported as images
+and assembled into contact sheets, which a verifier can read. Approving a
+baseline is mine to do; the first gallery review is still pending. The other
+things the harness asks of me in person are logins, credits, hosts and
+launcher rulings.
+
+## What it costs to run
+
+The harness is a project of its own. The coordinator instructions are six
+files and about 27,000 words, including a history file for superseded rules.
+The watchdog, monitor, timeline and test helpers are about 5,000 lines of
+Python and shell, with per-vendor launch scripts beside them. Each vendor CLI release can change a flag, a transcript
+format or a key binding.
+
+Coordination is a quarter of the measured context growth. Some of that is
+unavoidable: someone has to read reports and decide. Some is the harness
+working around itself: re-reading routing files after a clear, recovering a
+session whose transcript could not be pinned, rechecking a monitor event that
+fired on stale on-screen text.
+
+Lessons from failures go into the assignments for later plans. A few that
+recur: give each test a hard deadline with a numeric cleanup budget; never let
+a planner change merged protocol timing as an "adjacent fix"; give exact
+wording for every new label, because a worker that finds wording left open
+stops and asks; and
+name tests the prototype did not touch, because the affected-test selector will
+skip them.
+
+## Status
+
+The first two milestones are done. The third has merged three of its waves,
+each followed by a passing test run and a push. Its fourth wave is waiting for
+an implementer quota to reset, and its fifth wave is planned behind it.
+Several milestones remain before TestFlight.
+
+What I'd still like to measure: billed tokens per merged unit by vendor,
+verifier rejection rate by vendor and role, defects found after merge, and
+whether the larger plans since 22 November cost less per unit than the small
+ones before. The timeline log records starts, merges and context growth per
+session, so most of that can be computed once the billing side is joined in.

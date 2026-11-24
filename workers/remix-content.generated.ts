@@ -8,20 +8,21 @@ import c4 from "../src/content/converge-gpon-sfp-stick-mikrotik.mdx";
 import c5 from "../src/content/encrypted-dns-stable-resolver-mikrotik.mdx";
 import c6 from "../src/content/full-report.md";
 import c7 from "../src/content/home-network-cgnat.mdx";
-import c8 from "../src/content/mikrotik-ipv6-failover-bgp-bfd.mdx";
-import c9 from "../src/content/mikrotik-per-vlan-ipv6.mdx";
-import c10 from "../src/content/mikrotik-vlan-guest-iot.mdx";
-import c11 from "../src/content/multi-homed-ipv6.mdx";
-import c12 from "../src/content/net-metering.mdx";
-import c13 from "../src/content/nev-full-report.md";
-import c14 from "../src/content/nev-mileage-summary.mdx";
-import c15 from "../src/content/route64-ipv6.mdx";
-import c16 from "../src/content/solar-application-lancaster.mdx";
-import c17 from "../src/content/solar-report-summary.mdx";
-import c18 from "../src/content/unifi-controller-routeros-containers-mikrotik.mdx";
-import c19 from "../src/content/vps-ipv6-cgnat-mikrotik.mdx";
-import c20 from "../src/content/vyos-mikrotik-ipv6-failover-bgp-bfd.mdx";
-import c21 from "../src/content/vyos-vps-ipv6-cgnat-mikrotik.mdx";
+import c8 from "../src/content/long-horizon-agent-harness-on-rationed-quotas.mdx";
+import c9 from "../src/content/mikrotik-ipv6-failover-bgp-bfd.mdx";
+import c10 from "../src/content/mikrotik-per-vlan-ipv6.mdx";
+import c11 from "../src/content/mikrotik-vlan-guest-iot.mdx";
+import c12 from "../src/content/multi-homed-ipv6.mdx";
+import c13 from "../src/content/net-metering.mdx";
+import c14 from "../src/content/nev-full-report.md";
+import c15 from "../src/content/nev-mileage-summary.mdx";
+import c16 from "../src/content/route64-ipv6.mdx";
+import c17 from "../src/content/solar-application-lancaster.mdx";
+import c18 from "../src/content/solar-report-summary.mdx";
+import c19 from "../src/content/unifi-controller-routeros-containers-mikrotik.mdx";
+import c20 from "../src/content/vps-ipv6-cgnat-mikrotik.mdx";
+import c21 from "../src/content/vyos-mikrotik-ipv6-failover-bgp-bfd.mdx";
+import c22 from "../src/content/vyos-vps-ipv6-cgnat-mikrotik.mdx";
 
 export const CONTENT: ReadonlyArray<[string, string]> = [
   ["bdo-to-pagibig-refinancing.mdx", c0],
@@ -32,18 +33,19 @@ export const CONTENT: ReadonlyArray<[string, string]> = [
   ["encrypted-dns-stable-resolver-mikrotik.mdx", c5],
   ["full-report.md", c6],
   ["home-network-cgnat.mdx", c7],
-  ["mikrotik-ipv6-failover-bgp-bfd.mdx", c8],
-  ["mikrotik-per-vlan-ipv6.mdx", c9],
-  ["mikrotik-vlan-guest-iot.mdx", c10],
-  ["multi-homed-ipv6.mdx", c11],
-  ["net-metering.mdx", c12],
-  ["nev-full-report.md", c13],
-  ["nev-mileage-summary.mdx", c14],
-  ["route64-ipv6.mdx", c15],
-  ["solar-application-lancaster.mdx", c16],
-  ["solar-report-summary.mdx", c17],
-  ["unifi-controller-routeros-containers-mikrotik.mdx", c18],
-  ["vps-ipv6-cgnat-mikrotik.mdx", c19],
-  ["vyos-mikrotik-ipv6-failover-bgp-bfd.mdx", c20],
-  ["vyos-vps-ipv6-cgnat-mikrotik.mdx", c21],
+  ["long-horizon-agent-harness-on-rationed-quotas.mdx", c8],
+  ["mikrotik-ipv6-failover-bgp-bfd.mdx", c9],
+  ["mikrotik-per-vlan-ipv6.mdx", c10],
+  ["mikrotik-vlan-guest-iot.mdx", c11],
+  ["multi-homed-ipv6.mdx", c12],
+  ["net-metering.mdx", c13],
+  ["nev-full-report.md", c14],
+  ["nev-mileage-summary.mdx", c15],
+  ["route64-ipv6.mdx", c16],
+  ["solar-application-lancaster.mdx", c17],
+  ["solar-report-summary.mdx", c18],
+  ["unifi-controller-routeros-containers-mikrotik.mdx", c19],
+  ["vps-ipv6-cgnat-mikrotik.mdx", c20],
+  ["vyos-mikrotik-ipv6-failover-bgp-bfd.mdx", c21],
+  ["vyos-vps-ipv6-cgnat-mikrotik.mdx", c22],
 ];
